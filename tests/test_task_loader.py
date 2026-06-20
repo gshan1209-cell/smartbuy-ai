@@ -2,14 +2,38 @@ import json
 
 import pytest
 
-from src.tasks.task_loader import filter_tasks, load_tasks
+from src.tasks.task_loader import (
+    TaskDataError,
+    filter_tasks,
+    get_task,
+    load_tasks,
+    sort_tasks,
+    summarize_tasks,
+    validate_tasks,
+)
 from src.tasks.task_status import update_task_status
 
 
 def test_project_tasks_are_valid():
     tasks = load_tasks()
     assert tasks
-    assert filter_tasks(tasks, status="等待測試")
+    assert filter_tasks(tasks, status="待認領")
+    assert get_task("TASK-T02", tasks)["module"] == "tasks"
+
+
+def test_filter_supports_query_and_priority():
+    tasks = load_tasks()
+    result = filter_tasks(tasks, priority="高", query="建立任務中心頁面")
+    assert [task["task_id"] for task in result] == ["TASK-T02"]
+
+
+def test_sort_and_summary():
+    tasks = load_tasks()
+    ordered = sort_tasks(reversed(tasks))
+    assert ordered[0]["priority"] == "高"
+    summary = summarize_tasks(tasks)
+    assert summary["total"] == len(tasks)
+    assert sum(summary["by_status"].values()) == len(tasks)
 
 
 def test_update_task_status(tmp_path):
@@ -23,3 +47,16 @@ def test_update_task_status(tmp_path):
 def test_invalid_status_is_rejected(tmp_path):
     with pytest.raises(ValueError):
         update_task_status("TASK-X", "亂碼", tmp_path / "tasks.json")
+
+
+def test_duplicate_task_id_is_rejected():
+    task = load_tasks()[0]
+    with pytest.raises(TaskDataError, match="重複"):
+        validate_tasks([task, task.copy()])
+
+
+def test_document_path_cannot_escape_project():
+    task = load_tasks()[0].copy()
+    task["dev_log"] = "../outside.md"
+    with pytest.raises(TaskDataError, match="相對路徑"):
+        validate_tasks([task])

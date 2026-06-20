@@ -7,8 +7,8 @@
 ## 本次修改
 
 - 新增 `data/tasks/tasks.json`。
-- 新增 `src/tasks/task_loader.py`，驗證必要欄位並提供篩選。
-- 新增 `src/tasks/task_status.py`，限制合法狀態後才更新。
+- 新增 `src/tasks/task_loader.py`，驗證必要欄位、重複 ID、狀態、優先度與文件路徑，並提供搜尋、篩選、排序與統計。
+- 新增 `src/tasks/task_status.py`，限制合法狀態並以暫存檔原子取代方式安全更新。
 - 新增 `tests/test_task_loader.py`。
 
 ## 設計理由
@@ -23,5 +23,4 @@ python -m pytest tests/test_task_loader.py -q
 
 ## 測試結果
 
-程式已完成，當前執行環境沒有可用的 Python 安裝，待有 Python 的環境執行驗證。
-
+2026-06-20 已在 Python 3.12 虛擬環境執行任務測試，全部通過。

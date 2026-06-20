@@ -2,14 +2,26 @@
   {
     "task_id": "TASK-F01",
     "title": "建立首頁 UI",
-    "status": "等待測試",
+    "status": "需要修改",
     "owner": "B UI/UX 設計",
     "worker_type": "人類 + AI Agent",
     "priority": "高",
     "module": "frontend",
-    "related_files": ["app/main.py", "app/home_view.py", "app/components/price_card.py", "app/components/alert_card.py", "app/components/solar_term_card.py"],
+    "related_files": [
+      "app/main.py",
+      "app/home_view.py",
+      "app/components/price_card.py",
+      "app/components/alert_card.py",
+      "app/components/solar_term_card.py"
+    ],
     "goal": "建立大字體、白話卡片式首頁。",
-    "done_definition": ["首頁可開啟", "顯示節氣提醒", "顯示天氣提醒", "顯示今日推薦", "手機版可閱讀"],
+    "done_definition": [
+      "首頁可開啟",
+      "顯示節氣提醒",
+      "顯示天氣提醒",
+      "顯示今日推薦",
+      "手機版可閱讀"
+    ],
     "dev_log": "docs/dev_logs/TASK-F01_log.md",
     "tutorial_doc": "docs/tutorials/TASK-F01_tutorial.md",
     "handoff_note": "docs/handoff/TASK-F01_handoff.md"
@@ -17,14 +29,22 @@
   {
     "task_id": "TASK-F03",
     "title": "建立菜價狀態分析",
-    "status": "等待測試",
+    "status": "待認領",
     "owner": "D 菜價分析",
     "worker_type": "AI Agent",
     "priority": "高",
     "module": "anomaly",
-    "related_files": ["src/anomaly/sigma_detector.py", "src/anomaly/price_status.py"],
+    "related_files": [
+      "src/anomaly/sigma_detector.py",
+      "src/anomaly/price_status.py"
+    ],
     "goal": "將近期行情轉為偏貴、正常、便宜或資料不足。",
-    "done_definition": ["可判斷價格狀態", "資料不足不當成正常", "前台文案不顯示統計術語", "有單元測試"],
+    "done_definition": [
+      "可判斷價格狀態",
+      "資料不足不當成正常",
+      "前台文案不顯示統計術語",
+      "有單元測試"
+    ],
     "dev_log": "docs/dev_logs/TASK-F03_log.md",
     "tutorial_doc": "docs/tutorials/TASK-F03_tutorial.md",
     "handoff_note": "docs/handoff/TASK-F03_handoff.md"
@@ -32,14 +52,23 @@
   {
     "task_id": "TASK-F04",
     "title": "建立產地天氣風險判斷",
-    "status": "等待測試",
+    "status": "待認領",
     "owner": "C 資料工程 / D 菜價分析",
     "worker_type": "AI Agent",
     "priority": "高",
     "module": "weather",
-    "related_files": ["src/weather/origin_weather_risk.py", "src/weather/typhoon_alert.py", "data/mapping/product_origin_mapping.csv"],
+    "related_files": [
+      "src/weather/origin_weather_risk.py",
+      "src/weather/typhoon_alert.py",
+      "data/mapping/product_origin_mapping.csv"
+    ],
     "goal": "依主要產地的降雨、豪雨與颱風狀況產生白話風險。",
-    "done_definition": ["可查主要產地", "可分四級風險", "缺資料時安全降級", "有單元測試"],
+    "done_definition": [
+      "可查主要產地",
+      "可分四級風險",
+      "缺資料時安全降級",
+      "有單元測試"
+    ],
     "dev_log": "docs/dev_logs/TASK-F04_log.md",
     "tutorial_doc": "docs/tutorials/TASK-F04_tutorial.md",
     "handoff_note": "docs/handoff/TASK-F04_handoff.md"
@@ -47,14 +76,22 @@
   {
     "task_id": "TASK-F10",
     "title": "建立搜尋菜價頁",
-    "status": "等待測試",
+    "status": "待認領",
     "owner": "B UI/UX / D 菜價分析",
     "worker_type": "AI Agent",
     "priority": "高",
     "module": "frontend",
-    "related_files": ["app/pages/02_price_search.py", "src/recommendation/purchase_advisor.py"],
+    "related_files": [
+      "app/pages/02_price_search.py",
+      "src/recommendation/purchase_advisor.py"
+    ],
     "goal": "搜尋品項並看到價格、天氣、節氣與替代品建議。",
-    "done_definition": ["可選擇品項", "顯示整合建議", "顯示替代品", "沒有技術術語"],
+    "done_definition": [
+      "可選擇品項",
+      "顯示整合建議",
+      "顯示替代品",
+      "沒有技術術語"
+    ],
     "dev_log": "docs/dev_logs/TASK-F10_log.md",
     "tutorial_doc": "docs/tutorials/TASK-F10_tutorial.md",
     "handoff_note": "docs/handoff/TASK-F10_handoff.md"
@@ -62,14 +99,22 @@
   {
     "task_id": "TASK-S03",
     "title": "建立今日節氣判斷函式",
-    "status": "等待測試",
+    "status": "待認領",
     "owner": "C 資料工程",
     "worker_type": "AI Agent",
     "priority": "高",
     "module": "calendar",
-    "related_files": ["src/calendar/solar_terms.py", "data/calendar/solar_terms.csv"],
+    "related_files": [
+      "src/calendar/solar_terms.py",
+      "data/calendar/solar_terms.csv"
+    ],
     "goal": "依日期顯示目前節氣、說明與推薦品項。",
-    "done_definition": ["涵蓋 24 節氣", "跨年判斷正確", "回傳白話提醒", "標示近似日期限制"],
+    "done_definition": [
+      "涵蓋 24 節氣",
+      "跨年判斷正確",
+      "回傳白話提醒",
+      "標示近似日期限制"
+    ],
     "dev_log": "docs/dev_logs/TASK-S03_log.md",
     "tutorial_doc": "docs/tutorials/TASK-S03_tutorial.md",
     "handoff_note": "docs/handoff/TASK-S03_handoff.md"
@@ -77,14 +122,23 @@
   {
     "task_id": "TASK-S07",
     "title": "節氣、菜價與天氣整合建議",
-    "status": "等待測試",
+    "status": "待認領",
     "owner": "E 推薦 / D 菜價分析",
     "worker_type": "AI Agent",
     "priority": "高",
     "module": "recommendation",
-    "related_files": ["src/recommendation/purchase_advisor.py", "src/recommendation/seasonal_recommender.py", "src/recommendation/alternative_recommender.py"],
+    "related_files": [
+      "src/recommendation/purchase_advisor.py",
+      "src/recommendation/seasonal_recommender.py",
+      "src/recommendation/alternative_recommender.py"
+    ],
     "goal": "把多種資料合成一句可行動的採買建議。",
-    "done_definition": ["偏貴時建議觀望", "高天氣風險時提醒少量購買", "可列出替代品", "資料不足時不武斷"],
+    "done_definition": [
+      "偏貴時建議觀望",
+      "高天氣風險時提醒少量購買",
+      "可列出替代品",
+      "資料不足時不武斷"
+    ],
     "dev_log": "docs/dev_logs/TASK-S07_log.md",
     "tutorial_doc": "docs/tutorials/TASK-S07_tutorial.md",
     "handoff_note": "docs/handoff/TASK-S07_handoff.md"
@@ -92,14 +146,22 @@
   {
     "task_id": "TASK-T01",
     "title": "建立 tasks.json 任務資料格式",
-    "status": "等待測試",
+    "status": "已完成",
     "owner": "A 組長",
     "worker_type": "AI Agent",
     "priority": "高",
     "module": "tasks",
-    "related_files": ["data/tasks/tasks.json", "src/tasks/task_loader.py"],
+    "related_files": [
+      "data/tasks/tasks.json",
+      "src/tasks/task_loader.py"
+    ],
     "goal": "提供可驗證、可篩選的任務資料。",
-    "done_definition": ["必要欄位齊全", "格式錯誤有清楚訊息", "可讀取任務列表", "可依條件篩選"],
+    "done_definition": [
+      "必要欄位齊全",
+      "格式錯誤有清楚訊息",
+      "可讀取任務列表",
+      "可依條件篩選"
+    ],
     "dev_log": "docs/dev_logs/TASK-T01_log.md",
     "tutorial_doc": "docs/tutorials/TASK-T01_tutorial.md",
     "handoff_note": "docs/handoff/TASK-T01_handoff.md"
@@ -107,16 +169,538 @@
   {
     "task_id": "TASK-T02",
     "title": "建立任務中心頁面",
-    "status": "等待測試",
+    "status": "已完成",
     "owner": "B UI/UX 設計",
     "worker_type": "AI Agent",
     "priority": "高",
     "module": "tasks",
-    "related_files": ["app/pages/99_task_dashboard.py", "app/components/task_card.py"],
+    "related_files": [
+      "app/pages/99_task_dashboard.py",
+      "app/components/task_card.py"
+    ],
     "goal": "讓小組可篩選任務並查看完成標準與交接文件。",
-    "done_definition": ["顯示任務列表", "可篩選狀態與負責人", "顯示任務詳情", "顯示文件路徑"],
+    "done_definition": [
+      "顯示任務列表",
+      "可篩選狀態與負責人",
+      "顯示任務詳情",
+      "顯示文件路徑"
+    ],
     "dev_log": "docs/dev_logs/TASK-T02_log.md",
     "tutorial_doc": "docs/tutorials/TASK-T02_tutorial.md",
     "handoff_note": "docs/handoff/TASK-T02_handoff.md"
+  },
+  {
+    "task_id": "TASK-F02",
+    "title": "建立農產品資料載入流程",
+    "status": "待認領",
+    "owner": "C 資料工程",
+    "worker_type": "人類 + AI Agent",
+    "priority": "高",
+    "module": "data",
+    "related_files": [
+      "src/data/data_loader.py",
+      "src/data/fetch_agri_prices.py",
+      "data/processed/market_prices.csv"
+    ],
+    "goal": "讀取示範行情並預留農業部 API 串接流程。",
+    "done_definition": [
+      "可讀取本機行情",
+      "欄位格式一致",
+      "API 失敗時可安全降級",
+      "標示資料更新時間"
+    ],
+    "dev_log": "docs/dev_logs/TASK-F02_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-F02_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-F02_handoff.md"
+  },
+  {
+    "task_id": "TASK-F05",
+    "title": "建立颱風與天災提醒",
+    "status": "待認領",
+    "owner": "C 資料工程 / D 菜價分析",
+    "worker_type": "AI Agent",
+    "priority": "中",
+    "module": "weather",
+    "related_files": [
+      "src/weather/typhoon_alert.py",
+      "app/pages/04_weather_alert.py"
+    ],
+    "goal": "以不鼓勵恐慌囤貨的方式呈現颱風與運輸風險。",
+    "done_definition": [
+      "可辨識颱風警示",
+      "顯示影響區域",
+      "提供 2 至 3 天理性備菜建議",
+      "無警示時不製造恐慌"
+    ],
+    "dev_log": "docs/dev_logs/TASK-F05_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-F05_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-F05_handoff.md"
+  },
+  {
+    "task_id": "TASK-F06",
+    "title": "建立便宜推薦",
+    "status": "待認領",
+    "owner": "E AI 推薦",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "recommendation",
+    "related_files": [
+      "src/recommendation/purchase_advisor.py",
+      "app/home_view.py"
+    ],
+    "goal": "優先列出價格便宜或正常且適合購買的品項。",
+    "done_definition": [
+      "便宜品項優先",
+      "偏貴品項不列為首選",
+      "資料不足時清楚標示",
+      "首頁可正常顯示"
+    ],
+    "dev_log": "docs/dev_logs/TASK-F06_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-F06_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-F06_handoff.md"
+  },
+  {
+    "task_id": "TASK-F07",
+    "title": "建立替代品推薦",
+    "status": "待認領",
+    "owner": "E AI 推薦",
+    "worker_type": "AI Agent",
+    "priority": "中",
+    "module": "recommendation",
+    "related_files": [
+      "src/recommendation/alternative_recommender.py",
+      "app/pages/02_price_search.py"
+    ],
+    "goal": "品項偏貴時提供同類且容易理解的替代選擇。",
+    "done_definition": [
+      "偏貴時顯示替代品",
+      "不推薦原品項",
+      "最多顯示三項",
+      "無替代資料時安全回傳空清單"
+    ],
+    "dev_log": "docs/dev_logs/TASK-F07_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-F07_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-F07_handoff.md"
+  },
+  {
+    "task_id": "TASK-F08",
+    "title": "建立買貴通報",
+    "status": "待認領",
+    "owner": "B UI/UX / C 資料工程",
+    "worker_type": "AI Agent",
+    "priority": "中",
+    "module": "reports",
+    "related_files": [
+      "app/pages/05_report_price.py",
+      "src/data/report_store.py",
+      "data/reports/price_reports.csv"
+    ],
+    "goal": "讓使用者提交價格與地點並與示範行情初步比較。",
+    "done_definition": [
+      "可提交有效通報",
+      "拒絕零或負價格",
+      "顯示行情差距分級",
+      "通報預設待確認"
+    ],
+    "dev_log": "docs/dev_logs/TASK-F08_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-F08_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-F08_handoff.md"
+  },
+  {
+    "task_id": "TASK-F09",
+    "title": "建立我的菜籃",
+    "status": "待認領",
+    "owner": "B UI/UX 設計",
+    "worker_type": "AI Agent",
+    "priority": "中",
+    "module": "frontend",
+    "related_files": [
+      "app/pages/06_my_basket.py"
+    ],
+    "goal": "以工作階段保存常買品項並顯示當日建議。",
+    "done_definition": [
+      "可加入與移除品項",
+      "本次瀏覽期間保留",
+      "空菜籃有提示",
+      "每個品項顯示採買建議"
+    ],
+    "dev_log": "docs/dev_logs/TASK-F09_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-F09_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-F09_handoff.md"
+  },
+  {
+    "task_id": "TASK-S01",
+    "title": "建立 24 節氣資料表",
+    "status": "待認領",
+    "owner": "C 資料工程",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "calendar",
+    "related_files": [
+      "data/calendar/solar_terms.csv"
+    ],
+    "goal": "提供完整 24 節氣的白話說明與採買提醒。",
+    "done_definition": [
+      "共 24 筆節氣",
+      "必要欄位齊全",
+      "月份日期可解析",
+      "文案避免醫療宣稱"
+    ],
+    "dev_log": "docs/dev_logs/TASK-S01_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-S01_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-S01_handoff.md"
+  },
+  {
+    "task_id": "TASK-S02",
+    "title": "建立節氣品項推薦表",
+    "status": "待認領",
+    "owner": "C 資料工程 / E AI 推薦",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "calendar",
+    "related_files": [
+      "data/calendar/seasonal_products.csv"
+    ],
+    "goal": "建立品項、適合節氣、料理與保存方式的對照資料。",
+    "done_definition": [
+      "品項可對應節氣",
+      "包含推薦理由",
+      "包含料理建議",
+      "包含保存提醒"
+    ],
+    "dev_log": "docs/dev_logs/TASK-S02_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-S02_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-S02_handoff.md"
+  },
+  {
+    "task_id": "TASK-S04",
+    "title": "建立節氣推薦邏輯",
+    "status": "待認領",
+    "owner": "E AI 推薦",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "recommendation",
+    "related_files": [
+      "src/recommendation/seasonal_recommender.py"
+    ],
+    "goal": "依目前節氣取得適合品項與生活化理由。",
+    "done_definition": [
+      "依節氣篩選品項",
+      "回傳推薦理由",
+      "回傳料理與保存方式",
+      "無資料時回傳空清單"
+    ],
+    "dev_log": "docs/dev_logs/TASK-S04_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-S04_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-S04_handoff.md"
+  },
+  {
+    "task_id": "TASK-S05",
+    "title": "建立首頁節氣提醒卡",
+    "status": "待認領",
+    "owner": "B UI/UX 設計",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "frontend",
+    "related_files": [
+      "app/components/solar_term_card.py",
+      "app/home_view.py"
+    ],
+    "goal": "在首頁用大字卡片顯示今日節氣與推薦品項。",
+    "done_definition": [
+      "顯示節氣名稱",
+      "顯示採買提醒",
+      "顯示推薦品項",
+      "手機版容易閱讀"
+    ],
+    "dev_log": "docs/dev_logs/TASK-S05_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-S05_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-S05_handoff.md"
+  },
+  {
+    "task_id": "TASK-S06",
+    "title": "建立節氣推薦頁",
+    "status": "待認領",
+    "owner": "B UI/UX 設計",
+    "worker_type": "AI Agent",
+    "priority": "中",
+    "module": "frontend",
+    "related_files": [
+      "app/pages/03_solar_term_guide.py"
+    ],
+    "goal": "集中呈現節氣知識、當季品項、料理與保存提醒。",
+    "done_definition": [
+      "顯示今日節氣",
+      "顯示當季品項",
+      "顯示料理建議",
+      "顯示資料限制"
+    ],
+    "dev_log": "docs/dev_logs/TASK-S06_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-S06_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-S06_handoff.md"
+  },
+  {
+    "task_id": "TASK-S08",
+    "title": "產生節氣功能教學文件",
+    "status": "待認領",
+    "owner": "F 測試 / 文件",
+    "worker_type": "人類 + AI Agent",
+    "priority": "高",
+    "module": "docs",
+    "related_files": [
+      "docs/tutorials/TASK-S08_tutorial.md",
+      "docs/dev_logs/TASK-S08_log.md",
+      "docs/handoff/TASK-S08_handoff.md"
+    ],
+    "goal": "用初學者看得懂的方式說明節氣資料與推薦流程。",
+    "done_definition": [
+      "說明資料來源",
+      "包含流程圖",
+      "說明限制",
+      "提供測試方式"
+    ],
+    "dev_log": "docs/dev_logs/TASK-S08_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-S08_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-S08_handoff.md"
+  },
+  {
+    "task_id": "TASK-T03",
+    "title": "建立任務讀取函式",
+    "status": "已完成",
+    "owner": "C 資料工程",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "tasks",
+    "related_files": [
+      "src/tasks/task_loader.py",
+      "tests/test_task_loader.py"
+    ],
+    "goal": "安全解析、驗證、查找與排序任務資料。",
+    "done_definition": [
+      "JSON 錯誤有行號",
+      "拒絕重複 ID",
+      "拒絕非法欄位值",
+      "可依 ID 取得任務"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T03_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T03_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T03_handoff.md"
+  },
+  {
+    "task_id": "TASK-T04",
+    "title": "建立任務篩選功能",
+    "status": "已完成",
+    "owner": "B UI/UX / C 資料工程",
+    "worker_type": "AI Agent",
+    "priority": "中",
+    "module": "tasks",
+    "related_files": [
+      "src/tasks/task_loader.py",
+      "app/pages/99_task_dashboard.py"
+    ],
+    "goal": "依關鍵字、狀態、優先度、負責人與模組組合篩選。",
+    "done_definition": [
+      "支援關鍵字",
+      "支援四種欄位篩選",
+      "可組合條件",
+      "無結果時有提示"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T04_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T04_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T04_handoff.md"
+  },
+  {
+    "task_id": "TASK-T05",
+    "title": "建立任務詳情卡",
+    "status": "已完成",
+    "owner": "B UI/UX 設計",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "tasks",
+    "related_files": [
+      "app/components/task_card.py",
+      "app/pages/99_task_dashboard.py"
+    ],
+    "goal": "清楚呈現任務狀態、目標、負責人、完成標準與相關檔案。",
+    "done_definition": [
+      "狀態有視覺標籤",
+      "顯示任務摘要",
+      "顯示完成標準",
+      "顯示檔案是否存在"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T05_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T05_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T05_handoff.md"
+  },
+  {
+    "task_id": "TASK-T06",
+    "title": "建立開發紀錄模板",
+    "status": "已完成",
+    "owner": "A 組長 / F 測試文件",
+    "worker_type": "人類 + AI Agent",
+    "priority": "高",
+    "module": "docs",
+    "related_files": [
+      "docs/templates/dev_log_template.md"
+    ],
+    "goal": "提供所有任務共用且可交接的開發紀錄模板。",
+    "done_definition": [
+      "包含任務目標",
+      "包含修改檔案",
+      "包含測試結果",
+      "包含下一步"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T06_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T06_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T06_handoff.md"
+  },
+  {
+    "task_id": "TASK-T07",
+    "title": "建立教學文件模板",
+    "status": "已完成",
+    "owner": "F 測試 / 文件",
+    "worker_type": "人類 + AI Agent",
+    "priority": "高",
+    "module": "docs",
+    "related_files": [
+      "docs/templates/tutorial_template.md"
+    ],
+    "goal": "建立適合程式初學者閱讀的功能教學模板。",
+    "done_definition": [
+      "白話說明功能",
+      "包含流程圖",
+      "包含測試步驟",
+      "包含預期結果"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T07_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T07_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T07_handoff.md"
+  },
+  {
+    "task_id": "TASK-T08",
+    "title": "建立交接摘要模板",
+    "status": "已完成",
+    "owner": "F 測試 / 文件",
+    "worker_type": "人類 + AI Agent",
+    "priority": "高",
+    "module": "docs",
+    "related_files": [
+      "docs/templates/handoff_template.md"
+    ],
+    "goal": "讓下一位開發者快速理解已完成、未完成與已知問題。",
+    "done_definition": [
+      "列出已完成",
+      "列出尚未完成",
+      "列出已知問題",
+      "提供測試指令"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T08_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T08_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T08_handoff.md"
+  },
+  {
+    "task_id": "TASK-T09",
+    "title": "建立 Agent 任務提示與讀取規則",
+    "status": "已完成",
+    "owner": "A 組長",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "tasks",
+    "related_files": [
+      "AGENT.md",
+      "AGENTS.md",
+      "README.md",
+      "src/tasks/agent_workflow.py",
+      "tests/test_agent_workflow.py",
+      "docs/templates/dev_log_template.md",
+      "docs/templates/tutorial_template.md",
+      "docs/templates/handoff_template.md"
+    ],
+    "goal": "確保不同 Agent 能用一致方式讀取、回報與交付任務。",
+    "done_definition": [
+      "列出必讀文件",
+      "提供兩種任務讀取方式",
+      "定義讀取成功回報",
+      "定義完成與異常處理"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T09_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T09_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T09_handoff.md"
+  },
+  {
+    "task_id": "TASK-T10",
+    "title": "任務中心測試",
+    "status": "已完成",
+    "owner": "F 測試 / 文件",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "tests",
+    "related_files": [
+      "tests/test_task_loader.py",
+      "app/pages/99_task_dashboard.py"
+    ],
+    "goal": "驗證任務資料、篩選、狀態更新與頁面載入。",
+    "done_definition": [
+      "資料驗證測試通過",
+      "篩選測試通過",
+      "狀態更新測試通過",
+      "Streamlit 頁面無例外"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T10_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T10_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T10_handoff.md"
+  },
+  {
+    "task_id": "TASK-T11",
+    "title": "建立任務文件預覽頁面",
+    "status": "已完成",
+    "owner": "B UI/UX / F 測試文件",
+    "worker_type": "人類 + AI Agent",
+    "priority": "高",
+    "module": "tasks",
+    "related_files": [
+      "app/pages/98_task_documents.py",
+      "app/pages/99_task_dashboard.py",
+      "src/tasks/task_documents.py",
+      "tests/test_task_documents.py"
+    ],
+    "goal": "提供任務文件搜尋、完整度檢查、Markdown 預覽與下載頁面。",
+    "done_definition": [
+      "可選擇任務並預覽三類文件",
+      "可篩選文件完整度",
+      "缺少或不安全路徑有清楚提示",
+      "可從任務中心前往預覽頁"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T11_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T11_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T11_handoff.md"
+  },
+  {
+    "task_id": "TASK-T12",
+    "title": "建立任務修改要求與交接內容",
+    "status": "待認領",
+    "owner": "A 組長 / B UI/UX",
+    "worker_type": "人類 + AI Agent",
+    "priority": "高",
+    "module": "tasks",
+    "related_files": [
+      "app/pages/99_task_dashboard.py",
+      "app/components/task_card.py",
+      "src/tasks/task_loader.py",
+      "src/tasks/task_status.py",
+      "src/tasks/agent_workflow.py",
+      "tests/test_task_loader.py",
+      "tests/test_agent_workflow.py"
+    ],
+    "goal": "任務標記需要修改時保存具體要求，讓接手 Agent 清楚知道修改內容。",
+    "done_definition": [
+      "需要修改時強制輸入內容",
+      "保存提出者與時間及修改歷史",
+      "任務詳情與 Agent 摘要顯示修改要求",
+      "Agent 可列出並接手需要修改任務"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T12_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T12_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T12_handoff.md"
   }
 ]
