@@ -1,3 +1,10 @@
+"""
+模組名稱: src.data.data_loader
+功能說明: 基礎資料載入器，處理 CSV 或 JSON 格式的來源資料。
+
+【相關元件 (Related Components)】
+- 無內部相依模組
+"""
 from __future__ import annotations
 
 from pathlib import Path

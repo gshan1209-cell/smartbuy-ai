@@ -1,3 +1,19 @@
+"""
+模組名稱: app.pages.98_task_documents
+功能說明: 任務文件預覽頁，顯示與任務相關的文件與開發紀錄。
+
+【相關元件 (Related Components)】
+- 依賴: app.common.configure_page
+- 依賴: app.components.task_card.render_task_card
+- 依賴: src.tasks.task_documents.DOCUMENT_FIELDS
+- 依賴: src.tasks.task_documents.TaskDocumentError
+- 依賴: src.tasks.task_documents.document_completion
+- 依賴: src.tasks.task_documents.document_state
+- 依賴: src.tasks.task_documents.inspect_task_documents
+- 依賴: src.tasks.task_documents.read_task_document
+- 依賴: src.tasks.task_loader.TaskDataError
+- 依賴: src.tasks.task_loader.load_tasks
+"""
 from __future__ import annotations
 
 import streamlit as st

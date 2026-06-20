@@ -1,3 +1,15 @@
+"""
+模組名稱: tests.test_agent_workflow
+功能說明: 測試模組，確保系統各項功能正常運作。
+
+【相關元件 (Related Components)】
+- 依賴: src.tasks.agent_workflow.finish_task
+- 依賴: src.tasks.agent_workflow.generate_task_documents
+- 依賴: src.tasks.agent_workflow.list_available_tasks
+- 依賴: src.tasks.agent_workflow.start_task
+- 依賴: src.tasks.agent_workflow.task_receipt
+- 依賴: src.tasks.task_loader.load_tasks
+"""
 import json
 from pathlib import Path
 
@@ -39,13 +51,22 @@ def test_agent_can_list_but_not_claim_without_human_approval(tmp_path):
     assert load_tasks(tasks_path)[0]["status"] == "待認領"
 
 
-def test_only_unclaimed_task_can_start_without_explicit_reopen(tmp_path):
+def test_only_unclaimed_or_needs_revision_task_can_start_without_explicit_reopen(tmp_path):
     _, tasks_path, source = _workspace(tmp_path)
     data = load_tasks(tasks_path)
     data[0]["status"] = "等待測試"
     tasks_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    with pytest.raises(ValueError, match="只有待認領"):
+    with pytest.raises(ValueError, match="只有待認領或需要修改"):
         start_task(source["task_id"], "Codex", "產品負責人", tasks_path=tasks_path)
+
+
+def test_needs_revision_task_can_start(tmp_path):
+    _, tasks_path, source = _workspace(tmp_path)
+    data = load_tasks(tasks_path)
+    data[0]["status"] = "需要修改"
+    tasks_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    result = start_task(source["task_id"], "Codex", "產品負責人", tasks_path=tasks_path)
+    assert result["status"] == "進行中"
 
 
 def test_finish_generates_three_documents_and_updates_status(tmp_path):
@@ -95,3 +116,36 @@ def test_success_requires_real_test_result(tmp_path):
             tasks_path=tasks_path,
             project_root=root,
         )
+
+
+def test_finish_generates_documents_and_logs_reason_on_failure(tmp_path):
+    root, tasks_path, source = _workspace(tmp_path)
+    result = finish_task(
+        source["task_id"],
+        "Codex",
+        "測試未過，需修復 API 呼叫",
+        "failed",
+        "pytest -q",
+        "1 failed",
+        tasks_path=tasks_path,
+        project_root=root,
+    )
+    assert result["task"]["status"] == "需要修改"
+    assert "revision_requests" in result["task"]
+    assert result["task"]["revision_requests"][0]["requester"] == "Codex"
+    assert result["task"]["revision_requests"][0]["reason"] == "測試未過，需修復 API 呼叫"
+
+
+def test_task_receipt_includes_revision_request():
+    from src.tasks.agent_workflow import task_receipt
+    task = {
+        "task_id": "TASK-123",
+        "title": "Title",
+        "status": "需要修改",
+        "goal": "Goal",
+        "related_files": ["a.py"],
+        "done_definition": ["A"],
+        "revision_requests": [{"requester": "Me", "reason": "Fix", "timestamp": "2024"}]
+    }
+    receipt = task_receipt(task, "Actor", "Role", "Approver")
+    assert "最新修改要求 (Me)：Fix" in receipt

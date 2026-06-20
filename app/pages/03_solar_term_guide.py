@@ -1,3 +1,15 @@
+"""
+模組名稱: app.pages.03_solar_term_guide
+功能說明: 節氣指南頁面，展示當季的節氣說明與推薦食材。
+
+【相關元件 (Related Components)】
+- 依賴: app.common.configure_page
+- 依賴: app.common.demo_notice
+- 依賴: app.components.solar_term_card.render_solar_term_card
+- 依賴: src.anomaly.price_status.get_price_status
+- 依賴: src.calendar.solar_terms.get_today_solar_term_advice
+- 依賴: src.recommendation.seasonal_recommender.get_seasonal_recommendations
+"""
 import streamlit as st
 
 from app.common import configure_page, demo_notice

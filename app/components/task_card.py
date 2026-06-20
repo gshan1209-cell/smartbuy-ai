@@ -1,3 +1,10 @@
+"""
+模組名稱: app.components.task_card
+功能說明: 任務卡片元件，用於任務中心顯示單一任務摘要。
+
+【相關元件 (Related Components)】
+- 無內部相依模組
+"""
 from __future__ import annotations
 
 import html
@@ -29,6 +36,9 @@ def render_task_card(task: dict, compact: bool = False) -> None:
             f"**{html.escape(task['task_id'])}｜{html.escape(task['title'])}**　{status_badge(task['status'])}",
             unsafe_allow_html=True,
         )
+        if task["status"] == "需要修改" and task.get("revision_requests"):
+            latest = task["revision_requests"][-1]
+            st.warning(f"**修改要求 ({html.escape(latest['requester'])})**：{html.escape(latest['reason'])}")
         if compact:
             st.caption(f"{task['priority']}優先｜{task['module']}｜{task['owner']}")
             return

@@ -22,3 +22,176 @@ Traceback (most recent call last):
   File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\elements\widgets\button.py", line 1606, in _page_link
     raise StreamlitPageNotFoundError(
 streamlit.errors.StreamlitPageNotFoundError: Could not find page: `app/pages/98_task_documents.py`. You must provide a file path relative to the entrypoint file (from the directory `app`). Only the entrypoint file and files in the `pages/` directory are supported.
+2026-06-20 17:03:35.857 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'
+2026-06-20 17:05:41.511 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'
+2026-06-20 17:07:06.255 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'
+Exception in callback _ProactorBasePipeTransport._call_connection_lost(None)
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost(None)>
+Traceback (most recent call last):
+  File "C:\Users\user\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\user\AppData\Local\Programs\Python\Python312\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+ConnectionResetError: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2026-06-20 17:09:22.353 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'
+2026-06-20 17:12:29.469 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'
+2026-06-20 17:16:26.712 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'
+2026-06-20 17:18:11.136 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'
+2026-06-20 17:20:38.162 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'
+2026-06-20 17:28:20.953 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'
+2026-06-20 17:31:17.845 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'
+2026-06-20 17:33:32.394 Uncaught app execution
+Traceback (most recent call last):
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "D:\smartbuy-ai\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\smartbuy-ai\app\pages\99_task_dashboard.py", line 213, in <module>
+    update_task_status(selected_id, new_status, requester=requester, reason=reason)
+TypeError: update_task_status() got an unexpected keyword argument 'requester'

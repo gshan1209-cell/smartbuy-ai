@@ -1,3 +1,11 @@
+"""
+模組名稱: tests.test_price_status
+功能說明: 測試模組，確保系統各項功能正常運作。
+
+【相關元件 (Related Components)】
+- 依賴: src.anomaly.price_status.get_price_status
+- 依賴: src.anomaly.sigma_detector.detect_price_status
+"""
 import pandas as pd
 
 from src.anomaly.price_status import get_price_status

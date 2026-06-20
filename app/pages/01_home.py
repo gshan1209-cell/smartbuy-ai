@@ -1,3 +1,11 @@
+"""
+模組名稱: app.pages.01_home
+功能說明: 首頁入口，顯示節氣、推薦與系統總覽。
+
+【相關元件 (Related Components)】
+- 依賴: app.common.configure_page
+- 依賴: app.home_view.render_home
+"""
 from app.common import configure_page
 from app.home_view import render_home
 

@@ -1,3 +1,10 @@
+"""
+模組名稱: app.components.buttons
+功能說明: 共用按鈕元件。
+
+【相關元件 (Related Components)】
+- 無內部相依模組
+"""
 from __future__ import annotations
 
 import streamlit as st

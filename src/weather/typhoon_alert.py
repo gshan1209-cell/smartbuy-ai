@@ -1,3 +1,10 @@
+"""
+模組名稱: src.weather.typhoon_alert
+功能說明: 颱風警報邏輯，判斷是否有颱風影響並產生對應提示。
+
+【相關元件 (Related Components)】
+- 依賴: src.data.data_loader.load_weather_forecast
+"""
 from __future__ import annotations
 
 import pandas as pd

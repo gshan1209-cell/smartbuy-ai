@@ -1,3 +1,10 @@
+"""
+模組名稱: app.components.price_card
+功能說明: 價格卡片元件，負責格式化並顯示菜價資訊。
+
+【相關元件 (Related Components)】
+- 無內部相依模組
+"""
 from __future__ import annotations
 
 import html

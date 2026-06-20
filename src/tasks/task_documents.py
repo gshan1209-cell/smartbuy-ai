@@ -1,3 +1,10 @@
+"""
+模組名稱: src.tasks.task_documents
+功能說明: 任務文件處理邏輯，負責讀取或檢查 Markdown 文件。
+
+【相關元件 (Related Components)】
+- 無內部相依模組
+"""
 from __future__ import annotations
 
 from pathlib import Path

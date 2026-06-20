@@ -1,3 +1,10 @@
+"""
+模組名稱: tests.test_recommendation
+功能說明: 測試模組，確保系統各項功能正常運作。
+
+【相關元件 (Related Components)】
+- 依賴: src.recommendation.purchase_advisor.get_purchase_advice
+"""
 import pandas as pd
 
 from src.recommendation.purchase_advisor import get_purchase_advice

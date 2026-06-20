@@ -1,3 +1,15 @@
+"""
+模組名稱: app.pages.04_weather_alert
+功能說明: 天氣警示頁面，處理颱風與極端天氣的防範提醒。
+
+【相關元件 (Related Components)】
+- 依賴: app.common.configure_page
+- 依賴: app.common.demo_notice
+- 依賴: app.components.alert_card.render_alert_card
+- 依賴: src.data.data_loader.load_product_origins
+- 依賴: src.weather.origin_weather_risk.get_origin_weather_risk
+- 依賴: src.weather.typhoon_alert.get_typhoon_alert
+"""
 import streamlit as st
 
 from app.common import configure_page, demo_notice

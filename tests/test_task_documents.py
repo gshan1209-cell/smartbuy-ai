@@ -1,3 +1,14 @@
+"""
+模組名稱: tests.test_task_documents
+功能說明: 測試模組，確保系統各項功能正常運作。
+
+【相關元件 (Related Components)】
+- 依賴: src.tasks.task_documents.TaskDocumentError
+- 依賴: src.tasks.task_documents.document_completion
+- 依賴: src.tasks.task_documents.document_state
+- 依賴: src.tasks.task_documents.inspect_task_documents
+- 依賴: src.tasks.task_documents.read_task_document
+"""
 from pathlib import Path
 
 import pytest

@@ -678,7 +678,7 @@
   {
     "task_id": "TASK-T12",
     "title": "建立任務修改要求與交接內容",
-    "status": "待認領",
+    "status": "已完成",
     "owner": "A 組長 / B UI/UX",
     "worker_type": "人類 + AI Agent",
     "priority": "高",
@@ -701,6 +701,41 @@
     ],
     "dev_log": "docs/dev_logs/TASK-T12_log.md",
     "tutorial_doc": "docs/tutorials/TASK-T12_tutorial.md",
-    "handoff_note": "docs/handoff/TASK-T12_handoff.md"
+    "handoff_note": "docs/handoff/TASK-T12_handoff.md",
+    "revision_requests": [
+      {
+        "requester": "Me",
+        "timestamp": "2026-06-20T17:14:41+08:00",
+        "reason": "Fix"
+      }
+    ]
+  },
+  {
+    "task_id": "TASK-T13",
+    "title": "為所有程式加上中文註解",
+    "status": "已完成",
+    "owner": "Antigravity",
+    "worker_type": "AI Agent",
+    "priority": "中",
+    "module": "global",
+    "related_files": [
+      "app/pages",
+      "app/components",
+      "src/tasks",
+      "src/weather",
+      "src/recommendation",
+      "src/data",
+      "src/calendar",
+      "src/anomaly"
+    ],
+    "goal": "為專案中所有的 Python 原始碼（主要為 app 與 src 目錄下的檔案）加上清楚的中文註解。",
+    "done_definition": [
+      "主要模組、類別與函式皆有中文 Docstring",
+      "複雜的業務邏輯加上行內說明",
+      "通過靜態語法檢查與現有的單元測試"
+    ],
+    "dev_log": "docs/dev_logs/TASK-T13_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-T13_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-T13_handoff.md"
   }
 ]

@@ -1,3 +1,10 @@
+"""
+模組名稱: src.calendar.solar_terms
+功能說明: 24節氣相關日期與邏輯判斷函式。
+
+【相關元件 (Related Components)】
+- 依賴: src.data.data_loader.load_solar_terms
+"""
 from __future__ import annotations
 
 from datetime import date, datetime

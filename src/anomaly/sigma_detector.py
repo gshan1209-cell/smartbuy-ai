@@ -1,3 +1,10 @@
+"""
+模組名稱: src.anomaly.sigma_detector
+功能說明: 使用統計方法（Sigma）偵測價格異常波動的邏輯。
+
+【相關元件 (Related Components)】
+- 無內部相依模組
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass

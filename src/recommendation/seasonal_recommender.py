@@ -1,3 +1,11 @@
+"""
+模組名稱: src.recommendation.seasonal_recommender
+功能說明: 當季推薦邏輯，根據節氣推薦適合的食材。
+
+【相關元件 (Related Components)】
+- 依賴: src.calendar.solar_terms.get_today_solar_term_advice
+- 依賴: src.data.data_loader.load_seasonal_products
+"""
 from __future__ import annotations
 
 from datetime import date, datetime

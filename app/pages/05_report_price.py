@@ -1,3 +1,13 @@
+"""
+模組名稱: app.pages.05_report_price
+功能說明: 買貴通報頁面，讓使用者回報市場真實價格。
+
+【相關元件 (Related Components)】
+- 依賴: app.common.configure_page
+- 依賴: app.common.demo_notice
+- 依賴: src.data.data_loader.load_market_prices
+- 依賴: src.data.report_store.add_price_report
+"""
 import streamlit as st
 
 from app.common import configure_page, demo_notice

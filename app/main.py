@@ -1,3 +1,11 @@
+"""
+模組名稱: app.main
+功能說明: SmartBuy AI 系統的主程式入口，負責初始化應用。
+
+【相關元件 (Related Components)】
+- 依賴: app.common.configure_page
+- 依賴: app.home_view.render_home
+"""
 from app.common import configure_page
 from app.home_view import render_home
 

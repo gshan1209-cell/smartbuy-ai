@@ -1,3 +1,15 @@
+"""
+模組名稱: src.tasks.agent_workflow
+功能說明: Agent 工作流管理，包含任務認領、狀態流轉與交接文件產出。
+
+【相關元件 (Related Components)】
+- 依賴: src.tasks.task_loader.TASKS_PATH
+- 依賴: src.tasks.task_loader.filter_tasks
+- 依賴: src.tasks.task_loader.get_task
+- 依賴: src.tasks.task_loader.load_tasks
+- 依賴: src.tasks.task_loader.sort_tasks
+- 依賴: src.tasks.task_status.update_task_status
+"""
 from __future__ import annotations
 
 import argparse
@@ -65,24 +77,26 @@ def _render(template: str, values: dict[str, str]) -> str:
 def list_available_tasks(*, tasks_path: Path | None = None) -> list[dict]:
     """Return tasks an Agent may propose to a human, without claiming them."""
     target = tasks_path or TASKS_PATH
-    return sort_tasks(filter_tasks(load_tasks(target), status="待認領"))
+    return sort_tasks([t for t in load_tasks(target) if t["status"] in ("待認領", "需要修改")])
 
 
 def task_receipt(task: dict, actor: str, role: str, approved_by: str) -> str:
     files = "、".join(task["related_files"])
-    return "\n".join(
-        [
-            "任務讀取成功",
-            f"- 任務：{task['task_id']}｜{task['title']}",
-            f"- 狀態：{task['status']}",
-            f"- 目標：{task['goal']}",
-            f"- 相關檔案：{files}",
-            f"- 完成標準：共 {len(task['done_definition'])} 項",
-            f"- 執行者：{actor}",
-            f"- 本次角色：{role}",
-            f"- 人類核准：{approved_by}",
-        ]
-    )
+    lines = [
+        "任務讀取成功",
+        f"- 任務：{task['task_id']}｜{task['title']}",
+        f"- 狀態：{task['status']}",
+        f"- 目標：{task['goal']}",
+        f"- 相關檔案：{files}",
+        f"- 完成標準：共 {len(task['done_definition'])} 項",
+        f"- 執行者：{actor}",
+        f"- 本次角色：{role}",
+        f"- 人類核准：{approved_by}",
+    ]
+    if task["status"] == "需要修改" and task.get("revision_requests"):
+        latest = task["revision_requests"][-1]
+        lines.append(f"- 最新修改要求 ({latest['requester']})：{latest['reason']}")
+    return "\n".join(lines)
 
 
 def start_task(
@@ -94,13 +108,17 @@ def start_task(
     tasks_path: Path | None = None,
     allow_reopen: bool = False,
 ) -> dict:
+    """
+    讓 Agent 認領任務，並將任務狀態更新為「進行中」。
+    認領任務必須提供人類核准者 (approved_by) 的名稱。
+    """
     if not approved_by.strip():
         raise ValueError("認領任務前必須提供人類核准者 approved_by")
     target = tasks_path or TASKS_PATH
     task = get_task(task_id, load_tasks(target))
-    if task["status"] != "待認領" and not allow_reopen:
+    if task["status"] not in ("待認領", "需要修改") and not allow_reopen:
         raise ValueError(
-            f"{task_id} 目前是「{task['status']}」，只有待認領任務可開始；如為人類明確重開請使用 allow_reopen"
+            f"{task_id} 目前是「{task['status']}」，只有待認領或需要修改的任務可開始；如為人類明確重開請使用 allow_reopen"
         )
     return update_task_status(task_id, "進行中", target)
 
@@ -190,7 +208,13 @@ def finish_task(
         project_root=project_root,
         force=force_documents,
     )
-    task = update_task_status(task_id, OUTCOME_STATUS[outcome], target)
+    task = update_task_status(
+        task_id, 
+        OUTCOME_STATUS[outcome], 
+        target,
+        requester=actor if outcome == "failed" else "",
+        reason=summary if outcome == "failed" else "",
+    )
     return {"task": task, "documents": documents}
 
 

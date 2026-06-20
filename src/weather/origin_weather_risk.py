@@ -1,3 +1,11 @@
+"""
+模組名稱: src.weather.origin_weather_risk
+功能說明: 產地天氣風險判斷，依據產地降雨與氣象給出風險等級。
+
+【相關元件 (Related Components)】
+- 依賴: src.data.data_loader.load_product_origins
+- 依賴: src.data.data_loader.load_weather_forecast
+"""
 from __future__ import annotations
 
 import pandas as pd

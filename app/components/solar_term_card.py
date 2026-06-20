@@ -1,3 +1,10 @@
+"""
+模組名稱: app.components.solar_term_card
+功能說明: 節氣卡片元件，顯示當日或近期的節氣提示。
+
+【相關元件 (Related Components)】
+- 無內部相依模組
+"""
 from __future__ import annotations
 
 import html

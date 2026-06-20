@@ -1,3 +1,10 @@
+"""
+模組名稱: src.recommendation.alternative_recommender
+功能說明: 替代品推薦邏輯，當某項蔬菜太貴時推薦其他選擇。
+
+【相關元件 (Related Components)】
+- 依賴: src.data.data_loader.load_product_origins
+"""
 from __future__ import annotations
 
 from src.data.data_loader import load_product_origins

@@ -1,3 +1,17 @@
+"""
+模組名稱: app.home_view
+功能說明: 首頁視圖，負責呈現首頁的 UI 元件與排版。
+
+【相關元件 (Related Components)】
+- 依賴: app.common.demo_notice
+- 依賴: app.components.alert_card.render_alert_card
+- 依賴: app.components.price_card.render_price_card
+- 依賴: app.components.solar_term_card.render_solar_term_card
+- 依賴: src.calendar.solar_terms.get_today_solar_term_advice
+- 依賴: src.recommendation.purchase_advisor.get_bargain_recommendations
+- 依賴: src.weather.origin_weather_risk.get_origin_weather_risk
+- 依賴: src.weather.typhoon_alert.get_typhoon_alert
+"""
 from __future__ import annotations
 
 import streamlit as st

@@ -1,3 +1,10 @@
+"""
+模組名稱: tests.test_solar_terms
+功能說明: 測試模組，確保系統各項功能正常運作。
+
+【相關元件 (Related Components)】
+- 依賴: src.calendar.solar_terms.get_today_solar_term_advice
+"""
 from src.calendar.solar_terms import get_today_solar_term_advice
 
 

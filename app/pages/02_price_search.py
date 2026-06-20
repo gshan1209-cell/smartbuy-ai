@@ -1,3 +1,14 @@
+"""
+模組名稱: app.pages.02_price_search
+功能說明: 菜價搜尋頁面，提供使用者查詢行情與天氣風險。
+
+【相關元件 (Related Components)】
+- 依賴: app.common.configure_page
+- 依賴: app.common.demo_notice
+- 依賴: app.components.alert_card.render_alert_card
+- 依賴: src.data.data_loader.load_market_prices
+- 依賴: src.recommendation.purchase_advisor.get_purchase_advice
+"""
 import streamlit as st
 
 from app.common import configure_page, demo_notice

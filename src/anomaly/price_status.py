@@ -1,3 +1,11 @@
+"""
+模組名稱: src.anomaly.price_status
+功能說明: 判斷菜價偏貴、正常或便宜的狀態邏輯。
+
+【相關元件 (Related Components)】
+- 依賴: src.anomaly.sigma_detector.detect_price_status
+- 依賴: src.data.data_loader.load_market_prices
+"""
 from __future__ import annotations
 
 import pandas as pd

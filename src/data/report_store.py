@@ -1,3 +1,10 @@
+"""
+模組名稱: src.data.report_store
+功能說明: 買貴通報儲存模組，處理通報資料的寫入與讀取。
+
+【相關元件 (Related Components)】
+- 依賴: src.anomaly.price_status.get_price_status
+"""
 from __future__ import annotations
 
 import csv

@@ -1,3 +1,13 @@
+"""
+模組名稱: app.pages.06_my_basket
+功能說明: 我的菜籃頁面，管理使用者的採買清單。
+
+【相關元件 (Related Components)】
+- 依賴: app.common.configure_page
+- 依賴: app.common.demo_notice
+- 依賴: src.data.data_loader.load_market_prices
+- 依賴: src.recommendation.purchase_advisor.get_purchase_advice
+"""
 import streamlit as st
 
 from app.common import configure_page, demo_notice

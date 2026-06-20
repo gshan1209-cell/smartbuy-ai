@@ -1,3 +1,10 @@
+"""
+模組名稱: app.common
+功能說明: 包含 Streamlit 前端共用的設定與工具函式。
+
+【相關元件 (Related Components)】
+- 無內部相依模組
+"""
 from __future__ import annotations
 
 import sys

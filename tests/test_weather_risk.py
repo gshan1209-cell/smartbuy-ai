@@ -1,3 +1,11 @@
+"""
+模組名稱: tests.test_weather_risk
+功能說明: 測試模組，確保系統各項功能正常運作。
+
+【相關元件 (Related Components)】
+- 依賴: src.weather.origin_weather_risk.classify_weather_row
+- 依賴: src.weather.origin_weather_risk.get_origin_weather_risk
+"""
 import pandas as pd
 
 from src.weather.origin_weather_risk import classify_weather_row, get_origin_weather_risk

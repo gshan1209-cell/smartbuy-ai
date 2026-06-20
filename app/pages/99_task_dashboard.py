@@ -1,3 +1,21 @@
+"""
+模組名稱: app.pages.99_task_dashboard
+功能說明: 任務中心儀表板，提供 Agent 與人類協作的看板。
+
+【相關元件 (Related Components)】
+- 依賴: app.common.ROOT
+- 依賴: app.common.configure_page
+- 依賴: app.components.task_card.render_task_card
+- 依賴: app.components.task_card.status_badge
+- 依賴: src.tasks.task_loader.TaskDataError
+- 依賴: src.tasks.task_loader.VALID_PRIORITIES
+- 依賴: src.tasks.task_loader.VALID_STATUSES
+- 依賴: src.tasks.task_loader.filter_tasks
+- 依賴: src.tasks.task_loader.load_tasks
+- 依賴: src.tasks.task_loader.sort_tasks
+- 依賴: src.tasks.task_loader.summarize_tasks
+- 依賴: src.tasks.task_status.update_task_status
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -186,22 +204,31 @@ if filtered:
             exists = bool(target and target.exists())
             st.write(f"{'✅' if exists else '⬜'} `{relative}`")
 
+        if selected.get("revision_requests"):
+            st.subheader("修改要求歷史")
+            for req in selected["revision_requests"]:
+                st.info(f"**{req['timestamp']}｜{req['requester']}**\n\n{req['reason']}")
+
     with detail_right:
         st.subheader("更新任務狀態")
         status_index = list(VALID_STATUSES).index(selected["status"])
         with st.form(f"status-form-{selected_id}"):
             new_status = st.selectbox("新狀態", VALID_STATUSES, index=status_index)
+            requester = st.text_input("提出者（僅標記為需要修改時必填）")
+            reason = st.text_area("修改要求（僅標記為需要修改時必填）")
             confirmed = st.checkbox("我已確認任務內容與文件狀態")
-            submitted = st.form_submit_button("儲存狀態", type="primary", width="stretch")
+            submitted = st.form_submit_button("儲存狀態", type="primary", use_container_width=True)
         if submitted:
             missing_docs = missing_task_documents(selected) if new_status == "已完成" else []
             if not confirmed:
                 st.error("請先勾選確認。")
+            elif new_status == "需要修改" and (not requester.strip() or not reason.strip()):
+                st.error("狀態設為「需要修改」時，必須填寫提出者與修改要求。")
             elif missing_docs:
                 st.error("標記完成前仍缺少：" + "、".join(missing_docs))
             else:
                 try:
-                    update_task_status(selected_id, new_status)
+                    update_task_status(selected_id, new_status, requester=requester, reason=reason)
                 except (TaskDataError, ValueError, KeyError, OSError) as exc:
                     st.error(f"狀態更新失敗：{exc}")
                 else:
@@ -209,17 +236,18 @@ if filtered:
                     st.rerun()
 
         st.subheader("Agent 讀取摘要")
-        st.code(
-            "\n".join(
-                [
-                    "任務讀取成功",
-                    f"- 任務：{selected['task_id']}｜{selected['title']}",
-                    f"- 狀態：{selected['status']}",
-                    f"- 目標：{selected['goal']}",
-                    f"- 完成標準：共 {len(selected['done_definition'])} 項",
-                ]
-            )
-        )
+        receipt_lines = [
+            "任務讀取成功",
+            f"- 任務：{selected['task_id']}｜{selected['title']}",
+            f"- 狀態：{selected['status']}",
+            f"- 目標：{selected['goal']}",
+            f"- 完成標準：共 {len(selected['done_definition'])} 項",
+        ]
+        if selected["status"] == "需要修改" and selected.get("revision_requests"):
+            latest = selected["revision_requests"][-1]
+            receipt_lines.append(f"- 最新修改要求 ({latest['requester']})：{latest['reason']}")
+            
+        st.code("\n".join(receipt_lines))
 
     st.subheader("任務文件")
     document_tabs = st.tabs(["開發紀錄", "小白教學", "交接摘要"])

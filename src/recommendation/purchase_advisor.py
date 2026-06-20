@@ -1,3 +1,14 @@
+"""
+模組名稱: src.recommendation.purchase_advisor
+功能說明: 採買建議整合器，結合價格、天氣與節氣給出建議。
+
+【相關元件 (Related Components)】
+- 依賴: src.anomaly.price_status.get_all_price_statuses
+- 依賴: src.anomaly.price_status.get_price_status
+- 依賴: src.calendar.solar_terms.get_today_solar_term_advice
+- 依賴: src.recommendation.alternative_recommender.get_alternatives
+- 依賴: src.weather.origin_weather_risk.get_origin_weather_risk
+"""
 from __future__ import annotations
 
 import pandas as pd

@@ -1,3 +1,10 @@
+"""
+模組名稱: src.tasks.task_loader
+功能說明: 任務載入器，負責解析、驗證與篩選 tasks.json 的資料。
+
+【相關元件 (Related Components)】
+- 無內部相依模組
+"""
 from __future__ import annotations
 
 import json
@@ -69,10 +76,27 @@ def validate_tasks(tasks: object) -> list[dict]:
                 raise TaskDataError(f"{task_id} 的 {field} 只能包含非空字串")
         for field in ("dev_log", "tutorial_doc", "handoff_note"):
             _validate_path(task_id, field, task[field])
+            
+        if "revision_requests" in task:
+            if not isinstance(task["revision_requests"], list):
+                raise TaskDataError(f"{task_id} 的 revision_requests 必須是陣列")
+            for index, req in enumerate(task["revision_requests"], start=1):
+                if not isinstance(req, dict):
+                    raise TaskDataError(f"{task_id} 的第 {index} 筆修改要求必須是物件")
+                if "requester" not in req or not isinstance(req.get("requester"), str) or not req["requester"].strip():
+                    raise TaskDataError(f"{task_id} 的第 {index} 筆修改要求必須有非空 requester")
+                if "reason" not in req or not isinstance(req.get("reason"), str) or not req["reason"].strip():
+                    raise TaskDataError(f"{task_id} 的第 {index} 筆修改要求必須有非空 reason")
+                if "timestamp" not in req or not isinstance(req.get("timestamp"), str) or not req["timestamp"].strip():
+                    raise TaskDataError(f"{task_id} 的第 {index} 筆修改要求必須有非空 timestamp")
     return tasks
 
 
 def load_tasks(path: Path | None = None) -> list[dict]:
+    """
+    從指定的路徑（預設為 tasks.json）載入並驗證任務資料。
+    如果檔案不存在或 JSON 格式錯誤，會拋出 TaskDataError。
+    """
     target = path or TASKS_PATH
     try:
         tasks = json.loads(target.read_text(encoding="utf-8"))
@@ -91,6 +115,10 @@ def filter_tasks(
     priority: str | None = None,
     query: str | None = None,
 ) -> list[dict]:
+    """
+    根據狀態、負責人、模組、優先度與關鍵字 (query) 篩選任務列表。
+    關鍵字會比對任務 ID、標題、目標等欄位。
+    """
     keyword = (query or "").strip().casefold()
     return [
         task

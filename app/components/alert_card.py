@@ -1,3 +1,10 @@
+"""
+模組名稱: app.components.alert_card
+功能說明: 警示卡片元件，用於顯示各種系統或天氣提醒。
+
+【相關元件 (Related Components)】
+- 無內部相依模組
+"""
 from __future__ import annotations
 
 import html

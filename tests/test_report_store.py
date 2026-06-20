@@ -1,3 +1,11 @@
+"""
+模組名稱: tests.test_report_store
+功能說明: 測試模組，確保系統各項功能正常運作。
+
+【相關元件 (Related Components)】
+- 依賴: src.data.report_store.add_price_report
+- 依賴: src.data.report_store.classify_price_gap
+"""
 from src.data.report_store import add_price_report, classify_price_gap
 
 
