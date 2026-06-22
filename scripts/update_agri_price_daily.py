@@ -100,10 +100,14 @@ def upsert_agri_prices() -> None:
     判斷依據：
     trans_date + crop_code + market_code
     """
+    print("開始讀取 DATABASE_URL...", flush=True)
     database_url = load_database_url()
+    print("建立資料庫 engine...", flush=True)
     engine = create_engine(database_url, pool_pre_ping=True)
-
+    
+    print("開始抓取農業部農產品交易行情 API...", flush=True)
     df = fetch_agri_prices()
+    print(f"API 抓取完成，資料筆數：{len(df)}", flush=True)
 
     if df.empty:
         with engine.begin() as conn:
