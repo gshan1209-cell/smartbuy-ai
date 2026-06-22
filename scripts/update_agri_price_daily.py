@@ -104,7 +104,7 @@ def upsert_agri_prices() -> None:
     database_url = load_database_url()
     print("建立資料庫 engine...", flush=True)
     engine = create_engine(database_url, pool_pre_ping=True)
-    
+
     print("開始抓取農業部農產品交易行情 API...", flush=True)
     df = fetch_agri_prices()
     print(f"API 抓取完成，資料筆數：{len(df)}", flush=True)
@@ -122,6 +122,7 @@ def upsert_agri_prices() -> None:
 
     insert_count = 0
     update_count = 0
+    print("開始寫入 Supabase agri_price_daily...", flush=True)
 
     upsert_sql = text(
         """
@@ -180,7 +181,7 @@ def upsert_agri_prices() -> None:
 
     try:
         with engine.begin() as conn:
-            for row in df.to_dict(orient="records"):
+            for index, row in enumerate(df.to_dict(orient="records"), start=1):
                 exists = conn.execute(
                     exists_sql,
                     {
@@ -196,7 +197,8 @@ def upsert_agri_prices() -> None:
                     update_count += 1
                 else:
                     insert_count += 1
-
+                if index % 500 == 0:
+                    print(f"已處理 {index} 筆資料...", flush=True)
             write_log(
                 conn,
                 status="success",
@@ -204,9 +206,9 @@ def upsert_agri_prices() -> None:
                 rows_updated=update_count,
             )
 
-        print("農產品交易行情更新完成。")
-        print(f"新增筆數：{insert_count}")
-        print(f"更新筆數：{update_count}")
+        print("農產品交易行情更新完成。", flush=True)
+        print(f"新增筆數：{insert_count}", flush=True)
+        print(f"更新筆數：{update_count}", flush=True)
 
     except Exception as exc:
         with engine.begin() as conn:
