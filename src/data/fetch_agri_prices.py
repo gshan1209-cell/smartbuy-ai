@@ -5,7 +5,8 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 from typing import Any
 
 import os
@@ -23,6 +24,33 @@ import requests
 
 API_URL = "https://data.moa.gov.tw/Service/OpenData/FromM/FarmTransData.aspx"
 
+TAIPEI_TZ = ZoneInfo("Asia/Taipei")
+
+
+def _to_roc_date(value: date) -> str:
+    """
+    將西元日期轉成農業部 API 使用的民國日期格式。
+
+    例如：
+    2026-06-22 -> 115.06.22
+    """
+    roc_year = value.year - 1911
+    return f"{roc_year:03d}.{value.month:02d}.{value.day:02d}"
+
+
+def _get_fetch_date_range() -> tuple[str, str]:
+    """
+    取得要抓取的日期區間。
+
+    預設抓最近 2 天，避免 GitHub Actions 一次讀太多資料造成 timeout。
+    可透過 SMARTBUY_FETCH_LOOKBACK_DAYS 調整。
+    """
+    lookback_days = int(os.getenv("SMARTBUY_FETCH_LOOKBACK_DAYS", "2"))
+
+    today = datetime.now(TAIPEI_TZ).date()
+    start_date = today - timedelta(days=lookback_days)
+
+    return _to_roc_date(start_date), _to_roc_date(today)
 
 COLUMN_ALIASES = {
     "trans_date": ["交易日期", "TransDate", "trans_date"],
@@ -149,25 +177,63 @@ def fetch_agri_prices() -> pd.DataFrame:
 
     session = _build_retry_session()
 
-    response = session.get(
-        API_URL,
-        timeout=(connect_timeout, read_timeout),
-        headers=headers,
-        verify=False if allow_insecure_ssl else certifi.where(),
+    start_date, end_date = _get_fetch_date_range()
+    page_size = int(os.getenv("SMARTBUY_API_PAGE_SIZE", "1000"))
+
+    print(
+        f"農業部 API 抓取區間：{start_date} ~ {end_date}，每頁 {page_size} 筆",
+        flush=True,
     )
-    response.raise_for_status()
 
-    data = response.json()
+    all_data: list[dict[str, Any]] = []
+    skip = 0
 
-    if isinstance(data, dict):
-        # 預防 API 外層包成 {"Data": [...]} 或類似格式
-        for key in ["Data", "data", "records", "result"]:
-            if key in data and isinstance(data[key], list):
-                data = data[key]
-                break
+    while True:
+        params = {
+            "StartDate": start_date,
+            "EndDate": end_date,
+            "$top": str(page_size),
+            "$skip": str(skip),
+        }
 
-    if not isinstance(data, list):
-        raise ValueError("API 回傳格式不是 list，請檢查農業部 API 回傳內容。")
+        print(f"開始抓取 API 分頁：skip={skip}, top={page_size}", flush=True)
+
+        response = session.get(
+            API_URL,
+            params=params,
+            timeout=(connect_timeout, read_timeout),
+            headers=headers,
+            verify=False if allow_insecure_ssl else certifi.where(),
+        )
+
+        response.raise_for_status()
+
+        page_data = response.json()
+
+        if isinstance(page_data, dict):
+            for key in ["Data", "data", "records", "result"]:
+                if key in page_data and isinstance(page_data[key], list):
+                    page_data = page_data[key]
+                    break
+
+        if not isinstance(page_data, list):
+            raise ValueError("API 回傳格式不是 list，請檢查農業部 API 回傳內容。")
+
+        print(f"本頁取得資料筆數：{len(page_data)}", flush=True)
+
+        if not page_data:
+            break
+
+        all_data.extend(page_data)
+
+        if len(page_data) < page_size:
+            break
+
+        skip += page_size
+
+    data = all_data
+
+    print(f"API 分頁抓取完成，總筆數：{len(data)}", flush=True)
 
     rows: list[dict[str, Any]] = []
 
