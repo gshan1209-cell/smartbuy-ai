@@ -157,7 +157,10 @@ def _parse_trans_date(value: Any) -> date | None:
         return None
 
 
-def fetch_agri_prices() -> pd.DataFrame:
+def fetch_agri_prices(
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> pd.DataFrame:
     """
     抓取農產品交易行情資料，整理成 agri_price_daily 可寫入格式。
     """
@@ -177,11 +180,16 @@ def fetch_agri_prices() -> pd.DataFrame:
 
     session = _build_retry_session()
 
-    start_date, end_date = _get_fetch_date_range()
+    if start_date is None or end_date is None:
+        start_date_text, end_date_text = _get_fetch_date_range()
+    else:
+        start_date_text = _to_roc_date(start_date)
+        end_date_text = _to_roc_date(end_date)
+
     page_size = int(os.getenv("SMARTBUY_API_PAGE_SIZE", "1000"))
 
     print(
-        f"農業部 API 抓取區間：{start_date} ~ {end_date}，每頁 {page_size} 筆",
+        f"農業部 API 抓取區間：{start_date_text} ~ {end_date_text}，每頁 {page_size} 筆",
         flush=True,
     )
 
@@ -190,13 +198,15 @@ def fetch_agri_prices() -> pd.DataFrame:
 
     while True:
         params = {
-            "StartDate": start_date,
-            "EndDate": end_date,
+            "StartDate": start_date_text,
+            "EndDate": end_date_text,
             "$top": str(page_size),
             "$skip": str(skip),
         }
 
-        print(f"開始抓取 API 分頁：skip={skip}, top={page_size}", flush=True)
+        print(
+            f"農業部 API 抓取區間：{start_date_text} ~ {end_date_text}，每頁 {page_size} 筆", flush=True,
+        )
 
         response = session.get(
             API_URL,
