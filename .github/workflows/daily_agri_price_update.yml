@@ -1,9 +1,11 @@
 name: Daily Agri Price Update
 
+run-name: Daily Agri Price Update
+
 on:
   schedule:
-    # 台灣時間約每天中午 12:30 執行
-    # GitHub Actions 使用 UTC，所以 04:30 UTC = 台灣 12:30
+    # GitHub Actions 使用 UTC
+    # 04:30 UTC = 台灣時間 12:30
     - cron: "30 4 * * *"
 
   workflow_dispatch:
@@ -13,13 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-  env:
-    DATABASE_URL: ${{ secrets.DATABASE_URL }}
-    SMARTBUY_API_MAX_RETRIES: "2"
-    SMARTBUY_API_CONNECT_TIMEOUT: "10"
-    SMARTBUY_API_READ_TIMEOUT: "60"
-    SMARTBUY_API_PAGE_SIZE: "1000"
-    SMARTBUY_FETCH_LOOKBACK_DAYS: "2"
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SMARTBUY_API_MAX_RETRIES: "2"
+      SMARTBUY_API_CONNECT_TIMEOUT: "10"
+      SMARTBUY_API_READ_TIMEOUT: "60"
+      SMARTBUY_API_PAGE_SIZE: "1000"
+      SMARTBUY_FETCH_LOOKBACK_DAYS: "2"
 
     steps:
       - name: Checkout repository
