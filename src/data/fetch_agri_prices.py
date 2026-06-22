@@ -14,6 +14,9 @@ import certifi
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 import pandas as pd
 import requests
 
@@ -34,6 +37,34 @@ COLUMN_ALIASES = {
     "volume": ["交易量(公斤)", "交易量", "Trans_Quantity", "volume"],
 }
 
+def _build_retry_session() -> requests.Session:
+    """
+    建立具備 retry 機制的 requests session。
+
+    目的：
+    - 避免 GitHub Actions 因農業部 API 偶發 timeout 直接失敗
+    - 遇到 429 / 500 / 502 / 503 / 504 時自動重試
+    """
+    max_retries = int(os.getenv("SMARTBUY_API_MAX_RETRIES", "5"))
+
+    retry_strategy = Retry(
+        total=max_retries,
+        connect=max_retries,
+        read=max_retries,
+        status=max_retries,
+        backoff_factor=2,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+        raise_on_status=False,
+    )
+
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+
+    session = requests.Session()
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+
+    return session
 
 def _get_value(row: dict[str, Any], aliases: list[str]) -> Any:
     """依照可能的欄位名稱，從 API row 中取值。"""
@@ -113,9 +144,14 @@ def fetch_agri_prices() -> pd.DataFrame:
     if allow_insecure_ssl:
         urllib3.disable_warnings(InsecureRequestWarning)
 
-    response = requests.get(
+    connect_timeout = int(os.getenv("SMARTBUY_API_CONNECT_TIMEOUT", "30"))
+    read_timeout = int(os.getenv("SMARTBUY_API_READ_TIMEOUT", "180"))
+
+    session = _build_retry_session()
+
+    response = session.get(
         API_URL,
-        timeout=30,
+        timeout=(connect_timeout, read_timeout),
         headers=headers,
         verify=False if allow_insecure_ssl else certifi.where(),
     )
