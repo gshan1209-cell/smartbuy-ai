@@ -159,8 +159,11 @@ def test_load_historical_prices_filtering(mock_parquet_dir):
     assert "2026-05-10" not in dates
 
 
-def test_prediction_store_offline_graceful():
+def test_prediction_store_offline_graceful(monkeypatch):
     """測試在沒有設定 DATABASE_URL 環境變數下，save_predictions_to_supabase 應優雅退出而不當機。"""
+    # 確保 _load_database_url 返回 None，模擬離線環境
+    monkeypatch.setattr("src.data.prediction_store._load_database_url", lambda: None)
+
     # 建立一個測試用的預測結果 DataFrame
     data = [
         {
@@ -175,8 +178,7 @@ def test_prediction_store_offline_graceful():
     ]
     df = pd.DataFrame(data)
 
-    # 確保 _load_database_url 返回 None，模擬離線環境
-    # 我們不給予 DATABASE_URL 環境變數，且暫存目錄也不會有 secrets.toml
     # save_predictions_to_supabase 應回傳 0，且無例外拋出。
     result = save_predictions_to_supabase(df)
     assert result == 0
+
