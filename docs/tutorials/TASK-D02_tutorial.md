@@ -6,7 +6,7 @@
 
 ## 2. 這次完成了什麼？
 
-已完成價格搜尋頁之 Supabase 優先與本機 CSV 備援讀取功能切換，保障欄位與 UI 相容性。
+已修復價格搜尋頁面 import app.common 失敗之 sys.path 問題，確保在多頁面模式下亦可正常加載。
 
 ## 3. 功能流程
 
@@ -34,7 +34,7 @@
 
 ## 6. 預期與實際結果
 
-全體單元測試 42 passed，覆蓋了 fallback、SQLite 仿真查詢、空查詢不 fallback 與欄位對齊測試；git status 確認無大檔案或敏感配置洩漏。
+全體單元測試 42 passed，Streamlit 成功啟動無錯誤。
 
 ## 7. 下一步可以怎麼做？
 

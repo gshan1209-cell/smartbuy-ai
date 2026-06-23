@@ -7,21 +7,17 @@
 ## 2. 執行資訊
 
 - 執行者：Antigravity
-- 產生時間：2026-06-23T11:19:28+08:00
+- 產生時間：2026-06-23T11:31:20+08:00
 - 交付結果：success
 - 下一狀態：已完成
 
 ## 3. 本次修改內容
 
-已完成價格搜尋頁之 Supabase 優先與本機 CSV 備援讀取功能切換，保障欄位與 UI 相容性。
+已修復價格搜尋頁面 import app.common 失敗之 sys.path 問題，確保在多頁面模式下亦可正常加載。
 
 ### 修改檔案
 
-- `src/data/price_repository.py`
 - `app/pages/02_price_search.py`
-- `tests/test_price_repository.py`
-- `README.md`
-- `docs/SPEC.md`
 
 ## 4. 完成標準
 
@@ -40,7 +36,7 @@
 
 ## 6. 測試結果
 
-全體單元測試 42 passed，覆蓋了 fallback、SQLite 仿真查詢、空查詢不 fallback 與欄位對齊測試；git status 確認無大檔案或敏感配置洩漏。
+全體單元測試 42 passed，Streamlit 成功啟動無錯誤。
 
 ## 7. 下一步
 

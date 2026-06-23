@@ -11,6 +11,13 @@
 - 依賴: src.data.price_repository.get_latest_trans_date
 - 依賴: src.recommendation.purchase_advisor.get_purchase_advice
 """
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 import streamlit as st
 
 from app.common import configure_page, demo_notice
