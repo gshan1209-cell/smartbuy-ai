@@ -34,6 +34,12 @@ pytest -q
    - **雙層寫入與備援**: 優先寫入 Supabase 的 `price_reports` 資料表（採用參數化防範 SQL 注入），若資料庫連線失敗或離線時，自動安全降級寫入本機 `data/reports/price_reports.csv` 備援，並在前台頁面明確顯示實際資料寫入目標。
    - **無官方行情處理**: 若對應作物查無當日官方行情，相關參考價格與價差欄位寫入 `NULL`，系統與前台防崩潰並允許照常通報。
 
+4. **未來價格預測展示 (prediction_repository.py & UI 展示)**:
+   - **定位**: 提供農產品未來行情的預測展示（由 ML 模組產出結果，本階段專注讀取與呈現）。
+   - **查詢與過濾排序**: 支援「Supabase 優先、本機 CSV 備援 (`data/processed/prediction_results.csv`)」。無論是 Supabase 還是本機 CSV，查詢與讀取時皆強制套用 `predict_date >= today` 過濾，並以 `predict_date ASC` 排序，避免顯示過期資料。
+   - **前台展示對齊**: 在搜尋價格頁中，優先依據作物代碼與市場代碼 (`crop_code` & `market_code`) 進行精準比對以讀取預測資料，代碼缺失時再使用名稱 (`crop_name` & `market_name`) 進行降級比對，避免不同市場或作物的預測資料混淆。
+   - **多卡片呈現**: 展示未來 5 天的預測價格與漲跌趨勢狀態（便宜、正常、偏貴），無資料時顯示「目前尚無該品項的未來價格預測資料」以防崩潰。
+
 2. **本機 Parquet 檔案 (ML 數據湖 - Data Lake)**:
    - **定位**: 專為機器學習模型訓練提供的高壓縮比、欄位導向 (Column-oriented) 歷史數據儲存層。
    - **儲存路徑**: 儲存於 `data/history_parquet/` 目錄下，檔名為 `agri_price_YYYY-MM.parquet` 的按月分割檔案。

@@ -23,7 +23,9 @@ import streamlit as st
 from app.common import configure_page, demo_notice
 from app.components.alert_card import render_alert_card
 from src.data.price_repository import load_latest_prices, load_price_history, get_latest_trans_date
+from src.data.prediction_repository import load_predictions
 from src.recommendation.purchase_advisor import get_purchase_advice
+import pandas as pd
 
 configure_page("搜尋菜價")
 st.title("🔎 搜尋菜價")
@@ -70,3 +72,63 @@ else:
     st.write(f"節氣判斷：**{result['solar_term_status']}**")
     if result["alternatives"]:
         st.write("可以改買：" + "、".join(result["alternatives"]))
+
+    # 🔮 AI 未來行情預測
+    st.markdown("---")
+    st.subheader("🔮 AI 未來價格預測")
+
+    crop_code = None
+    market_code = None
+    market_name = None
+    if not history_df.empty:
+        latest_row = history_df.iloc[-1]
+        crop_code = latest_row.get("crop_code")
+        market_code = latest_row.get("market_code")
+        market_name = latest_row.get("market_name")
+        
+        if pd.isna(crop_code) or not str(crop_code).strip():
+            crop_code = None
+        if pd.isna(market_code) or not str(market_code).strip():
+            market_code = None
+        if pd.isna(market_name) or not str(market_name).strip():
+            market_name = None
+
+    if crop_code and market_code:
+        predictions = load_predictions(crop_code=crop_code, market_code=market_code)
+    else:
+        predictions = load_predictions(crop_name=product, market_name=market_name)
+
+    if predictions.empty:
+        st.info("🔮 目前尚無該品項的未來價格預測資料。")
+    else:
+        pred_source = predictions.attrs.get("source", "本機 CSV")
+        st.caption(f"預測資料來源：{pred_source}")
+        
+        display_df = predictions.head(5)
+        cols_pred = st.columns(len(display_df))
+        for idx, (_, row_pred) in enumerate(display_df.iterrows()):
+            p_date = row_pred["predict_date"]
+            if hasattr(p_date, "strftime"):
+                p_date_str = p_date.strftime("%Y-%m-%d")
+            else:
+                p_date_str = str(p_date)
+            p_price = row_pred["predicted_price"]
+            p_status = row_pred["predicted_status"]
+
+            status_map = {
+                "cheap": "🟢 便宜",
+                "normal": "🔵 正常",
+                "expensive": "🟠 偏貴",
+                "便宜": "🟢 便宜",
+                "正常": "🔵 正常",
+                "偏貴": "🟠 偏貴"
+            }
+            status_desc = status_map.get(p_status, f"⚪ {p_status}")
+            
+            with cols_pred[idx]:
+                st.metric(
+                    label=p_date_str,
+                    value="—" if pd.isna(p_price) else f"{float(p_price):.1f} 元",
+                    delta=status_desc,
+                    delta_color="off" if p_status in ["normal", "正常"] else "normal"
+                )

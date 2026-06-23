@@ -31,6 +31,11 @@
   - **空行情相容**: 若無對比行情，對比價差寫入 NULL，且頁面不崩潰、正常提交。
   - **防範 SQL 注入**: 採用 SQLAlchemy 參數化插入。
   - **欄位與狀態**: 回傳 dict 帶有 `write_destination`（`"Supabase"` 或 `"本機 CSV"`）以指示實際儲存目標。
+- **統一預測存取層 (`prediction_repository.py`)**:
+  - **Fallback 機制**: 優先自 Supabase `prediction_results` 表讀取，連線失敗或無該表時自動安全 fallback 讀取本機 `data/processed/prediction_results.csv`。
+  - **過濾與排序**: 在 Supabase SQL 與 CSV 備援中皆強制套用 `predict_date >= today` 過濾，並以 `predict_date ASC` 排序，以保證只展示未來且按時間遞增的預測行情。
+  - **前台精準對齊**: 搜尋頁展示預測結果時，優先使用目前查詢結果的 `crop_code + market_code` 進行精準匹配；若代碼不足或無資料，再 fallback 使用 `crop_name + market_name` 比對，防止不同產地或品項的預測資料混用。
+
 
 ### 2. Parquet 本機儲存層 (ML 數據湖)
 - **儲存目錄**: `data/history_parquet/`。
