@@ -737,5 +737,159 @@
     "dev_log": "docs/dev_logs/TASK-T13_log.md",
     "tutorial_doc": "docs/tutorials/TASK-T13_tutorial.md",
     "handoff_note": "docs/handoff/TASK-T13_handoff.md"
+  },
+  {
+    "task_id": "TASK-D01",
+    "title": "建立 Parquet 歷史資料儲存層",
+    "status": "已完成",
+    "owner": "C 資料工程 / D 菜價分析",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "data",
+    "related_files": [
+      "scripts/backfill_agri_price_history.py",
+      "scripts/update_agri_price_daily.py",
+      "src/data/data_loader.py",
+      "README.md",
+      "docs/SPEC.md"
+    ],
+    "goal": "建立本機 Parquet 歷史資料儲存層，降低 Supabase 容量負擔，並支援 ML 離線訓練與預測結果寫回。",
+    "done_definition": [
+      "新增 data/history_parquet/ 目錄",
+      "歷史回補腳本支援將資料存入分月 Parquet 檔案",
+      "每日更新腳本支援同步更新 Parquet 並定期清理 Supabase 舊資料",
+      "提供 pandas 載入 Parquet 作為 ML 訓練資料來源的工具函式",
+      "設計預測結果寫入 Supabase prediction_results 表的介面與結構",
+      "更新 README 與 docs 說明雙層資料儲存架構"
+    ],
+    "dev_log": "docs/dev_logs/TASK-D01_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-D01_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-D01_handoff.md"
+  },
+  {
+    "task_id": "TASK-D02",
+    "title": "將價格搜尋頁切換為 Supabase 優先",
+    "status": "已完成",
+    "owner": "C 資料工程 / D 菜價分析",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "data",
+    "related_files": [
+      "src/data/price_repository.py",
+      "app/pages/02_price_search.py",
+      "src/data/data_loader.py"
+    ],
+    "goal": "建立價格資料存取層 price_repository.py，支援 Supabase 優先與本機 CSV 備援讀取，並修改價格搜尋頁使用該資料層。",
+    "done_definition": [
+      "建立 src/data/price_repository.py 模組並實作指定函式",
+      "資料庫讀取支援 SSL 憑證驗證與安全防禦 (避免 SQL Injection)",
+      "資料庫讀取失敗或不可用時能自動且安全地 fallback 至本機 CSV 流程",
+      "修改價格搜尋頁以呼叫價格存取層，展示資料來源與最新日期",
+      "編寫單元測試覆蓋 Supabase 查詢、Mocking、Fallback 與關鍵字過濾",
+      "更新說明文件並依照 Agent 流程輸出日誌與教程"
+    ],
+    "dev_log": "docs/dev_logs/TASK-D02_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-D02_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-D02_handoff.md"
+  },
+  {
+    "task_id": "TASK-D03",
+    "title": "將首頁與採買推薦切換為 Supabase 優先",
+    "status": "已完成",
+    "owner": "C 資料工程 / D 菜價分析",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "data",
+    "related_files": [
+      "app/home_view.py",
+      "app/pages/01_home.py",
+      "src/recommendation/purchase_advisor.py"
+    ],
+    "goal": "建立首頁與採買推薦的 Supabase 優先資料來源切換，並處理多頁面路徑與欄位相容性。",
+    "done_definition": [
+      "首頁資料載入切換為呼叫 price_repository.load_price_history(days=90)",
+      "首頁顯示當前資料來源 (Supabase 或 本機 CSV 備援)",
+      "首頁顯示最新交易日期",
+      "確保傳入採買推薦模組的欄位同時相容 crop_name 與 product_name",
+      "修復首頁入口的 sys.path 多頁面導入問題",
+      "編寫或更新單元測試並通過全專案測試"
+    ],
+    "dev_log": "docs/dev_logs/TASK-D03_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-D03_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-D03_handoff.md"
+  },
+  {
+    "task_id": "TASK-D04",
+    "title": "將買貴通報改寫入 Supabase",
+    "status": "已完成",
+    "owner": "C 資料工程 / D 菜價分析",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "data",
+    "related_files": [
+      "scripts/create_price_reports_table.sql",
+      "src/data/report_repository.py",
+      "app/pages/05_report_price.py"
+    ],
+    "goal": "將買貴通報功能從現有的本機 CSV 寫入方式升級為 Supabase PostgreSQL 優先，並在資料庫離線時自動安全降級為本機 CSV 備援。",
+    "done_definition": [
+      "建立 scripts/create_price_reports_table.sql 資料表建立腳本",
+      "建立 src/data/report_repository.py 處理通報之 Supabase 寫入與 CSV 備援",
+      "修改 app/pages/05_report_price.py 使用新 repository並提示資料寫入位置",
+      "無官方行情時 reference_price、price_gap 與百分比寫入 NULL 且前台正常提報不崩潰",
+      "編寫單元測試覆蓋 Supabase 寫入、Fallback CSV 與無行情狀態並通過測試",
+      "更新 README.md 與 docs/SPEC.md"
+    ],
+    "dev_log": "docs/dev_logs/TASK-D04_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-D04_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-D04_handoff.md"
+  },
+  {
+    "task_id": "TASK-D05",
+    "title": "建立 prediction_results 預測結果表與展示流程",
+    "status": "已完成",
+    "owner": "C 資料工程 / D 菜價分析",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "data",
+    "related_files": [
+      "src/data/prediction_repository.py",
+      "app/pages/02_price_search.py",
+      "tests/test_prediction_repository.py"
+    ],
+    "goal": "建立價格預測讀取層 prediction_repository.py 與前台 02_price_search.py 展示，展示未來 5 天的預測行情與走勢。",
+    "done_definition": [
+      "建立 src/data/prediction_repository.py 實作未來預測資料加載與備援 CSV 流程",
+      "修改 app/pages/02_price_search.py 來取得預測結果並使用 Metric 小字卡展示未來走勢",
+      "確保 load_predictions 在資料庫與 CSV 中都只加載 predict_date >= today 且遞增排序",
+      "搜尋頁面展示優先使用 crop_code + market_code 精準查詢，否則降級使用 crop_name + market_name",
+      "編寫 tests/test_prediction_repository.py 並通過全部單元測試",
+      "更新 README.md 與 docs/SPEC.md 說明預測存取與展示邏輯"
+    ],
+    "dev_log": "docs/dev_logs/TASK-D05_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-D05_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-D05_handoff.md"
+  },
+  {
+    "task_id": "TASK-D05A",
+    "title": "資料庫現況盤點與 D06 前置資料表設計",
+    "status": "已完成",
+    "owner": "C 資料工程 / D 菜價分析",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "data",
+    "related_files": [
+      "docs/database_current_state.md",
+      "docs/database_next_schema_plan.md"
+    ],
+    "goal": "分析目前 Supabase 的四張核心資料表結構、主鍵與唯一鍵約束，盤點 D06 價格預測的最小必要架構，並設計 dim_crop, dim_market, market_rest_days 等維度表的 schema 計畫。",
+    "done_definition": [
+      "產出 docs/database_current_state.md 說明目前資料庫現況、欄位類型、約束與索引",
+      "產出 docs/database_next_schema_plan.md 提出 D06 必要與建議新增之資料表優先級與欄位草案",
+      "確保 D06 baseline 預測流程無阻礙且與現有儲存架構相容"
+    ],
+    "dev_log": "docs/dev_logs/TASK-D05A_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-D05A_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-D05A_handoff.md"
   }
 ]

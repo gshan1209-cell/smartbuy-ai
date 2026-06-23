@@ -8,11 +8,18 @@
 - 依賴: src.data.data_loader.load_market_prices
 - 依賴: src.data.report_store.add_price_report
 """
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 import streamlit as st
 
 from app.common import configure_page, demo_notice
 from src.data.data_loader import load_market_prices
-from src.data.report_store import add_price_report
+from src.data.report_repository import add_price_report
 
 
 configure_page("買貴通報")
@@ -32,5 +39,15 @@ if submitted:
         st.error("請填寫有效價格與購買地點。")
     else:
         report = add_price_report(product, price, market)
-        st.success(f"通報已收到（{report['report_id']}），初步比較：{report['comparison']}。資料仍待人工確認。")
+        dest = report.get("write_destination", "本機 CSV")
+        
+        if dest == "Supabase":
+            st.success("🎉 通報已成功送出！")
+            st.info(f"💾 資料寫入位置：Supabase 線上資料庫 (編號：{report['report_id']})")
+        else:
+            st.warning("⚠️ 資料庫目前離線，已啟用備援機制。")
+            st.info(f"💾 資料寫入位置：本機 CSV 備援 (編號：{report['report_id']})")
+        
+        comparison = report.get("comparison", "暫無官方行情可比對")
+        st.write(f"初步比較：**{comparison}**。資料仍待人工確認。")
 

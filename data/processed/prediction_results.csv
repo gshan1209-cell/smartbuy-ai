@@ -1,0 +1,6 @@
+predict_date,crop_code,crop_name,market_code,market_name,predicted_price,predicted_status
+2026-06-23,001,高麗菜,109,台北一,28.5,cheap
+2026-06-24,001,高麗菜,109,台北一,30.0,normal
+2026-06-25,001,高麗菜,109,台北一,32.5,normal
+2026-06-26,001,高麗菜,109,台北一,35.0,expensive
+2026-06-27,001,高麗菜,109,台北一,33.0,normal
