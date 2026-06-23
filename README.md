@@ -1,5 +1,5 @@
 # SmartBuy AI｜便宜買 AI
-
+![alt text](SmartBuy_AI_系統架構圖.png)
 把農產品行情、產地天氣與 24 節氣轉成簡單採買建議的 Streamlit MVP。
 
 AI Agent 或開發協作者開始工作前，請先完整閱讀 [`AGENT.md`](AGENT.md)，再從 `data/tasks/tasks.json` 讀取任務。
