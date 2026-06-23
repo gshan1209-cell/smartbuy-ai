@@ -737,5 +737,33 @@
     "dev_log": "docs/dev_logs/TASK-T13_log.md",
     "tutorial_doc": "docs/tutorials/TASK-T13_tutorial.md",
     "handoff_note": "docs/handoff/TASK-T13_handoff.md"
+  },
+  {
+    "task_id": "TASK-D01",
+    "title": "建立 Parquet 歷史資料儲存層",
+    "status": "已完成",
+    "owner": "C 資料工程 / D 菜價分析",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "data",
+    "related_files": [
+      "scripts/backfill_agri_price_history.py",
+      "scripts/update_agri_price_daily.py",
+      "src/data/data_loader.py",
+      "README.md",
+      "docs/SPEC.md"
+    ],
+    "goal": "建立本機 Parquet 歷史資料儲存層，降低 Supabase 容量負擔，並支援 ML 離線訓練與預測結果寫回。",
+    "done_definition": [
+      "新增 data/history_parquet/ 目錄",
+      "歷史回補腳本支援將資料存入分月 Parquet 檔案",
+      "每日更新腳本支援同步更新 Parquet 並定期清理 Supabase 舊資料",
+      "提供 pandas 載入 Parquet 作為 ML 訓練資料來源的工具函式",
+      "設計預測結果寫入 Supabase prediction_results 表的介面與結構",
+      "更新 README 與 docs 說明雙層資料儲存架構"
+    ],
+    "dev_log": "docs/dev_logs/TASK-D01_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-D01_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-D01_handoff.md"
   }
 ]

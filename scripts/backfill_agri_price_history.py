@@ -35,6 +35,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 from src.data.fetch_agri_prices import fetch_agri_prices  # noqa: E402
+from src.data.parquet_store import save_df_to_monthly_parquet  # noqa: E402
 
 
 def clean_database_url(value: str) -> str:
@@ -42,7 +43,7 @@ def clean_database_url(value: str) -> str:
     return "".join(value.splitlines()).strip().strip('"').strip("'")
 
 
-def load_database_url() -> str:
+def load_database_url(raise_on_missing: bool = True) -> str | None:
     """
     讀取 DATABASE_URL。
 
@@ -58,20 +59,29 @@ def load_database_url() -> str:
     secrets_path = PROJECT_ROOT / ".streamlit" / "secrets.toml"
 
     if not secrets_path.exists():
-        raise FileNotFoundError(
-            "找不到 DATABASE_URL。請設定環境變數 DATABASE_URL，"
-            "或建立 .streamlit/secrets.toml。"
-        )
+        if raise_on_missing:
+            raise FileNotFoundError(
+                "找不到 DATABASE_URL。請設定環境變數 DATABASE_URL，"
+                "或建立 .streamlit/secrets.toml。"
+            )
+        return None
 
-    with secrets_path.open("rb") as file:
-        secrets = tomllib.load(file)
+    try:
+        with secrets_path.open("rb") as file:
+            secrets = tomllib.load(file)
 
-    database_url = secrets.get("DATABASE_URL")
+        database_url = secrets.get("DATABASE_URL")
 
-    if not database_url:
-        raise ValueError("secrets.toml 中找不到 DATABASE_URL。")
+        if not database_url:
+            if raise_on_missing:
+                raise ValueError("secrets.toml 中找不到 DATABASE_URL。")
+            return None
 
-    return clean_database_url(database_url)
+        return clean_database_url(database_url)
+    except Exception:
+        if raise_on_missing:
+            raise
+        return None
 
 
 UPSERT_SQL = text(
@@ -197,6 +207,7 @@ def backfill_history(
     chunk_days: int = 1,
     batch_size: int = 500,
     sleep_seconds: int = 3,
+    mode: str = "both",
 ) -> None:
     """
     分段回補歷史資料。
@@ -204,8 +215,16 @@ def backfill_history(
     chunk_days 建議先用 1 或 2。
     政府 API 偶爾會 timeout，區間越小越穩。
     """
-    database_url = load_database_url()
-    engine = create_engine(database_url, pool_pre_ping=True)
+    # 根據 mode 載入資料庫 URL。若為 parquet 模式，資料庫 URL 遺失時不報錯（offline 模式）。
+    database_url = None
+    engine = None
+    if mode in ("db", "both"):
+        database_url = load_database_url(raise_on_missing=True)
+        engine = create_engine(database_url, pool_pre_ping=True)
+    else:
+        database_url = load_database_url(raise_on_missing=False)
+        if database_url:
+            engine = create_engine(database_url, pool_pre_ping=True)
 
     current_start = start_date
     total_processed = 0
@@ -214,6 +233,7 @@ def backfill_history(
     print(f"總區間：{start_date} ~ {end_date}", flush=True)
     print(f"每次抓取天數：{chunk_days}", flush=True)
     print(f"批次寫入大小：{batch_size}", flush=True)
+    print(f"回補模式：{mode}", flush=True)
 
     while current_start <= end_date:
         current_end = min(
@@ -236,34 +256,47 @@ def backfill_history(
             print(f"本區間清洗後資料筆數：{len(df)}", flush=True)
 
             if df.empty:
-                with engine.begin() as conn:
-                    write_log(
-                        conn,
-                        status="success",
-                        rows_processed=0,
-                        note=f"no data: {current_start} ~ {current_end}",
-                    )
+                if engine:
+                    with engine.begin() as conn:
+                        write_log(
+                            conn,
+                            status="success",
+                            rows_processed=0,
+                            note=f"no data: {current_start} ~ {current_end}",
+                        )
 
                 current_start = current_end + timedelta(days=1)
                 time.sleep(sleep_seconds)
                 continue
 
-            records = df.to_dict(orient="records")
-            processed_count = upsert_records(
-                engine=engine,
-                records=records,
-                batch_size=batch_size,
-            )
+            processed_count = 0
+
+            # 寫入 Parquet 數據湖
+            if mode in ("parquet", "both"):
+                parquet_count = save_df_to_monthly_parquet(df)
+                processed_count = len(df)
+                print(f"已同步寫入/更新 Parquet 檔案共 {processed_count} 筆資料", flush=True)
+
+            # 寫入 Supabase 資料庫
+            if mode in ("db", "both") and engine:
+                records = df.to_dict(orient="records")
+                db_processed_count = upsert_records(
+                    engine=engine,
+                    records=records,
+                    batch_size=batch_size,
+                )
+                processed_count = db_processed_count
 
             total_processed += processed_count
 
-            with engine.begin() as conn:
-                write_log(
-                    conn,
-                    status="success",
-                    rows_processed=processed_count,
-                    note=f"backfill {current_start} ~ {current_end}",
-                )
+            if engine:
+                with engine.begin() as conn:
+                    write_log(
+                        conn,
+                        status="success",
+                        rows_processed=processed_count,
+                        note=f"backfill {current_start} ~ {current_end} (mode: {mode})",
+                    )
 
             print(
                 f"區間完成：{current_start} ~ {current_end}，"
@@ -280,16 +313,16 @@ def backfill_history(
             )
             print(error_message, flush=True)
 
-            with engine.begin() as conn:
-                write_log(
-                    conn,
-                    status="failed",
-                    rows_processed=0,
-                    note=f"backfill failed {current_start} ~ {current_end}: {error_message[:500]}",
-                )
+            if engine:
+                with engine.begin() as conn:
+                    write_log(
+                        conn,
+                        status="failed",
+                        rows_processed=0,
+                        note=f"backfill failed {current_start} ~ {current_end}: {error_message[:500]}",
+                    )
 
             # 不直接中斷整個年度，先跳下一段，避免一小段失敗導致全部停止。
-            # 若你希望遇到錯誤就停止，可把下一行改成 raise。
             current_start = current_end + timedelta(days=1)
             time.sleep(sleep_seconds)
             continue
@@ -304,7 +337,7 @@ def backfill_history(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="回補農產品交易行情歷史資料到 Supabase。"
+        description="回補農產品交易行情歷史資料到 Supabase 與/或 Parquet。"
     )
 
     parser.add_argument(
@@ -347,6 +380,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="每段抓取後休息秒數，預設 3 秒。",
     )
 
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["db", "parquet", "both"],
+        default="both",
+        help="回補模式：db (僅 Supabase), parquet (僅本機 Parquet), both (兩者，預設)。",
+    )
+
     return parser
 
 
@@ -369,4 +410,5 @@ if __name__ == "__main__":
         chunk_days=args.chunk_days,
         batch_size=args.batch_size,
         sleep_seconds=args.sleep_seconds,
+        mode=args.mode,
     )
