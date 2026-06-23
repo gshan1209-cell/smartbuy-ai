@@ -29,6 +29,11 @@ pytest -q
    - **生命週期**: 線上資料庫僅保留最近 **1～3 個月** 的交易資料（由每日更新腳本自動修剪），以確保輕量化、查詢高效與不超額。
    - **統一資料存取層 (price_repository.py)**: 線上頁面（如價格搜尋頁）透過 [price_repository.py](file:///d:/AI人工智慧/專題/smartbuy-ai/src/data/price_repository.py) 進行查詢。該資料層實作了「Supabase 優先、本機 CSV 備援」機制：僅在資料庫連線出錯、例外或初始資料集為空時執行 fallback。若資料庫可連線但查詢結果為空（0 筆），則正常顯示「查無資料」，不進行 fallback。回傳的 DataFrame 會統一將 `crop_name` 與 `product_name` 標準化對齊，並在 `df.attrs["source"]` 中附帶實際資料來源標記。
 
+3. **使用者買貴通報 (report_repository.py)**:
+   - **定位**: 使用者回報市場實際交易價格的儲存層。
+   - **雙層寫入與備援**: 優先寫入 Supabase 的 `price_reports` 資料表（採用參數化防範 SQL 注入），若資料庫連線失敗或離線時，自動安全降級寫入本機 `data/reports/price_reports.csv` 備援，並在前台頁面明確顯示實際資料寫入目標。
+   - **無官方行情處理**: 若對應作物查無當日官方行情，相關參考價格與價差欄位寫入 `NULL`，系統與前台防崩潰並允許照常通報。
+
 2. **本機 Parquet 檔案 (ML 數據湖 - Data Lake)**:
    - **定位**: 專為機器學習模型訓練提供的高壓縮比、欄位導向 (Column-oriented) 歷史數據儲存層。
    - **儲存路徑**: 儲存於 `data/history_parquet/` 目錄下，檔名為 `agri_price_YYYY-MM.parquet` 的按月分割檔案。
