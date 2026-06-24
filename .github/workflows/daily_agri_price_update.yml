@@ -29,7 +29,7 @@ concurrency:
 jobs:
   update-agri-price:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
 
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -37,7 +37,7 @@ jobs:
       SMARTBUY_API_CONNECT_TIMEOUT: "30"
       SMARTBUY_API_READ_TIMEOUT: "90"
       SMARTBUY_API_PAGE_SIZE: "500"
-      SMARTBUY_FETCH_LOOKBACK_DAYS: "2"
+      SMARTBUY_FETCH_LOOKBACK_DAYS: "1"
 
     steps:
       - name: Checkout repository
