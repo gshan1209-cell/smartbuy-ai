@@ -4,9 +4,8 @@ run-name: Daily Agri Price Update
 
 on:
   schedule:
-    # GitHub Actions 使用 UTC
-    # 04:30 UTC = 台灣時間 12:30
-    - cron: "30 4 * * *"
+    - cron: "50 9 * * *"
+      timezone: "Asia/Taipei"
 
   workflow_dispatch:
 
@@ -21,7 +20,7 @@ jobs:
       SMARTBUY_API_CONNECT_TIMEOUT: "30"
       SMARTBUY_API_READ_TIMEOUT: "90"
       SMARTBUY_API_PAGE_SIZE: "500"
-      SMARTBUY_FETCH_LOOKBACK_DAYS: "1"
+      SMARTBUY_FETCH_LOOKBACK_DAYS: "2"
 
     steps:
       - name: Checkout repository
@@ -39,4 +38,13 @@ jobs:
 
       - name: Run agri price update
         run: |
-          python scripts/update_agri_price_daily.py
+          for i in {1..3}; do
+            echo "Attempt $i of 3: running agri price update..."
+            python scripts/update_agri_price_daily.py && exit 0
+            if [ $i -lt 3 ]; then
+              echo "Attempt $i failed. Waiting 10 seconds before next retry..."
+              sleep 10
+            fi
+          done
+          echo "All 3 attempts failed. Exiting with error."
+          exit 1
