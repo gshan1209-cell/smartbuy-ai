@@ -4,10 +4,27 @@ run-name: Daily Agri Price Update
 
 on:
   schedule:
-    - cron: "40 10 * * *"
+    # 台灣時間 06:30：早上補抓
+    - cron: "30 6 * * *"
+      timezone: "Asia/Taipei"
+
+    # 台灣時間 12:30：中午主要更新
+    - cron: "30 12 * * *"
+      timezone: "Asia/Taipei"
+
+    # 台灣時間 16:30：下午補抓
+    - cron: "30 16 * * *"
+      timezone: "Asia/Taipei"
+
+    # 台灣時間 22:30：晚上最後補抓
+    - cron: "30 22 * * *"
       timezone: "Asia/Taipei"
 
   workflow_dispatch:
+
+concurrency:
+  group: daily-agri-price-update
+  cancel-in-progress: false
 
 jobs:
   update-agri-price:
