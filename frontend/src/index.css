@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── 全域 reset & tokens ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cream:       #FFFBF5;
+  --cream-dark:  #F5EDE0;
+  --green:       #52B788;
+  --green-dark:  #2D6A4F;
+  --orange:      #F4A261;
+  --orange-dark: #E07B39;
+  --text:        #2D3748;
+  --text-muted:  #718096;
+  --border:      #E8E0D5;
+  --card:        #FFFFFF;
+  --danger:      #E53E3E;
+  --danger-bg:   #FFF5F5;
+  --warn:        #D97706;
+  --warn-bg:     #FFFBEB;
+  --radius:      12px;
+  --radius-sm:   8px;
+  --shadow:      0 2px 12px rgba(45,55,72,.07);
+}
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: 'Noto Sans TC', 'Segoe UI', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; }
+
+/* ── 共用 layout ─────────────────────────────────────────── */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+/* ── 共用卡片 ────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 20px 24px;
+}
+
+/* ── 按鈕 ────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  transition: opacity .15s, transform .12s;
+}
+.btn:active { transform: scale(.97); }
+.btn-primary  { background: var(--green);       color: #fff; }
+.btn-primary:hover  { opacity: .88; }
+.btn-secondary { background: var(--cream-dark); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-orange   { background: var(--orange);      color: #fff; }
+.btn-orange:hover   { opacity: .88; }
+
+/* ── 標籤 badge ──────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.badge-green  { background: #D1FAE5; color: #065F46; }
+.badge-orange { background: #FEF3C7; color: #92400E; }
+.badge-red    { background: #FEE2E2; color: #991B1B; }
+.badge-gray   { background: #F3F4F6; color: #6B7280; }
+
+/* ── 輸入框 ──────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+}
+.input:focus { border-color: var(--green); }
+
+/* ── 載入動畫 ────────────────────────────────────────────── */
+.spinner {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+.spinner::after {
+  content: '';
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── 空狀態 ──────────────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--text-muted);
+  font-size: 15px;
+}

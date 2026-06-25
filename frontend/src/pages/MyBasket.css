@@ -1,0 +1,52 @@
+.mb-page { padding: 36px 0 64px; }
+
+.mb-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.mb-add-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.mb-select { max-width: 320px; }
+
+.mb-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.mb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--cream-dark);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mb-chip-remove {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--text-muted);
+  padding: 0;
+  line-height: 1;
+}
+.mb-chip-remove:hover { color: var(--danger); }
+
+.mb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}

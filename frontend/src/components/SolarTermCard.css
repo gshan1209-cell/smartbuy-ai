@@ -1,0 +1,44 @@
+.stc { margin-bottom: 24px; }
+
+.stc-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.stc-emoji { font-size: 40px; line-height: 1; }
+.stc-label { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+.stc-name  { font-size: 22px; font-weight: 700; color: var(--green-dark); margin-bottom: 4px; }
+.stc-season { font-size: 12px; }
+
+.stc-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.stc-tips { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+
+.stc-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  background: var(--cream);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.stc-tip-warn { background: var(--warn-bg); }
+.stc-tip-icon { flex-shrink: 0; }
+
+.stc-products-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.stc-tags { display: flex; flex-wrap: wrap; gap: 6px; }

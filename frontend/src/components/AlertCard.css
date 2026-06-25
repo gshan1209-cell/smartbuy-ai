@@ -1,0 +1,17 @@
+.alert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  border-left: 4px solid;
+  margin-bottom: 12px;
+}
+
+.alert-warn   { background: var(--warn-bg);   border-color: var(--warn);   }
+.alert-danger { background: var(--danger-bg); border-color: var(--danger); }
+.alert-info   { background: #EFF6FF;          border-color: #3B82F6;       }
+
+.alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.alert-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.alert-msg   { font-size: 13px; color: var(--text-muted); }

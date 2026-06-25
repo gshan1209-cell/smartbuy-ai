@@ -1,0 +1,30 @@
+.rp-page { padding: 36px 0 64px; max-width: 600px; }
+
+.rp-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.rp-card { padding: 28px 32px; }
+
+.rp-form { display: flex; flex-direction: column; gap: 18px; }
+
+.rp-field { display: flex; flex-direction: column; gap: 6px; }
+
+.rp-label { font-size: 14px; font-weight: 600; color: var(--text); }
+
+.rp-textarea { resize: vertical; font-family: inherit; }
+
+.rp-msg {
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+}
+
+.rp-warn { background: var(--warn-bg);   color: var(--warn);   }
+.rp-ok   { background: #D1FAE5;          color: #065F46;       }
+.rp-err  { background: var(--danger-bg); color: var(--danger); }
+
+.rp-submit { width: 100%; justify-content: center; padding: 12px; font-size: 15px; }

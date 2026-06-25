@@ -1,0 +1,40 @@
+.price-card { transition: box-shadow .15s, transform .12s; }
+.price-card:hover { box-shadow: 0 4px 20px rgba(45,55,72,.12); transform: translateY(-2px); }
+
+.pc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pc-name { font-size: 16px; font-weight: 600; }
+
+.pc-price { margin-bottom: 8px; }
+.pc-amount { font-size: 28px; font-weight: 700; color: var(--green-dark); }
+.pc-unit   { font-size: 13px; color: var(--text-muted); }
+.pc-na     { font-size: 15px; color: var(--text-muted); }
+
+.pc-advice {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.pc-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pc-weather { font-size: 12px; color: var(--text-muted); }
+
+.pc-alt {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}

@@ -8,7 +8,11 @@ uploads/
 data/history_parquet/*.parquet
 data/history_parquet/**/*.parquet
 
-
 # Pytest temporary files
 .tmp_pytest/
 .pytest_cache/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
