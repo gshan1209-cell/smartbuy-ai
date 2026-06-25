@@ -4,20 +4,24 @@ run-name: Daily Agri Price Update
 
 on:
   schedule:
-    # 台灣時間 06:30：早上補抓
-    - cron: "30 6 * * *"
+    # GitHub Actions scheduled workflow 實際觸發可能有明顯延遲。
+    # 因此此處採提前排程，目標是讓實際執行時間接近：
+    # 06:30、12:30、16:30、22:30。
+
+    # 目標接近台灣時間 06:30，依實際延遲提前排程
+    - cron: "30 5 * * *"
       timezone: "Asia/Taipei"
 
-    # 台灣時間 12:30：中午主要更新
-    - cron: "30 12 * * *"
+    # 目標接近台灣時間 12:30，依實際延遲提前排程
+    - cron: "30 9 * * *"
       timezone: "Asia/Taipei"
 
-    # 台灣時間 16:30：下午補抓
-    - cron: "30 16 * * *"
+    # 目標接近台灣時間 16:30，依實際延遲提前排程
+    - cron: "30 13 * * *"
       timezone: "Asia/Taipei"
 
-    # 台灣時間 22:30：晚上最後補抓
-    - cron: "30 22 * * *"
+    # 目標接近台灣時間 22:30，依實際延遲提前排程
+    - cron: "30 20 * * *"
       timezone: "Asia/Taipei"
 
   workflow_dispatch:
