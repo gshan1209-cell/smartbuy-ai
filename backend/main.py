@@ -10,14 +10,27 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from contextlib import asynccontextmanager
+
 from src.recommendation.purchase_advisor import get_bargain_recommendations, get_purchase_advice
 from src.calendar.solar_terms import get_today_solar_term_advice
 from src.weather.typhoon_alert import get_typhoon_alert
 from src.weather.origin_weather_risk import get_origin_weather_risk
 from src.anomaly.price_status import get_price_status, get_all_price_statuses
-from src.data.price_repository import load_latest_prices
+from src.data.price_repository import load_latest_prices, load_price_history
 
-app = FastAPI(title="SmartBuy AI API", version="1.0.0")
+_price_cache: dict = {}
+
+
+@asynccontextmanager
+async def lifespan(app):
+    # 啟動時預載 30 天價格資料，避免第一次 request 才查 DB
+    _price_cache["prices"] = load_price_history(days=30)
+    yield
+    _price_cache.clear()
+
+
+app = FastAPI(title="SmartBuy AI API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,7 +51,7 @@ app.add_middleware(
 @app.get("/api/home")
 def home():
     typhoon = get_typhoon_alert()
-    recommendations = get_bargain_recommendations()
+    recommendations = get_bargain_recommendations(prices=_price_cache.get("prices"))
     # 取前三品項的天氣風險
     weather_alerts = []
     seen: set[str] = set()
@@ -61,7 +74,7 @@ def home():
 
 @app.get("/api/products")
 def list_products(q: str = Query(default="")):
-    all_statuses = get_all_price_statuses()
+    all_statuses = get_all_price_statuses(prices=_price_cache.get("prices"))
     if q.strip():
         all_statuses = [s for s in all_statuses if q.strip() in s["product_name"]]
     return all_statuses
