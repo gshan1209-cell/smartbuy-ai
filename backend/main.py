@@ -15,7 +15,7 @@ from src.calendar.solar_terms import get_today_solar_term_advice
 from src.weather.typhoon_alert import get_typhoon_alert
 from src.weather.origin_weather_risk import get_origin_weather_risk
 from src.anomaly.price_status import get_price_status, get_all_price_statuses
-from src.data.data_loader import load_market_prices
+from src.data.price_repository import load_latest_prices
 
 app = FastAPI(title="SmartBuy AI API", version="1.0.0")
 
@@ -115,7 +115,7 @@ def report_price(payload: PriceReport):
 @app.get("/api/basket/products")
 def basket_products():
     """回傳所有可加入菜籃的品項名稱"""
-    df = load_market_prices()
+    df = load_latest_prices()
     names = sorted(df["product_name"].unique().tolist())
     return {"products": names}
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 import pandas as pd
 
 from src.anomaly.sigma_detector import detect_price_status
-from src.data.data_loader import load_market_prices
+from src.data.price_repository import load_price_history
 
 
 STATUS_SUGGESTIONS = {
@@ -27,7 +27,7 @@ def get_price_status(
     market_name: str | None = None,
     prices: pd.DataFrame | None = None,
 ) -> dict:
-    data = load_market_prices() if prices is None else prices.copy()
+    data = load_price_history() if prices is None else prices.copy()
     selected = data[data["product_name"] == product_name]
     if market_name:
         selected = selected[selected["market_name"] == market_name]
@@ -62,6 +62,6 @@ def get_price_status(
 
 
 def get_all_price_statuses(prices: pd.DataFrame | None = None) -> list[dict]:
-    data = load_market_prices() if prices is None else prices.copy()
+    data = load_price_history() if prices is None else prices.copy()
     return [get_price_status(name, prices=data) for name in sorted(data["product_name"].unique())]
 
