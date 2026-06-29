@@ -67,6 +67,24 @@ def load_database_url(raise_on_missing: bool = True) -> str | None:
         return None
 
 
+def get_retention_days() -> int:
+    """
+    從環境變數讀取 Supabase 資料保留天數。
+    """
+    retention_days_str = os.getenv("SMARTBUY_PRICE_RETENTION_DAYS", "365")
+    try:
+        retention_days = int(retention_days_str)
+    except ValueError:
+        raise ValueError(
+            f"SMARTBUY_PRICE_RETENTION_DAYS 必須是有效的整數，目前設定為: '{retention_days_str}'"
+        )
+
+    if retention_days < 1:
+        raise ValueError("SMARTBUY_PRICE_RETENTION_DAYS 必須大於或等於 1")
+
+    return retention_days
+
+
 def write_log(
     conn,
     status: str,
@@ -237,10 +255,12 @@ def run_pipeline() -> None:
             """
         )
 
+        retention_days = get_retention_days()
+
         prune_sql = text(
             """
             DELETE FROM agri_price_daily
-            WHERE trans_date < CURRENT_DATE - INTERVAL '90 days';
+            WHERE trans_date < CURRENT_DATE - (:retention_days * INTERVAL '1 day');
             """
         )
 
@@ -265,9 +285,9 @@ def run_pipeline() -> None:
                     if index % 500 == 0:
                         print(f"已處理 {index} 筆資料...", flush=True)
 
-                # R2 驗證成功後，才 Pruning Supabase 超過 90 天歷史舊資料
-                print("開始清理 Supabase 超過 90 天的歷史資料...", flush=True)
-                prune_result = conn.execute(prune_sql)
+                # R2 驗證成功後，才 Pruning Supabase 歷史舊資料
+                print(f"開始清理 Supabase 超過 {retention_days} 天的歷史資料...", flush=True)
+                prune_result = conn.execute(prune_sql, {"retention_days": retention_days})
                 pruned_rows = prune_result.rowcount
                 print(f"歷史資料清理完成，已刪除 {pruned_rows} 筆過期資料。", flush=True)
 
@@ -276,7 +296,7 @@ def run_pipeline() -> None:
                     status="success",
                     rows_inserted=insert_count,
                     rows_updated=update_count,
-                    error_message=f"pruned_rows: {pruned_rows}",
+                    error_message=f"retention_days: {retention_days}; pruned_rows: {pruned_rows}",
                 )
 
             print("農產品交易行情更新完成。", flush=True)

@@ -11,9 +11,9 @@
 ### 1. Supabase PostgreSQL (App 資料庫)
 - **表 `agri_price_daily`**:
   - 線上 App 專用即時查詢。
-  - **資料保留政策**: 僅保留最新 **1～3 個月** 的資料。每日更新腳本執行後，會自動執行修剪指令刪除超過 90 天前之資料：
+  - **資料保留政策**: 預設保留最近 **1 年 (365 天)** 的資料，天數由環境變數 `SMARTBUY_PRICE_RETENTION_DAYS` 配置。每日更新腳本執行後，會自動執行修剪指令：
     ```sql
-    DELETE FROM agri_price_daily WHERE trans_date < CURRENT_DATE - INTERVAL '90 days';
+    DELETE FROM agri_price_daily WHERE trans_date < CURRENT_DATE - (:retention_days * INTERVAL '1 day');
     ```
 - **表 `prediction_results`** (新增預測寫回表):
   - **主鍵與約束**: 複合唯一約束 `UNIQUE (predict_date, crop_code, market_code)`。
