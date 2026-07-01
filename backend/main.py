@@ -16,6 +16,7 @@ from src.recommendation.purchase_advisor import get_bargain_recommendations, get
 from src.calendar.solar_terms import get_today_solar_term_advice
 from src.weather.typhoon_alert import get_typhoon_alert
 from src.weather.origin_weather_risk import get_origin_weather_risk
+from src.weather.weather_impact import get_weather_impact, get_weather_summary
 from src.anomaly.price_status import get_price_status, get_all_price_statuses
 from src.data.price_repository import load_latest_prices, load_price_history
 
@@ -101,7 +102,15 @@ def get_product_detail(name: str, market: str = Query(default="")):
     result = get_purchase_advice(name, market_name=market or None)
     if result["price_detail"]["status"] == "資料不足" and not result["today_price"]:
         raise HTTPException(status_code=404, detail="查無此品項資料")
+    result["weather_impact"] = get_weather_impact(name)
     return result
+
+
+# ── 天氣影響摘要 ──────────────────────────────────────────────────────────────
+
+@app.get("/api/weather-summary")
+def weather_summary():
+    return get_weather_summary()
 
 
 # ── 節氣指南 ──────────────────────────────────────────────────────────────────

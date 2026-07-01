@@ -41,3 +41,13 @@
 .yz-input { width: 100%; padding: 10px 13px; border: 1.5px solid var(--yz-bdr); border-radius: 8px; font-size: 14px; color: var(--yz-txt); background: #fff; outline: none; font-family: inherit; transition: border-color .15s; }
 .yz-input:focus { border-color: var(--yz-g); }
 .yz-input::placeholder { color: #B0ACA5; }
+
+/* ── 今日均價卡 hover ── */
+.yz-metric-clickable:hover { box-shadow: 0 0 0 2px var(--yz-g), var(--yz-shd); }
+
+/* ── RWD：價格查詢頁雙欄排版 ── */
+@media (max-width: 768px) {
+  .yz-price-page { padding: 16px 14px 40px !important; }
+  .yz-price-layout { flex-direction: column !important; min-height: unset !important; }
+  .yz-price-sidebar { width: 100% !important; border-right: none !important; border-bottom: 1px solid var(--yz-bdr); max-height: 280px; }
+}
