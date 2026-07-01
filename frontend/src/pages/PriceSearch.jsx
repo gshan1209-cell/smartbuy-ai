@@ -286,12 +286,12 @@ function PriceListPanel() {
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [auctionModalOpen, setAuctionModalOpen] = useState(false);
-  const [weatherAlerts, setWeatherAlerts] = useState([]);
-  const [alertsDismissed, setAlertsDismissed] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sortBy, setSortBy] = useState('default');
 
   useEffect(() => {
     get('/api/markets').then(d => setMarkets(d.markets || [])).catch(() => setMarkets([]));
-    get('/api/weather-summary').then(d => setWeatherAlerts(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   async function doSearch(q, m, autoSelect = true) {
@@ -355,33 +355,31 @@ function PriceListPanel() {
   }
 
   const isFiltering = query.trim() !== '';
-  const visibleItems = isFiltering || showAll
-    ? items
-    : [...items].sort((a, b) => (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9)).slice(0, FEATURED_COUNT);
+
+  function diffPct(item) {
+    if (item.today_price == null || !item.recent_average) return null;
+    return Math.round((item.today_price - item.recent_average) / item.recent_average * 100);
+  }
+
+  const processedItems = (() => {
+    let list = filterStatus ? items.filter(i => i.status === filterStatus) : items;
+    if (sortBy === 'diff_desc') {
+      list = [...list].sort((a, b) => (diffPct(b) ?? -999) - (diffPct(a) ?? -999));
+    } else if (sortBy === 'diff_asc') {
+      list = [...list].sort((a, b) => (diffPct(a) ?? 999) - (diffPct(b) ?? 999));
+    } else {
+      list = [...list].sort((a, b) => (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9));
+    }
+    return list;
+  })();
+
+  const visibleItems = isFiltering || showAll || filterStatus
+    ? processedItems
+    : processedItems.slice(0, FEATURED_COUNT);
 
   return (
     <div>
       <SolarTermStrip onJumpToProduct={resolveAndJump} />
-      {!alertsDismissed && weatherAlerts.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 10, padding: '10px 16px', marginBottom: 14 }}>
-          <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>⛈</span>
-          <div style={{ flex: 1, fontSize: 12.5, color: '#92400E', lineHeight: 1.6 }}>
-            <span style={{ fontWeight: 700 }}>產地天氣警示：</span>
-            {weatherAlerts.map((a, i) => {
-              const ev = EVENT_LABELS[a.event_type] || {};
-              return (
-                <span key={a.county}>
-                  {i > 0 && '；'}
-                  {ev.icon && <span style={{ marginRight: 2 }}>{ev.icon}</span>}
-                  <span style={{ fontWeight: 600 }}>{a.county}</span>
-                  {ev.text && <span style={{ color: ev.color, fontWeight: 600, marginLeft: 2 }}>（{ev.text}）</span>}
-                </span>
-              );
-            })}
-          </div>
-          <button onClick={() => setAlertsDismissed(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400E', fontSize: 15, flexShrink: 0, opacity: .6, lineHeight: 1 }}>✕</button>
-        </div>
-      )}
     <div className="yz-price-layout" style={{ display: 'flex', minHeight: 600, border: '1px solid var(--yz-bdr)', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
       {/* Left sidebar */}
       <div className="yz-price-sidebar" style={{ width: 256, flexShrink: 0, borderRight: '1px solid var(--yz-bdr)', display: 'flex', flexDirection: 'column' }}>
@@ -395,11 +393,36 @@ function PriceListPanel() {
             {markets.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
-        <div style={{ height: 1, background: 'var(--yz-bdr)' }} />
+        {/* 篩選 + 排序 */}
+        <div style={{ padding: '8px 14px 10px', borderBottom: '1px solid var(--yz-bdr)' }}>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 7 }}>
+            {[['', '全部'], ['便宜', '↓ 便宜'], ['正常', '→ 正常'], ['偏貴', '↑ 偏貴']].map(([val, label]) => (
+              <button key={val} onClick={() => { setFilterStatus(val); setShowAll(false); }}
+                style={{
+                  flex: 1, padding: '4px 0', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid',
+                  background: filterStatus === val ? 'var(--yz-g)' : '#F7F4EF',
+                  color: filterStatus === val ? '#fff' : 'var(--yz-mut)',
+                  borderColor: filterStatus === val ? 'var(--yz-g)' : 'var(--yz-bdr)',
+                }}
+              >{label}</button>
+            ))}
+          </div>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+            style={{ width: '100%', padding: '5px 8px', borderRadius: 6, fontSize: 11, border: '1px solid var(--yz-bdr)', color: 'var(--yz-mut)', background: '#F7F4EF', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <option value="default">排序：預設（依狀態）</option>
+            <option value="diff_desc">排序：漲幅最高優先</option>
+            <option value="diff_asc">排序：跌幅最大優先</option>
+          </select>
+        </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {!isFiltering && (
+          {!isFiltering && !filterStatus && (
             <p style={{ padding: '10px 14px 2px', fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.07em', textTransform: 'uppercase' }}>
               {showAll ? `全部品項（${items.length}）` : '精選品項'}
+            </p>
+          )}
+          {filterStatus && !loading && (
+            <p style={{ padding: '10px 14px 2px', fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.07em', textTransform: 'uppercase' }}>
+              {filterStatus}（{processedItems.length} 項）
             </p>
           )}
           {loading && <p style={{ padding: 14, fontSize: 12, color: 'var(--yz-dim)' }}>載入中...</p>}
@@ -407,6 +430,7 @@ function PriceListPanel() {
           {visibleItems.map(item => {
             const active = item.product_name === selectedName;
             const { arrow, color } = STATUS_ARROW[item.status] || STATUS_ARROW['資料不足'];
+            const wev = item.weather_risk ? (EVENT_LABELS[item.weather_risk] || {}) : null;
             return (
               <div
                 key={item.product_name}
@@ -418,12 +442,23 @@ function PriceListPanel() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, color: active ? 'var(--yz-gd)' : 'var(--yz-txt)' }}>{item.product_name}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color }}>{arrow} {item.status}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, color: active ? 'var(--yz-gd)' : 'var(--yz-txt)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</span>
+                    {wev && <span title={`產地${wev.text}`} style={{ fontSize: 11, flexShrink: 0 }}>{wev.icon}</span>}
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 600, color, flexShrink: 0, marginLeft: 4 }}>{arrow} {item.status}</span>
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--yz-g)' : 'var(--yz-dim)' }}>
-                  {item.today_price != null ? `${item.today_price} 元/kg` : '暫無報價'}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--yz-g)' : 'var(--yz-dim)' }}>
+                    {item.today_price != null ? `${item.today_price} 元/kg` : '暫無報價'}
+                  </span>
+                  {(() => {
+                    const d = diffPct(item);
+                    if (d == null) return null;
+                    const dc = d > 0 ? '#DC2626' : d < 0 ? '#16A34A' : '#9CA3AF';
+                    return <span style={{ fontSize: 11, fontWeight: 600, color: dc }}>{d > 0 ? `+${d}` : d}%</span>;
+                  })()}
+                </div>
               </div>
             );
           })}

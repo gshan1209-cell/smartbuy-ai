@@ -45,6 +45,24 @@
 /* ── 今日均價卡 hover ── */
 .yz-metric-clickable:hover { box-shadow: 0 0 0 2px var(--yz-g), var(--yz-shd); }
 
+/* ── Sidebar 細滾輪（overlay 風格，hover 時才出現） ── */
+.yz-price-sidebar * {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color .2s;
+}
+.yz-price-sidebar *:hover {
+  scrollbar-color: var(--yz-bdr) transparent;
+}
+.yz-price-sidebar *::-webkit-scrollbar { width: 4px; }
+.yz-price-sidebar *::-webkit-scrollbar-track { background: transparent; }
+.yz-price-sidebar *::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 2px;
+  transition: background .2s;
+}
+.yz-price-sidebar *:hover::-webkit-scrollbar-thumb { background: var(--yz-bdr); }
+
 /* ── RWD：價格查詢頁雙欄排版 ── */
 @media (max-width: 768px) {
   .yz-price-page { padding: 16px 14px 40px !important; }

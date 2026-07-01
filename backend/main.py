@@ -23,13 +23,32 @@ from src.data.price_repository import load_latest_prices, load_price_history
 _price_cache: dict = {}
 
 
+def _build_product_weather_risks() -> dict[str, str]:
+    """product_name → event_type，啟動時預算，供列表 API 注入。"""
+    from src.data.data_loader import load_product_origins
+    summary = get_weather_summary()
+    if not summary:
+        return {}
+    alert_counties = {item["county"]: item["event_type"] for item in summary}
+    df = load_product_origins()
+    risks: dict[str, str] = {}
+    for _, row in df.iterrows():
+        name = row["product_name"]
+        for county in str(row["main_origins"]).split(";"):
+            county = county.strip()
+            if county in alert_counties:
+                risks[name] = alert_counties[county]
+                break
+    return risks
+
+
 @asynccontextmanager
 async def lifespan(app):
-    # 啟動時預載：查一次 DB、算好所有品項狀態，request 進來直接回傳
     prices = load_price_history(days=30)
     _price_cache["prices"] = prices
     _price_cache["all_statuses"] = get_all_price_statuses(prices=prices)
     _price_cache["recommendations"] = get_bargain_recommendations(prices=prices)
+    _price_cache["weather_risks"] = _build_product_weather_risks()
     yield
     _price_cache.clear()
 
@@ -94,7 +113,8 @@ def list_products(q: str = Query(default=""), market: str = Query(default="")):
         all_statuses = _price_cache.get("all_statuses") or get_all_price_statuses()
     if q.strip():
         all_statuses = [s for s in all_statuses if q.strip() in s["product_name"]]
-    return all_statuses
+    weather_risks = _price_cache.get("weather_risks", {})
+    return [{**s, "weather_risk": weather_risks.get(s["product_name"])} for s in all_statuses]
 
 
 @app.get("/api/products/{name}")
