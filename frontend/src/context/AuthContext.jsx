@@ -35,8 +35,16 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(LS_KEY);
   }
 
+  function updateProfile(patch) {
+    setUser(u => {
+      const next = { ...u, ...patch };
+      localStorage.setItem(LS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

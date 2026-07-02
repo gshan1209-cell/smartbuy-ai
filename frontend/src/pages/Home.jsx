@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext';
 // 功能預覽卡：to/ready 對應目前實際可用的路由，尚未重做完成的頁面先標示「即將推出」
 const FEATURES = [
   { icon: '📊', title: '售價動態', desc: '即時批發行情、走勢圖表與 AI 價格預測', to: '/search', ready: true },
-  { icon: '📰', title: '農產新知', desc: '同步農業部公告，掌握最新農業資訊', to: '/news', ready: false },
-  { icon: '🤝', title: '互助網', desc: '滯銷、急銷媒合，農民互相幫一把', to: '/mutual-aid', ready: false },
+  { icon: '📰', title: '農產新知', desc: '同步農業部公告，掌握最新農業資訊', to: '/news', ready: true },
+  { icon: '🤝', title: '互助網', desc: '滯銷、急銷媒合，農民互相幫一把', to: '/mutual-aid', ready: true },
   { icon: '🧺', title: '我的菜籃', desc: '加入常買品項，一鍵查看採買建議', to: '/basket', ready: true },
   { icon: '⚙️', title: '設定', desc: '管理追蹤品項與推播通知偏好', to: '/settings', ready: true },
 ];

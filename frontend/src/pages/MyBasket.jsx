@@ -1,24 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PriceCard from '../components/PriceCard';
 import { useApi, get } from '../hooks/useApi';
+import { loadSavedNews, removeSavedNews } from '../lib/savedNews';
+import { loadBasket, saveBasket } from '../lib/basket';
 import './MyBasket.css';
 
-const LS_KEY = 'smartbuy_basket';
-
-function loadBasket() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
-  catch { return []; }
-}
-
-function saveBasket(items) {
-  localStorage.setItem(LS_KEY, JSON.stringify(items));
+// 找出收藏文章標題/內文中提到的菜籃品項，供「與你的菜籃相關」標示使用
+function matchedBasketItems(article, basket) {
+  return basket.filter(name => article.title.includes(name) || article.summary.includes(name));
 }
 
 export default function MyBasket() {
+  const navigate = useNavigate();
   const { data: productList } = useApi('/api/basket/products');
   const [basket,  setBasket]  = useState(loadBasket);
   const [advices, setAdvices] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [savedNews, setSavedNews] = useState(loadSavedNews);
+
+  function handleRemoveSavedNews(id) {
+    setSavedNews(removeSavedNews(id));
+  }
 
   const fetchAdvice = useCallback(async (items) => {
     if (!items.length) { setAdvices([]); return; }
@@ -99,6 +102,33 @@ export default function MyBasket() {
           {advices.map((item, i) => (
             <PriceCard key={i} item={item} />
           ))}
+        </div>
+      )}
+
+      {/* 收藏文章（來自農產新知頁，獨立於品項清單） */}
+      <h2 className="page-title" style={{ fontSize: 20, marginTop: 40 }}>📰 收藏文章</h2>
+      {savedNews.length === 0 ? (
+        <p className="empty">還沒有收藏的文章，前往<a href="/news" onClick={e => { e.preventDefault(); navigate('/news'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>農產新知</a>看看</p>
+      ) : (
+        <div className="mb-grid">
+          {savedNews.map(article => {
+            const related = matchedBasketItems(article, basket);
+            return (
+              <div key={article.id} className="card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span className="badge badge-green">{article.tag}</span>
+                  <button className="mb-chip-remove" onClick={() => handleRemoveSavedNews(article.id)} title="取消收藏">×</button>
+                </div>
+                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{article.title}</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: related.length ? 8 : 0 }}>{article.summary}</p>
+                {related.length > 0 && (
+                  <p style={{ fontSize: 12, color: 'var(--orange-dark)', fontWeight: 500 }}>
+                    🧺 與你的菜籃相關：{related.join('、')}
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -4,11 +4,11 @@ import { useAuth } from '../context/AuthContext';
 // ready:false 的頁面尚未重做完成，先顯示為不可點擊的灰字（依序施工中）
 const links = [
   { to: '/',           label: '首頁',     ready: true },
-  { to: '/search',     label: '售價動態', ready: false },
-  { to: '/news',       label: '農產新知', ready: false },
-  { to: '/mutual-aid', label: '互助網',   ready: false },
-  { to: '/basket',     label: '我的菜籃', ready: false },
-  { to: '/settings',   label: '設定',     ready: false },
+  { to: '/search',     label: '售價動態', ready: true },
+  { to: '/news',       label: '農產新知', ready: true },
+  { to: '/mutual-aid', label: '互助網',   ready: true },
+  { to: '/basket',     label: '我的菜籃', ready: true },
+  { to: '/settings',   label: '設定',     ready: true },
 ];
 
 export default function Navbar() {

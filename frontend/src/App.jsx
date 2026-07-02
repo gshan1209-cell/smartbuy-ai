@@ -2,9 +2,10 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar       from './components/Navbar';
 import Home         from './pages/Home';
 import PriceSearch  from './pages/PriceSearch';
-import ReportPrice  from './pages/ReportPrice';
 import MyBasket     from './pages/MyBasket';
-import SettingsPlaceholder from './pages/SettingsPlaceholder';
+import AgriNews     from './pages/AgriNews';
+import MutualAid    from './pages/MutualAid';
+import Settings     from './pages/Settings';
 
 export default function App() {
   return (
@@ -13,9 +14,10 @@ export default function App() {
       <Routes>
         <Route path="/"           element={<Home />} />
         <Route path="/search"     element={<PriceSearch />} />
-        <Route path="/report"     element={<ReportPrice />} />
         <Route path="/basket"     element={<MyBasket />} />
-        <Route path="/settings"   element={<SettingsPlaceholder />} />
+        <Route path="/news"       element={<AgriNews />} />
+        <Route path="/mutual-aid" element={<MutualAid />} />
+        <Route path="/settings"   element={<Settings />} />
       </Routes>
     </BrowserRouter>
   );

@@ -27,12 +27,7 @@ export default function ReportPrice() {
   }
 
   return (
-    <div className="container rp-page">
-      <h1 className="page-title">📝 回報菜價</h1>
-      <p className="rp-desc">
-        看到市場實際價格和資料不同？歡迎回報，協助社群取得更準確的行情資訊。
-      </p>
-
+    <div className="rp-page">
       <div className="rp-card card">
         <form onSubmit={handleSubmit} className="rp-form">
           <div className="rp-field">
