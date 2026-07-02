@@ -6,6 +6,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import pandas as pd
+
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -115,6 +117,23 @@ def list_products(q: str = Query(default=""), market: str = Query(default="")):
         all_statuses = [s for s in all_statuses if q.strip() in s["product_name"]]
     weather_risks = _price_cache.get("weather_risks", {})
     return [{**s, "weather_risk": weather_risks.get(s["product_name"])} for s in all_statuses]
+
+
+@app.get("/api/products/{name}/history")
+def get_product_history(name: str, days: int = Query(default=30), market: str = Query(default="")):
+    df = load_price_history(crop_name=name, market_name=market or None, days=days)
+    if df.empty:
+        return {"history": []}
+    df["trans_date"] = pd.to_datetime(df["trans_date"]).dt.strftime("%Y-%m-%d")
+    rows = (
+        df.groupby("trans_date")["avg_price"]
+        .mean()
+        .reset_index()
+        .rename(columns={"trans_date": "date", "avg_price": "price"})
+        .assign(price=lambda x: x["price"].round(1))
+        .to_dict(orient="records")
+    )
+    return {"history": rows}
 
 
 @app.get("/api/products/{name}")

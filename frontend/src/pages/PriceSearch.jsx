@@ -220,25 +220,132 @@ function PriceInsightCard({ detail }) {
   );
 }
 
-function DemoChart() {
+function PriceChart({ productName, market }) {
+  const [history, setHistory] = useState(null);
+  const [tooltip, setTooltip] = useState(null); // {x, y, date, price}
+
+  useEffect(() => {
+    if (!productName) return;
+    setHistory(null);
+    const params = market ? `?market=${encodeURIComponent(market)}` : '';
+    get(`/api/products/${encodeURIComponent(productName)}/history${params}`)
+      .then(d => setHistory(d.history || []))
+      .catch(() => setHistory([]));
+  }, [productName, market]);
+
+  if (history === null) return <div style={{ height: 148, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--yz-dim)', fontSize: 12 }}>載入中…</div>;
+  if (history.length < 2) return <div style={{ height: 60, display: 'flex', alignItems: 'center', color: 'var(--yz-dim)', fontSize: 12 }}>歷史資料不足，無法繪製走勢圖</div>;
+
+  // layout
+  const W = 650, H = 148, PAD_L = 44, PAD_R = 16, PAD_T = 14, PAD_B = 28;
+  const chartW = W - PAD_L - PAD_R;
+  const chartH = H - PAD_T - PAD_B;
+
+  const prices = history.map(r => r.price);
+  const minP = Math.min(...prices);
+  const maxP = Math.max(...prices);
+  const range = maxP - minP || 1;
+
+  const toX = i => PAD_L + (i / (history.length - 1)) * chartW;
+  const toY = p => PAD_T + chartH - ((p - minP) / range) * chartH;
+
+  const points = history.map((r, i) => [toX(i), toY(r.price)]);
+  const linePath = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const areaPath = linePath + ` L${points[points.length - 1][0].toFixed(1)},${(PAD_T + chartH).toFixed(1)} L${PAD_L},${(PAD_T + chartH).toFixed(1)} Z`;
+
+  // y-axis ticks (3 lines)
+  const ticks = [0, 0.5, 1].map(t => ({
+    y: PAD_T + chartH * (1 - t),
+    label: (minP + range * t).toFixed(1),
+  }));
+
+  // x-axis labels: first, mid, last
+  const xLabels = [0, Math.floor((history.length - 1) / 2), history.length - 1].map(i => ({
+    x: toX(i),
+    label: history[i].date.slice(5), // MM-DD
+  }));
+
+  const lastPt = points[points.length - 1];
+
   return (
-    <svg viewBox="0 0 650 148" width="100%" height="148" style={{ overflow: 'visible' }}>
-      <defs>
-        <linearGradient id="yz-ga" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1D9E75" stopOpacity="0.12" />
-          <stop offset="100%" stopColor="#1D9E75" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <line x1="30" y1="18" x2="620" y2="18" stroke="#E2DDD2" strokeWidth="1" />
-      <line x1="30" y1="52" x2="620" y2="52" stroke="#E2DDD2" strokeWidth="1" />
-      <line x1="30" y1="86" x2="620" y2="86" stroke="#E2DDD2" strokeWidth="1" />
-      <line x1="30" y1="120" x2="620" y2="120" stroke="#E2DDD2" strokeWidth="1" />
-      <path d="M30,55 L75,48 L120,40 L165,52 L210,38 L255,34 L300,44 L345,50 L390,58 L435,52 L480,64 L525,72 L570,78 L570,120 L30,120Z" fill="url(#yz-ga)" />
-      <path d="M30,55 L75,48 L120,40 L165,52 L210,38 L255,34 L300,44 L345,50 L390,58 L435,52 L480,64 L525,72 L570,78" stroke="#1D9E75" strokeWidth="2.5" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx="570" cy="78" r="4.5" fill="white" stroke="#1D9E75" strokeWidth="2.5" />
-      <text x="24" y="135" fontSize="9" fill="#9B9A90">30天前</text>
-      <text x="554" y="135" fontSize="9" fill="#1D9E75" fontWeight="bold">今日</text>
-    </svg>
+    <div style={{ position: 'relative' }}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`} width="100%" height={H}
+        style={{ overflow: 'visible', display: 'block' }}
+        onMouseLeave={() => setTooltip(null)}
+      >
+        <defs>
+          <linearGradient id="yz-cg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#1D9E75" stopOpacity="0.13" />
+            <stop offset="100%" stopColor="#1D9E75" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* grid lines */}
+        {ticks.map(t => (
+          <g key={t.label}>
+            <line x1={PAD_L} y1={t.y} x2={W - PAD_R} y2={t.y} stroke="#E2DDD2" strokeWidth="1" />
+            <text x={PAD_L - 4} y={t.y + 3.5} fontSize="9" fill="#9B9A90" textAnchor="end">{t.label}</text>
+          </g>
+        ))}
+
+        {/* area + line */}
+        <path d={areaPath} fill="url(#yz-cg)" />
+        <path d={linePath} stroke="#1D9E75" strokeWidth="2.2" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+
+        {/* latest dot */}
+        <circle cx={lastPt[0]} cy={lastPt[1]} r="4.5" fill="white" stroke="#1D9E75" strokeWidth="2.2" />
+
+        {/* x labels */}
+        {xLabels.map(l => (
+          <text key={l.label} x={l.x} y={H - 4} fontSize="9" fill="#9B9A90" textAnchor="middle">{l.label}</text>
+        ))}
+
+        {/* hover detection strips */}
+        {history.map((r, i) => {
+          const x = toX(i);
+          const y = toY(r.price);
+          const stripW = chartW / history.length;
+          return (
+            <rect
+              key={i}
+              x={x - stripW / 2} y={PAD_T} width={stripW} height={chartH}
+              fill="transparent"
+              onMouseEnter={() => setTooltip({ x, y, date: r.date, price: r.price })}
+            />
+          );
+        })}
+
+        {/* tooltip crosshair */}
+        {tooltip && (
+          <>
+            <line x1={tooltip.x} y1={PAD_T} x2={tooltip.x} y2={PAD_T + chartH} stroke="#1D9E75" strokeWidth="1" strokeDasharray="3,2" />
+            <circle cx={tooltip.x} cy={tooltip.y} r="3.5" fill="#1D9E75" />
+          </>
+        )}
+      </svg>
+
+      {/* tooltip box */}
+      {tooltip && (
+        <div style={{
+          position: 'absolute',
+          left: `calc(${(tooltip.x / W) * 100}% + 8px)`,
+          top: tooltip.y - 10,
+          background: '#1A1A18',
+          color: '#fff',
+          borderRadius: 6,
+          padding: '4px 8px',
+          fontSize: 11,
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+          zIndex: 10,
+          transform: tooltip.x > W * 0.7 ? 'translateX(-110%)' : 'none',
+        }}>
+          <span style={{ color: '#86EFAC' }}>{tooltip.date}</span>
+          <span style={{ marginLeft: 6, fontWeight: 700 }}>{tooltip.price} 元</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -533,8 +640,7 @@ function PriceListPanel() {
 
             <div className="yz-card" style={{ padding: '20px 24px', marginBottom: 16 }}>
               <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>{detail.product_name} · 30 天走勢</h4>
-              <DemoChart />
-              <p style={{ fontSize: 11, color: 'var(--yz-dim)', marginTop: 8 }}>⚠ 示範圖表，串接每日歷史價格 API 後將顯示真實走勢</p>
+              <PriceChart productName={detail.product_name} market={market} />
             </div>
 
             <PriceInsightCard detail={detail} />
