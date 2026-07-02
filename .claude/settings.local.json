@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "PowerShell(New-Item -ItemType Directory -Force \"D:\\\\RJH\\\\final PRJ\\\\smartbuy-ai\\\\data\\\\weather\")",
+      "PowerShell(\"done\")",
+      "Bash(python scripts/fetch_weather_history.py --days 7)",
+      "Bash(python scripts/fetch_weather_history.py --days 90)",
+      "Bash(python -m pytest tests/ -q)",
+      "Bash(python -m venv .venv_test)",
+      "Bash(.venv_test\\\\Scripts\\\\pip install *)",
+      "Bash(python -c \"import pandas as pd; df=pd.read_csv\\('D:/RJH/final PRJ/smartbuy-ai/data/weather/weather_daily.csv'\\); print\\('行數:', len\\(df\\)\\); print\\('日期範圍:', df['obs_date'].min\\(\\), '~', df['obs_date'].max\\(\\)\\); print\\('縣市:', sorted\\(df['county'].unique\\(\\).tolist\\(\\)\\)\\); print\\('欄位:', list\\(df.columns\\)\\)\")",
+      "Bash(python -c \"import pandas as pd; df=pd.read_csv\\('D:/RJH/final PRJ/smartbuy-ai/data/mapping/product_origin_mapping.csv'\\); print\\('品項數:', len\\(df\\)\\); print\\('類別分布:'\\); print\\(df['category'].value_counts\\(\\).to_string\\(\\)\\); counties=set\\(\\); [counties.update\\(c.strip\\(\\) for c in str\\(x\\).split\\(';'\\)\\) for x in df['main_origins']]; print\\('涵蓋縣市:', sorted\\(counties\\)\\)\")",
+      "mcp__visualize__read_me",
+      "mcp__visualize__show_widget",
+      "Bash(node --input-type=module --eval \"import\\('./src/pages/PriceSearch.jsx'\\)\")",
+      "Bash(npx vite *)",
+      "Bash(python -c \"import pandas as pd; df = pd.read_csv\\('data/weather/weather_daily.csv'\\); print\\('縣市:', sorted\\(df['county'].unique\\(\\)\\)\\); print\\('測站:', sorted\\(df['station_name'].unique\\(\\)\\)\\); print\\('日期範圍:', df['obs_date'].min\\(\\), '~', df['obs_date'].max\\(\\)\\); print\\('總筆數:', len\\(df\\)\\)\")"
+    ]
+  }
+}
