@@ -21,6 +21,7 @@ from src.weather.origin_weather_risk import get_origin_weather_risk
 from src.weather.weather_impact import get_weather_impact, get_weather_summary
 from src.anomaly.price_status import get_price_status, get_all_price_statuses
 from src.data.price_repository import load_latest_prices, load_price_history
+from src.ml.direction_predictor import predict_direction
 
 _price_cache: dict = {}
 
@@ -117,6 +118,15 @@ def list_products(q: str = Query(default=""), market: str = Query(default="")):
         all_statuses = [s for s in all_statuses if q.strip() in s["product_name"]]
     weather_risks = _price_cache.get("weather_risks", {})
     return [{**s, "weather_risk": weather_risks.get(s["product_name"])} for s in all_statuses]
+
+
+@app.get("/api/products/{name}/direction")
+def get_product_direction(name: str, market: str = Query(default="")):
+    """回傳指定品項明天的漲跌方向預測（LightGBM v2）。"""
+    df = load_price_history(crop_name=name, market_name=market or None, days=60)
+    if df.empty:
+        raise HTTPException(status_code=404, detail="查無此品項歷史資料")
+    return predict_direction(df, crop_name=name, market_name=market or "")
 
 
 @app.get("/api/products/{name}/history")

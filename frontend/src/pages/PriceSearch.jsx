@@ -220,6 +220,89 @@ function PriceInsightCard({ detail }) {
   );
 }
 
+const DIRECTION_META = {
+  up:   { label: '預測明日看漲', color: '#DC2626', bg: '#FEF2F2', badge: '#FCA5A5', arrow: '↑' },
+  down: { label: '預測明日看跌', color: '#16A34A', bg: '#F0FDF4', badge: '#86EFAC', arrow: '↓' },
+  flat: { label: '預測明日持平', color: '#6B7280', bg: '#F9FAFB', badge: '#D1D5DB', arrow: '→' },
+};
+
+function DirectionCard({ productName, market }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!productName) return;
+    setData(null);
+    setLoading(true);
+    const params = market ? `?market=${encodeURIComponent(market)}` : '';
+    get(`/api/products/${encodeURIComponent(productName)}/direction${params}`)
+      .then(d => setData(d))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [productName, market]);
+
+  if (loading) return (
+    <div style={{ padding: '10px 14px', borderRadius: 8, background: '#F9FAFB', fontSize: 12, color: 'var(--yz-mut)' }}>
+      AI 方向預測載入中…
+    </div>
+  );
+
+  if (!data || !data.direction) return (
+    <div style={{ padding: '10px 14px', borderRadius: 8, background: '#F9FAFB', fontSize: 12, color: 'var(--yz-mut)' }}>
+      ✦ AI 方向預測：{data?.note || '資料不足，無法預測'}
+    </div>
+  );
+
+  const meta = DIRECTION_META[data.direction] || DIRECTION_META.flat;
+  const bars = [
+    { label: '看跌', key: 'prob_down', color: '#16A34A' },
+    { label: '持平', key: 'prob_flat', color: '#9CA3AF' },
+    { label: '看漲', key: 'prob_up',   color: '#DC2626' },
+  ];
+  const confPct = Math.round((data.confidence || 0) * 100);
+
+  return (
+    <div style={{ borderRadius: 10, border: `1.5px solid ${meta.badge}`, background: meta.bg, overflow: 'hidden' }}>
+      {/* 標題列 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${meta.badge}` }}>
+        <span style={{ fontSize: 20, lineHeight: 1 }}>{meta.arrow}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: meta.color }}>{meta.label}</span>
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 12,
+              background: meta.badge, color: meta.color,
+            }}>信心 {confPct}%</span>
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--yz-mut)', marginTop: 2 }}>
+            依據截至 {data.trade_date} 的歷史行情，LightGBM 模型預測
+          </p>
+        </div>
+      </div>
+
+      {/* 機率條 */}
+      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+        {bars.map(({ label, key, color }) => {
+          const pct = Math.round((data[key] || 0) * 100);
+          return (
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 28, fontSize: 11, fontWeight: 600, color, flexShrink: 0 }}>{label}</span>
+              <div style={{ flex: 1, height: 8, background: '#E5E7EB', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width .4s' }} />
+              </div>
+              <span style={{ width: 32, fontSize: 11, fontWeight: 700, color, textAlign: 'right', flexShrink: 0 }}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ padding: '0 16px 10px', fontSize: 10, color: 'var(--yz-mut)' }}>
+        ＊預測方向準確率約 51%，僅供參考，請勿作為唯一採買依據
+      </div>
+    </div>
+  );
+}
+
 function PriceChart({ productName, market }) {
   const [history, setHistory] = useState(null);
   const [tooltip, setTooltip] = useState(null); // {x, y, date, price}
@@ -645,12 +728,7 @@ function PriceListPanel() {
 
             <PriceInsightCard detail={detail} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 8, background: 'var(--yz-pul)', fontSize: 12, color: 'var(--yz-pu)' }}>
-              <span style={{ fontSize: 13 }}>✦</span>
-              <span style={{ fontWeight: 600 }}>AI 價格預測</span>
-              <span className="yz-bdg yz-bdg-p">開發中</span>
-              <span style={{ color: 'var(--yz-mut)', fontSize: 11.5, marginLeft: 2 }}>上線後提供未來 7 天逐日預測均價</span>
-            </div>
+            <DirectionCard productName={detail.product_name} market={market} />
           </>
         )}
       </div>
