@@ -518,7 +518,11 @@ function PriceListPanel() {
   const [sortBy, setSortBy] = useState('default');
 
   useEffect(() => {
-    get('/api/markets').then(d => setMarkets(d.markets || [])).catch(() => setMarkets([]));
+    get('/api/markets').then(d => {
+      const list = d.markets || [];
+      setMarkets(list);
+      setMarket(prev => prev || list[0] || '');
+    }).catch(() => setMarkets([]));
   }, []);
 
   async function doSearch(q, m, autoSelect = true) {
@@ -616,7 +620,6 @@ function PriceListPanel() {
         <div style={{ padding: '0 14px 10px' }}>
           <p style={labelStyle}>批發市場</p>
           <select className="yz-input" value={market} onChange={handleMarketChange} style={{ fontSize: 13 }}>
-            <option value="">全部市場</option>
             {markets.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>

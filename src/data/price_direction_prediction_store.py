@@ -220,6 +220,12 @@ def query_latest_prediction(
     elif crop_name and market_name:
         where = "crop_name = :crop_name AND market_name = :market_name"
         params = {"crop_name": crop_name, "market_name": market_name, "staleness": max_staleness_days}
+    elif crop_name:
+        where = "crop_name = :crop_name"
+        params = {"crop_name": crop_name, "staleness": max_staleness_days}
+    elif crop_id:
+        where = "crop_id = :crop_id"
+        params = {"crop_id": crop_id, "staleness": max_staleness_days}
     else:
         return None
 
