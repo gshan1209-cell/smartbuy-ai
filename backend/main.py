@@ -22,6 +22,7 @@ from src.weather.weather_impact import get_weather_impact, get_weather_summary
 from src.anomaly.price_status import get_price_status, get_all_price_statuses
 from src.data.price_repository import load_latest_prices, load_price_history
 from src.ml.direction_predictor import predict_direction
+from src.data.price_direction_prediction_store import query_latest_prediction, query_prediction_list
 
 _price_cache: dict = {}
 
@@ -195,6 +196,43 @@ def report_price(payload: PriceReport):
         note=payload.note,
     )
     return {"success": True, "message": f"已收到 {payload.product_name} 的回報，謝謝！"}
+
+
+# ── 我的菜籃（瀏覽器端 localStorage，後端僅提供品項清單） ────────────────────
+
+@app.get("/api/predictions/direction/latest")
+def get_prediction_latest(
+    crop_id: str = Query(default=""),
+    market_id: str = Query(default=""),
+    crop_name: str = Query(default=""),
+    market_name: str = Query(default=""),
+):
+    """查詢單一市場作物最新每日批次方向預測。"""
+    result = query_latest_prediction(
+        crop_id=crop_id or None,
+        market_id=market_id or None,
+        crop_name=crop_name or None,
+        market_name=market_name or None,
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="查無此品項的每日方向預測")
+    return result
+
+
+@app.get("/api/predictions/direction")
+def get_prediction_list(
+    market_id: str = Query(default=""),
+    direction: str = Query(default=""),
+    risk: str = Query(default=""),
+    limit: int = Query(default=100, ge=1, le=500),
+):
+    """查詢多筆每日批次方向預測列表。"""
+    return query_prediction_list(
+        market_id=market_id or None,
+        direction=direction or None,
+        risk=risk or None,
+        limit=limit,
+    )
 
 
 # ── 我的菜籃（瀏覽器端 localStorage，後端僅提供品項清單） ────────────────────

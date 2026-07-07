@@ -192,3 +192,85 @@ def save_price_direction_predictions_to_supabase(payload_df: pd.DataFrame) -> in
 
     print(f"成功 Upsert 寫入 {len(records)} 筆價格方向預測至 price_direction_predictions。", flush=True)
     return len(records)
+
+
+_QUERY_COLUMNS = (
+    "market_id, market_name, crop_id, crop_name, base_date, global_latest_trade_date, "
+    "data_staleness_days, prediction_target, pred_label_direction, pred_label_name, "
+    "prob_down, prob_flat, prob_up, pred_confidence, confidence_level, "
+    "risk_level, risk_note, display_message, model_type, payload_version, prepared_at"
+)
+
+
+def query_latest_prediction(
+    crop_id: str | None = None,
+    market_id: str | None = None,
+    crop_name: str | None = None,
+    market_name: str | None = None,
+    max_staleness_days: int = 7,
+) -> dict | None:
+    """查詢單一市場作物最新批次方向預測。優先用 id，fallback 用 name。"""
+    database_url = _load_database_url()
+    if not database_url:
+        return None
+
+    if crop_id and market_id:
+        where = "crop_id = :crop_id AND market_id = :market_id"
+        params: dict = {"crop_id": crop_id, "market_id": market_id, "staleness": max_staleness_days}
+    elif crop_name and market_name:
+        where = "crop_name = :crop_name AND market_name = :market_name"
+        params = {"crop_name": crop_name, "market_name": market_name, "staleness": max_staleness_days}
+    else:
+        return None
+
+    sql = text(
+        f"SELECT {_QUERY_COLUMNS} FROM price_direction_predictions "
+        f"WHERE data_staleness_days <= :staleness AND {where} "
+        f"ORDER BY base_date DESC LIMIT 1"
+    )
+    engine = create_engine(database_url, pool_pre_ping=True)
+    with engine.connect() as conn:
+        row = conn.execute(sql, params).mappings().fetchone()
+    if row is None:
+        return None
+    return dict(row)
+
+
+def query_prediction_list(
+    market_id: str | None = None,
+    direction: str | None = None,
+    risk: str | None = None,
+    limit: int = 100,
+    max_staleness_days: int = 7,
+) -> list[dict]:
+    """查詢多筆批次方向預測列表，依 risk_level、pred_confidence、base_date 排序。"""
+    database_url = _load_database_url()
+    if not database_url:
+        return []
+
+    clauses = ["data_staleness_days <= :staleness"]
+    params: dict = {"staleness": max_staleness_days, "limit": limit}
+
+    if market_id:
+        clauses.append("market_id = :market_id")
+        params["market_id"] = market_id
+    if direction:
+        clauses.append("pred_label_name = :direction")
+        params["direction"] = direction
+    if risk:
+        clauses.append("risk_level = :risk")
+        params["risk"] = risk
+
+    where = " AND ".join(clauses)
+    sql = text(
+        f"SELECT {_QUERY_COLUMNS} FROM price_direction_predictions "
+        f"WHERE {where} "
+        f"ORDER BY "
+        f"  CASE risk_level WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, "
+        f"  pred_confidence DESC, base_date DESC "
+        f"LIMIT :limit"
+    )
+    engine = create_engine(database_url, pool_pre_ping=True)
+    with engine.connect() as conn:
+        rows = conn.execute(sql, params).mappings().fetchall()
+    return [dict(r) for r in rows]

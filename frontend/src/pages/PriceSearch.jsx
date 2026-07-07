@@ -226,6 +226,25 @@ const DIRECTION_META = {
   flat: { label: '預測明日持平', color: '#6B7280', bg: '#F9FAFB', badge: '#D1D5DB', arrow: '→' },
 };
 
+// 將每日批次表的欄位正規化成 DirectionCard 的統一格式
+function _normalizeBatchPrediction(d) {
+  const dirMap = { 漲: 'up', 跌: 'down', 持平: 'flat' };
+  return {
+    direction: dirMap[d.pred_label_name] || 'flat',
+    confidence: d.pred_confidence,
+    prob_down: d.prob_down,
+    prob_flat: d.prob_flat,
+    prob_up: d.prob_up,
+    trade_date: d.base_date,
+    note: d.display_message,
+    risk_level: d.risk_level,
+    risk_note: d.risk_note,
+    confidence_level: d.confidence_level,
+    data_staleness_days: d.data_staleness_days,
+    source: 'batch',
+  };
+}
+
 function DirectionCard({ productName, market }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -234,9 +253,13 @@ function DirectionCard({ productName, market }) {
     if (!productName) return;
     setData(null);
     setLoading(true);
-    const params = market ? `?market=${encodeURIComponent(market)}` : '';
-    get(`/api/products/${encodeURIComponent(productName)}/direction${params}`)
-      .then(d => setData(d))
+
+    const batchParams = market
+      ? `crop_name=${encodeURIComponent(productName)}&market_name=${encodeURIComponent(market)}`
+      : `crop_name=${encodeURIComponent(productName)}`;
+
+    get(`/api/predictions/direction/latest?${batchParams}`)
+      .then(d => setData(_normalizeBatchPrediction(d)))
       .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, [productName, market]);
@@ -295,6 +318,20 @@ function DirectionCard({ productName, market }) {
           );
         })}
       </div>
+
+      {/* 風險提醒（批次資料才有） */}
+      {data.risk_level && data.risk_level !== 'normal' && data.risk_note && (
+        <div style={{ margin: '0 16px 10px', padding: '8px 10px', borderRadius: 6, background: data.risk_level === 'high' ? '#FEF2F2' : '#FFFBEB', fontSize: 11, color: data.risk_level === 'high' ? '#DC2626' : '#92400E' }}>
+          ⚠ {data.risk_note}
+        </div>
+      )}
+
+      {/* 資料新鮮度（批次才有） */}
+      {data.data_staleness_days > 0 && (
+        <div style={{ padding: '0 16px 6px', fontSize: 10, color: 'var(--yz-mut)' }}>
+          依據 {data.data_staleness_days} 天前交易資料推算
+        </div>
+      )}
 
       <div style={{ padding: '0 16px 10px', fontSize: 10, color: 'var(--yz-mut)' }}>
         ＊預測方向準確率約 51%，僅供參考，請勿作為唯一採買依據
