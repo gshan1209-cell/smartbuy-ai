@@ -18,6 +18,12 @@
 - **表 `prediction_results`** (新增預測寫回表):
   - **主鍵與約束**: 複合唯一約束 `UNIQUE (predict_date, crop_code, market_code)`。
   - **欄位**: `id`, `predict_date`, `crop_code`, `crop_name`, `market_code`, `market_name`, `predicted_price`, `predicted_status`, `created_at`。
+- **表 `price_direction_predictions`** (每日價格方向 ML 預測表):
+  - **主鍵與約束**: `upsert_key` 作為主鍵，格式為 `market_id__crop_id__base_date`。
+  - **欄位**: `upsert_key`, `market_id`, `market_name`, `crop_id`, `crop_name`, `base_date`, `global_latest_trade_date`, `data_staleness_days`, `prediction_target`, `pred_label_direction`, `pred_label_name`, `prob_down`, `prob_flat`, `prob_up`, `pred_confidence`, `confidence_level`, `risk_level`, `risk_note`, `display_message`, `model_type`, `payload_version`, `created_by_stage`, `prepared_at`, `updated_at`。
+  - **寫入流程**: GitHub Actions 每日行情更新成功後執行 `scripts/generate_price_direction_predictions.py`，從 Parquet 資料湖建立特徵、載入 `models/07_lightgbm_selected_final.joblib` 並 upsert 至此表。
+  - **資料範圍**: 只寫入 `data_staleness_days <= 7` 的近期預測，避免前端展示過舊交易日的方向判斷。
+  - **安全限制**: 初次部署需先執行 `scripts/create_price_direction_predictions_table.sql`。若前端需直接讀取此表，必須另行設定只讀 RLS policy；否則建議透過後端 API 查詢。
 - **表 `price_reports`** (買貴通報資料表):
   - **主鍵與約束**: `id` SERIAL PRIMARY KEY，且 `report_id` VARCHAR(50) NOT NULL UNIQUE。
   - **欄位**: `id`, `report_id`, `report_date`, `crop_name`, `product_name`, `market_name`, `user_price`, `unit`, `reference_price`, `price_gap`, `price_gap_percent`, `report_note`, `write_destination`, `created_at`。

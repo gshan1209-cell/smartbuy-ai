@@ -919,5 +919,40 @@
     "dev_log": "docs/dev_logs/TASK-D06_log.md",
     "tutorial_doc": "docs/tutorials/TASK-D06_tutorial.md",
     "handoff_note": "docs/handoff/TASK-D06_handoff.md"
+  },
+  {
+    "task_id": "TASK-D07",
+    "title": "建立每日價格方向 ML 預測排程",
+    "status": "等待測試",
+    "owner": "C 資料工程 / D 菜價分析",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "data",
+    "related_files": [
+      ".github/workflows/daily_agri_price_update.yml",
+      "scripts/create_price_direction_predictions_table.sql",
+      "scripts/generate_price_direction_predictions.py",
+      "models/07_lightgbm_selected_final.joblib",
+      "src/data/price_direction_prediction_store.py",
+      "src/ml/price_direction_predictor.py",
+      "tests/test_price_direction_predictor.py",
+      "tests/test_generate_price_direction_predictions.py",
+      "requirements.txt",
+      "README.md",
+      "docs/SPEC.md"
+    ],
+    "goal": "將已訓練好的價格方向模型接進每日行情更新流程，產生下一交易日方向、信心與風險提示，並寫回 Supabase price_direction_predictions 表。",
+    "done_definition": [
+      "建立 price_direction_predictions 資料表 SQL",
+      "建立可載入 joblib 模型並產生方向預測的 ML 模組",
+      "建立 CLI 腳本支援 dry-run 與正式 upsert",
+      "每日 GitHub Actions 行情更新後會執行價格方向預測",
+      "預測 payload 欄位符合 Supabase table schema 並通過基本驗證",
+      "新增單元測試覆蓋特徵工程、payload 驗證與 dry-run 流程",
+      "更新 README 與 docs/SPEC 說明每日價格方向預測流程"
+    ],
+    "dev_log": "docs/dev_logs/TASK-D07_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-D07_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-D07_handoff.md"
   }
 ]

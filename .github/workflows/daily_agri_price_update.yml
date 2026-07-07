@@ -79,3 +79,18 @@ jobs:
           done
           echo "Update failed after 3 attempts"
           exit 1
+
+      - name: Run price direction ML prediction with retry
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            echo "Prediction attempt $i..."
+            if python scripts/generate_price_direction_predictions.py; then
+              echo "Price direction prediction succeeded"
+              exit 0
+            fi
+            echo "Prediction failed, sleep before retry..."
+            sleep 60
+          done
+          echo "Price direction prediction failed after 3 attempts"
+          exit 1

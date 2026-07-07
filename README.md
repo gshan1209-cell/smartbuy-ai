@@ -40,12 +40,20 @@ pytest -q
    - **前台展示對齊**: 在搜尋價格頁中，優先依據作物代碼與市場代碼 (`crop_code` & `market_code`) 進行精準比對以讀取預測資料，代碼缺失時再使用名稱 (`crop_name` & `market_name`) 進行降級比對，避免不同市場或作物的預測資料混淆。
    - **多卡片呈現**: 展示未來 5 天的預測價格與漲跌趨勢狀態（便宜、正常、偏貴），無資料時顯示「目前尚無該品項的未來價格預測資料」以防崩潰。
 
+5. **每日價格方向 ML 預測 (`price_direction_predictions`)**:
+   - **定位**: 使用已訓練好的 LightGBM 價格方向模型，針對每個市場與作物最新交易日產生「下一交易日跌、持平、漲」方向預測。
+   - **每日排程**: GitHub Actions `daily_agri_price_update.yml` 在行情更新與 R2 Parquet 同步成功後，執行 `scripts/generate_price_direction_predictions.py`。
+   - **資料來源**: 預測腳本呼叫 `load_historical_prices_for_ml()` 讀取 Parquet 資料湖，不大量查詢 Supabase 原始行情表。
+   - **寫回表**: 預測結果 upsert 至 Supabase `price_direction_predictions`，欄位包含 `prob_down`、`prob_flat`、`prob_up`、`pred_confidence`、`confidence_level`、`risk_level` 與 `display_message`。
+   - **模型檔案**: 預設載入 `models/07_lightgbm_selected_final.joblib`。若更換模型，請維持 payload 內含 `model`、`model_feature_columns`、`categorical_feature_columns` 與 `category_maps`。
+   - **建表 SQL**: 初次部署前請先在 Supabase SQL Editor 執行 `scripts/create_price_direction_predictions_table.sql`。
+
 2. **Cloudflare R2 Parquet 歷史資料湖 (ML 數據湖 - Data Lake)**:
    - **定位**: 專為機器學習模型訓練提供的高壓縮比、欄位導向 (Column-oriented) 歷史數據儲存層。
    - **雙向同步與持久化**: 由於 GitHub Actions runner 為暫時機器，歷史資料湖 Parquet 檔案（按月分割，儲存於 `data/history_parquet/`）會雙向同步至 Cloudflare R2 儲存桶。每次行情更新前會自動從 R2 下載既有 Parquet 檔，合併新行情後再上傳更新至 R2 並進行完整性大小驗證。
    - **安全阻斷**: 僅在 Parquet 上傳 R2 成功且驗證通過後，才允許執行 Supabase 90 天前的舊資料 Pruning，確保歷史行情資料安全。
    - **ML 訓練載入方式**: 模型訓練時，應優先讀取 Parquet 數據湖（呼叫 `load_historical_prices_for_ml()` 函式），而不是大量查詢 Supabase 資料庫，避免造成雲端資料庫負擔與限制瓶頸。
-   - **預測結果**: 模型預測完成後，將結果寫回 Supabase 的 `prediction_results` 資料表中以供前台顯示。
+   - **預測結果**: Baseline 未來價格預測寫回 Supabase 的 `prediction_results`；價格方向分類模型寫回 `price_direction_predictions`。
 
 ## Agent 任務自動化
 
