@@ -954,5 +954,27 @@
     "dev_log": "docs/dev_logs/TASK-D07_log.md",
     "tutorial_doc": "docs/tutorials/TASK-D07_tutorial.md",
     "handoff_note": "docs/handoff/TASK-D07_handoff.md"
+  },
+  {
+    "task_id": "TASK-D08",
+    "title": "建立會員資訊資料表",
+    "status": "進行中",
+    "owner": "C 資料工程 / B UI/UX",
+    "worker_type": "AI Agent",
+    "priority": "高",
+    "module": "data",
+    "related_files": [
+      "scripts/create_members_table.sql",
+      "data/tasks/tasks.json"
+    ],
+    "goal": "建立會員資訊的 SQL 腳本並提供基本資料庫 Schema 結構與偏好設定欄位。",
+    "done_definition": [
+      "建立 scripts/create_members_table.sql",
+      "資料表包含主鍵、唯一值約束與合理索引",
+      "欄位完整對應目前前端 Settings.jsx 與 AuthContext.jsx 的狀態"
+    ],
+    "dev_log": "docs/dev_logs/TASK-D08_log.md",
+    "tutorial_doc": "docs/tutorials/TASK-D08_tutorial.md",
+    "handoff_note": "docs/handoff/TASK-D08_handoff.md"
   }
 ]
