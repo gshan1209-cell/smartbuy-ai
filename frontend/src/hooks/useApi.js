@@ -21,10 +21,27 @@ export function useApi(path) {
   return { data, loading, error };
 }
 
+function authHeaders(extra = {}) {
+  const token = localStorage.getItem('yz_auth_token');
+  return token
+    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...extra }
+    : { 'Content-Type': 'application/json', ...extra };
+}
+
 export async function post(path, body) {
   const res = await fetch(BASE + path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function put(path, body) {
+  const res = await fetch(BASE + path, {
+    method: 'PUT',
+    headers: authHeaders(),
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await res.text());
@@ -32,7 +49,7 @@ export async function post(path, body) {
 }
 
 export async function get(path) {
-  const res = await fetch(BASE + path);
+  const res = await fetch(BASE + path, { headers: authHeaders() });
   if (!res.ok) throw new Error(res.statusText);
   return res.json();
 }

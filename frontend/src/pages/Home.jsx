@@ -36,12 +36,13 @@ export default function Home() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState(false);
 
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault();
-    const ok = login(form.email, form.password);
-    if (ok) {
-      navigate('/search'); // 之後第 2 頁做完後改為 /prices
-    } else {
+    setLoginError(false);
+    try {
+      await login(form.email, form.password);
+      navigate('/search');
+    } catch {
       setLoginError(true);
     }
   }
@@ -88,7 +89,7 @@ export default function Home() {
                   <label htmlFor="yz-login-password" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--yz-mut)', marginBottom: 6 }}>密碼</label>
                   <input id="yz-login-password" className="yz-input" type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
                 </div>
-                {loginError && <p style={{ fontSize: 12, color: 'var(--yz-re)', marginBottom: 10 }}>帳號或密碼不正確（demo 帳密：farmer@example.com / farmer1234）</p>}
+                {loginError && <p style={{ fontSize: 12, color: 'var(--yz-re)', marginBottom: 10 }}>Email 或密碼錯誤，請再試一次</p>}
                 <button className="yz-btn yz-btn-g" style={{ width: '100%', padding: 11, fontSize: 14 }} type="submit">登入</button>
               </form>
               <div style={{ height: 1, background: 'var(--yz-bdr)', margin: '16px 0' }} />

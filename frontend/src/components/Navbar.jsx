@@ -60,7 +60,7 @@ export default function Navbar() {
             <button className="yz-btn yz-btn-gho yz-btn-sm" onClick={() => { logout(); navigate('/'); }}>登出</button>
           </>
         ) : (
-          <button className="yz-btn yz-btn-out yz-btn-sm" onClick={() => navigate('/')}>登入</button>
+          <button className="yz-btn yz-btn-out yz-btn-sm" onClick={() => navigate('/login')}>登入</button>
         )}
       </div>
     </header>

@@ -5,6 +5,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent / ".env")
 
 import pandas as pd
 
@@ -66,6 +69,9 @@ async def lifespan(app):
 
 
 app = FastAPI(title="SmartBuy AI API", version="1.0.0", lifespan=lifespan)
+
+from backend.routers.auth import router as auth_router
+app.include_router(auth_router)
 
 app.add_middleware(
     CORSMiddleware,
