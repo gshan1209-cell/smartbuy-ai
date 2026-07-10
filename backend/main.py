@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 
 from src.recommendation.purchase_advisor import get_bargain_recommendations, get_purchase_advice
-from src.calendar.solar_terms import get_today_solar_term_advice
+from src.calendar.solar_terms import get_current_solar_term
 from src.weather.typhoon_alert import get_typhoon_alert
 from src.weather.origin_weather_risk import get_origin_weather_risk
 from src.weather.weather_impact import get_weather_impact, get_weather_summary
@@ -111,7 +111,7 @@ def home():
                 weather_alerts.append(risk)
             seen.add(name)
     return {
-        "solar_term": get_today_solar_term_advice(),
+        "solar_term": get_current_solar_term(),
         "typhoon": typhoon,
         "weather_alerts": weather_alerts,
         "recommendations": recommendations,
@@ -169,7 +169,7 @@ def get_product_history(name: str, days: int = Query(default=30), market: str = 
 
 @app.get("/api/products/{name}")
 def get_product_detail(name: str, market: str = Query(default="")):
-    result = get_purchase_advice(name, market_name=market or None)
+    result = get_purchase_advice(name, prices=_price_cache.get("prices"), market_name=market or None)
     if result["price_detail"]["status"] == "資料不足" and not result["today_price"]:
         raise HTTPException(status_code=404, detail="查無此品項資料")
     result["weather_impact"] = get_weather_impact(name)
@@ -187,14 +187,7 @@ def weather_summary():
 
 @app.get("/api/solar-term")
 def solar_term():
-    return get_today_solar_term_advice()
-
-
-@app.get("/api/solar-term/all")
-def all_solar_terms():
-    from src.data.data_loader import load_solar_terms
-    df = load_solar_terms()
-    return df.to_dict(orient="records")
+    return get_current_solar_term()
 
 
 # ── 回報菜價 ──────────────────────────────────────────────────────────────────

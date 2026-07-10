@@ -521,9 +521,14 @@ function PriceListPanel() {
     get('/api/markets').then(d => {
       const list = d.markets || [];
       setMarkets(list);
-      setMarket(prev => prev || list[0] || '');
-    }).catch(() => setMarkets([]));
-  }, []);
+      const first = list[0] || '';
+      setMarket(prev => prev || first);
+      doSearch('', first, true);
+    }).catch(() => {
+      setMarkets([]);
+      doSearch('', '', true);
+    });
+  }, []); // eslint-disable-line
 
   async function doSearch(q, m, autoSelect = true) {
     setLoading(true);
@@ -540,8 +545,6 @@ function PriceListPanel() {
       setLoading(false);
     }
   }
-
-  useEffect(() => { doSearch('', '', true); }, []); // eslint-disable-line
 
   async function openDetail(name, m = market) {
     setSelectedName(name);
@@ -610,7 +613,7 @@ function PriceListPanel() {
 
   return (
     <div>
-      <SolarTermStrip onJumpToProduct={resolveAndJump} />
+      <SolarTermStrip />
     <div className="yz-price-layout" style={{ display: 'flex', minHeight: 600, border: '1px solid var(--yz-bdr)', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
       {/* Left sidebar */}
       <div className="yz-price-sidebar" style={{ width: 256, flexShrink: 0, borderRight: '1px solid var(--yz-bdr)', display: 'flex', flexDirection: 'column' }}>
@@ -781,46 +784,93 @@ function PriceListPanel() {
   );
 }
 
-const SEASON_EMOJI = { 春: '🌸', 夏: '☀️', 秋: '🍂', 冬: '❄️' };
-
-function getNextTermCountdown(terms) {
-  if (!terms?.length) return null;
-  const today = new Date();
-  const todayKey = (today.getMonth() + 1) * 100 + today.getDate();
-  const sorted = [...terms].sort((a, b) => (a.start_month * 100 + a.start_day) - (b.start_month * 100 + b.start_day));
-  let next = sorted.find(t => (t.start_month * 100 + t.start_day) > todayKey);
-  let year = today.getFullYear();
-  if (!next) { next = sorted[0]; year += 1; }
-  const nextDate = new Date(year, next.start_month - 1, next.start_day);
-  const days = Math.round((nextDate - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000);
-  return { name: next.term_name, days };
+const SEASON_EMOJI = {
+  春: '🌱', 夏: '☀️', 秋: '🍂', 冬: '❄️',
+};
+const TERM_SEASON = {
+  立春: '春', 雨水: '春', 驚蟄: '春', 春分: '春', 清明: '春', 穀雨: '春',
+  立夏: '夏', 小滿: '夏', 芒種: '夏', 夏至: '夏', 小暑: '夏', 大暑: '夏',
+  立秋: '秋', 處暑: '秋', 白露: '秋', 秋分: '秋', 寒露: '秋', 霜降: '秋',
+  立冬: '冬', 小雪: '冬', 大雪: '冬', 冬至: '冬', 小寒: '冬', 大寒: '冬',
+};
+// 依太陽黃道經度排列（與後端 _TERM_NAMES 一致）
+const TERM_ORDER = [
+  '春分','清明','穀雨','立夏','小滿','芒種','夏至','小暑','大暑',
+  '立秋','處暑','白露','秋分','寒露','霜降','立冬','小雪','大雪',
+  '冬至','小寒','大寒','立春','雨水','驚蟄',
+];
+function nextTermName(current) {
+  const i = TERM_ORDER.indexOf(current);
+  if (i === -1) return null;
+  return TERM_ORDER[(i + 1) % TERM_ORDER.length];
 }
 
-function SolarTermStrip({ onJumpToProduct }) {
-  const { data: term } = useApi('/api/solar-term');
-  const { data: all } = useApi('/api/solar-term/all');
-  const countdown = getNextTermCountdown(all);
-  if (!term) return null;
+// 給定年份 Y，估算 TERM_ORDER[i] 的日期
+// index 0-18: 以 Y 年春分 (3/20) 為基準
+// index 19-23: 以 (Y-1) 年春分為基準，結果落在 Y 年 1-3 月
+function _termDate(i, year) {
+  const baseYear = i >= 19 ? year - 1 : year;
+  return new Date(Date.UTC(baseYear, 2, 20) + i * 15.218 * 86400000);
+}
+
+function daysUntilNextTerm(currentTermName) {
+  const todayUTC = new Date(); todayUTC.setUTCHours(0,0,0,0);
+  const year = todayUTC.getUTCFullYear();
+  const ci = TERM_ORDER.indexOf(currentTermName);
+  if (ci === -1) return null;
+  const ni = (ci + 1) % TERM_ORDER.length;
+  // 下個節氣的估算年份：若 ni < ci（跨回春分），表示已進入下一輪，用 year+1
+  const refYear = ni < ci ? year + 1 : year;
+  let d = _termDate(ni, refYear);
+  // 若估算日仍在今天之前（估算誤差），往後找下一個符合的年份
+  if (d <= todayUTC) d = _termDate(ni, refYear + 1);
+  return Math.round((d - todayUTC) / 86400000) || null;
+}
+
+function SolarTermStrip() {
+  const { data: term, loading } = useApi('/api/solar-term');
+
+  if (loading) return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--yz-gl)', border: '1px solid var(--yz-bdr)', borderRadius: 20, padding: '6px 14px', marginBottom: 14, fontSize: 12, color: 'var(--yz-mut)' }}>
+      ⏳ 載入節氣…
+    </div>
+  );
+
+  if (!term || term.error) return null;
+
+  const season = TERM_SEASON[term.term_name];
+  const emoji = SEASON_EMOJI[season] || '🌿';
+  const resolvedNext = term.next_term_name || nextTermName(term.term_name);
+  const days = term.days_until_next ?? daysUntilNextTerm(term.term_name);
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--yz-gl)', border: '1px solid var(--yz-bdr)', borderRadius: 10, padding: '10px 16px', marginBottom: 14, flexWrap: 'wrap' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        <span style={{ fontSize: 20 }}>{SEASON_EMOJI[term.season] || '🌿'}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+      {/* 當前節氣泡泡 */}
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        background: 'var(--yz-gl)', border: '1px solid var(--yz-bdr)',
+        borderRadius: 20, padding: '6px 14px',
+      }}>
+        <span style={{ fontSize: 15, lineHeight: 1 }}>{emoji}</span>
+        <span style={{ fontSize: 11, color: 'var(--yz-mut)', fontWeight: 500 }}>現在節氣</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--yz-gd)' }}>{term.term_name}</span>
-        <span className="yz-bdg yz-bdg-g">{term.season}季</span>
-        {countdown && (
-          <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>· 距「{countdown.name}」還有 {countdown.days} 天</span>
-        )}
       </div>
-      {term.recommended_products?.length > 0 && (
-        <>
-          <div style={{ width: 1, height: 18, background: 'var(--yz-bdr)', flexShrink: 0 }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 10.5, color: 'var(--yz-mut)', flexShrink: 0 }}>本節氣推薦：</span>
-            {term.recommended_products.map(p => (
-              <button key={p} onClick={() => onJumpToProduct(p)} className="yz-bdg yz-bdg-g" style={{ border: 'none', cursor: 'pointer' }} title={`查看「${p}」行情`}>{p}</button>
-            ))}
-          </div>
-        </>
+
+      {/* 下個節氣泡泡 */}
+      {resolvedNext && (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          background: '#F7F4EF', border: '1px solid var(--yz-bdr)',
+          borderRadius: 20, padding: '6px 14px',
+        }}>
+          <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>距</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--yz-txt)' }}>{resolvedNext}</span>
+          {days != null && <>
+            <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>還有</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--yz-gd)' }}>{days}</span>
+            <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>天</span>
+          </>}
+        </div>
       )}
     </div>
   );
