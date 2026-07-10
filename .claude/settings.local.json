@@ -15,7 +15,8 @@
       "mcp__visualize__show_widget",
       "Bash(node --input-type=module --eval \"import\\('./src/pages/PriceSearch.jsx'\\)\")",
       "Bash(npx vite *)",
-      "Bash(python -c \"import pandas as pd; df = pd.read_csv\\('data/weather/weather_daily.csv'\\); print\\('縣市:', sorted\\(df['county'].unique\\(\\)\\)\\); print\\('測站:', sorted\\(df['station_name'].unique\\(\\)\\)\\); print\\('日期範圍:', df['obs_date'].min\\(\\), '~', df['obs_date'].max\\(\\)\\); print\\('總筆數:', len\\(df\\)\\)\")"
+      "Bash(python -c \"import pandas as pd; df = pd.read_csv\\('data/weather/weather_daily.csv'\\); print\\('縣市:', sorted\\(df['county'].unique\\(\\)\\)\\); print\\('測站:', sorted\\(df['station_name'].unique\\(\\)\\)\\); print\\('日期範圍:', df['obs_date'].min\\(\\), '~', df['obs_date'].max\\(\\)\\); print\\('總筆數:', len\\(df\\)\\)\")",
+      "mcp__0cc39b51-c8b9-46e5-9a3f-a48d40982897__notion-fetch"
     ]
   }
 }
