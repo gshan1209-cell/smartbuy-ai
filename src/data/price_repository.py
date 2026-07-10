@@ -19,6 +19,22 @@ from sqlalchemy import create_engine, text
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
+_engine = None  # 共用單一 engine，避免 Supabase session mode 連線數超限
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        url = _load_database_url()
+        if url:
+            _engine = create_engine(
+                url,
+                pool_pre_ping=True,
+                pool_size=3,
+                max_overflow=2,
+            )
+    return _engine
+
 
 def _load_database_url() -> str | None:
     """
@@ -62,10 +78,9 @@ def load_latest_prices(limit: int = 200) -> pd.DataFrame:
     回傳:
         pd.DataFrame: 最新交易日的價格資料，含 attrs["source"] 來源標記。
     """
-    database_url = _load_database_url()
-    if database_url:
+    engine = _get_engine()
+    if engine:
         try:
-            engine = create_engine(database_url, pool_pre_ping=True)
             # 取得最新交易日
             with engine.connect() as conn:
                 max_date_row = conn.execute(text("SELECT MAX(trans_date) FROM agri_price_daily;")).first()
@@ -124,10 +139,9 @@ def search_prices(
     回傳:
         pd.DataFrame: 搜尋結果資料，含 attrs["source"] 來源標記。
     """
-    database_url = _load_database_url()
-    if database_url:
+    engine = _get_engine()
+    if engine:
         try:
-            engine = create_engine(database_url, pool_pre_ping=True)
             sql = (
                 "SELECT trans_date, crop_code, crop_name, market_code, market_name, "
                 "       upper_price, middle_price, lower_price, avg_price, volume "
@@ -204,10 +218,9 @@ def load_price_history(
         reference_date = reference_date.date()
 
     start_date = reference_date - timedelta(days=days)
-    database_url = _load_database_url()
-    if database_url:
+    engine = _get_engine()
+    if engine:
         try:
-            engine = create_engine(database_url, pool_pre_ping=True)
             sql = (
                 "SELECT trans_date, crop_code, crop_name, market_code, market_name, "
                 "       upper_price, middle_price, lower_price, avg_price, volume "
@@ -267,10 +280,9 @@ def get_latest_trans_date() -> tuple[str | None, str]:
     回傳:
         tuple[str | None, str]: (最新交易日字串 YYYY-MM-DD 或 None, 資料來源名稱)
     """
-    database_url = _load_database_url()
-    if database_url:
+    engine = _get_engine()
+    if engine:
         try:
-            engine = create_engine(database_url, pool_pre_ping=True)
             with engine.connect() as conn:
                 max_date_row = conn.execute(text("SELECT MAX(trans_date) FROM agri_price_daily;")).first()
                 max_date = max_date_row[0] if max_date_row else None
