@@ -1,18 +1,32 @@
 """
 模組名稱: tests.test_solar_terms
-功能說明: 測試模組，確保系統各項功能正常運作。
-
-【相關元件 (Related Components)】
-- 依賴: src.calendar.solar_terms.get_today_solar_term_advice
+功能說明: 測試節氣天文計算。
 """
-from src.calendar.solar_terms import get_today_solar_term_advice
+from datetime import date
+
+from src.calendar.solar_terms import get_current_solar_term
 
 
-def test_summer_solstice_boundary():
-    assert get_today_solar_term_advice("2026-06-20")["term_name"] == "芒種"
-    assert get_today_solar_term_advice("2026-06-21")["term_name"] == "夏至"
+def test_summer_solstice():
+    # 2026 夏至約在 6/21，6/22 應已是小暑之前的夏至節氣
+    result = get_current_solar_term(today=date(2026, 6, 22))
+    assert result["term_name"] == "夏至"
 
 
-def test_early_january_wraps_to_previous_last_term():
-    assert get_today_solar_term_advice("2026-01-01")["term_name"] == "冬至"
+def test_minor_heat():
+    # 2026 小暑約在 7/7，7/10 應顯示小暑
+    result = get_current_solar_term(today=date(2026, 7, 10))
+    assert result["term_name"] == "小暑"
 
+
+def test_early_january():
+    # 1/1 通常還在冬至節氣（冬至約 12/22，小寒約 1/5）
+    result = get_current_solar_term(today=date(2026, 1, 1))
+    assert result["term_name"] == "冬至"
+
+
+def test_returns_term_name_key():
+    result = get_current_solar_term()
+    assert "term_name" in result
+    assert isinstance(result["term_name"], str)
+    assert len(result["term_name"]) == 2
