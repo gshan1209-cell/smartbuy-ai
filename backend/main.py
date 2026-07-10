@@ -70,6 +70,12 @@ async def lifespan(app):
 
 app = FastAPI(title="SmartBuy AI API", version="1.0.0", lifespan=lifespan)
 
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 from backend.routers.auth import router as auth_router
 app.include_router(auth_router)
 
