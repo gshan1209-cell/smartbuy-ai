@@ -2,24 +2,7 @@
 
 本文給負責前端的 Agent 使用，說明如何把每日 ML 預測結果呈現在 SmartBuy AI 前端。
 
-## 1. 目前有兩種方向預測來源
-
-### A. 既有即時單品預測 API
-
-目前前端 `frontend/src/pages/PriceSearch.jsx` 已有 `DirectionCard`，它呼叫：
-
-```text
-GET /api/products/{productName}/direction?market={marketName}
-```
-
-這個 API 會由後端即時載入最近歷史資料，再呼叫 `src/ml/direction_predictor.py` 產生單一品項方向預測。
-
-適合用途：
-
-- 使用者搜尋單一品項時，即時顯示一張方向預測卡。
-- 不需要先查 Supabase `price_direction_predictions` 表。
-
-### B. 新增每日批次預測表
+## 1. 正式方向預測來源
 
 GitHub Actions 每日已會執行：
 
@@ -33,12 +16,12 @@ scripts/generate_price_direction_predictions.py
 price_direction_predictions
 ```
 
-這張表是本文件主要要串接的資料來源。
+這張表是正式 MVP 唯一預測結果資料來源。
 
 適合用途：
 
-- 預測清單頁
-- Dashboard
+- 搜尋頁方向預測卡
+- Dashboard 或預測清單頁
 - 市場/作物篩選
 - 前端快速讀取已算好的每日預測，不在使用者操作時重新跑模型
 
@@ -289,15 +272,15 @@ DirectionCard -> GET /api/products/{name}/direction
 若要切到每日批次表，可採以下任一做法：
 
 1. 保留現有 `DirectionCard`，另新增 `DailyDirectionPredictionCard`。
-2. 將 `DirectionCard` 改成先查 `/api/predictions/direction/latest`，查不到時 fallback 到 `/api/products/{name}/direction`。
+2. 將 `DirectionCard` 改成只查 `/api/predictions/direction/latest`，查不到時顯示尚無下一交易日方向預測。
 3. Dashboard 或列表頁只使用每日批次表，不使用即時推論 API。
 
-建議第一階段採用第 2 種，使用者體驗較穩：
+建議第一階段採用第 2 種：
 
 ```text
-先查每日批次表
-  -> 有資料：顯示批次預測
-  -> 無資料：fallback 即時單品方向預測
+查每日批次表
+  -> 有資料：顯示下一交易日方向分類
+  -> 無資料：顯示尚無下一交易日方向預測
 ```
 
 ## 9. 驗收方式

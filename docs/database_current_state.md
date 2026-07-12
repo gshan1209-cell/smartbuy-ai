@@ -1,171 +1,100 @@
 # 資料庫現況盤點說明書 (Database Current State)
 
-本文件盤點目前 SmartBuy AI 專案在 Supabase 雲端 PostgreSQL 中已建立的核心資料表結構、欄位型別、主鍵與唯一鍵約束，以及相關索引規劃。
+更新日期：2026-07-12
 
----
+本文件盤點目前 SmartBuy AI 儲存庫中可確認的資料庫 Schema、程式實際使用的資料表，以及 Supabase 實際部署狀態的可驗證程度。本次未連線 Supabase，因此不把任何未驗證事項寫成「雲端已建立」。
 
-## 1. 資料庫 ER 架構與現存資料表
+## 1. 盤點結論
 
-目前 Supabase 共建立了 4 張核心資料表：
+| 資料表 | 儲存庫已定義 Schema | 程式已使用 | Supabase 實際部署狀態 | MVP 定位 |
+|---|---|---|---|---|
+| `agri_price_daily` | 由行情更新與 repository SQL 隱含使用 | 是，近期行情查詢與每日更新 | 本次未連線驗證 | App 近期行情查詢資料表 |
+| `price_direction_predictions` | `scripts/create_price_direction_predictions_table.sql` 與 `src/data/price_direction_prediction_store.py` | 是，每日方向分類寫入與前端 API 查詢 | 本次未連線驗證 | 正式 MVP 預測結果表 |
+| `price_reports` | `scripts/create_price_reports_table.sql` 與 report store/repository | 是，買貴通報 | 本次未連線驗證 | 使用者通報資料 |
+| `data_update_logs` | 部分批次腳本寫入 | 是，行情更新與舊 baseline 日誌 | 本次未連線驗證 | 批次執行紀錄 |
+| `prediction_results` | `scripts/create_prediction_results_table.sql` 與 deprecated store/repository | 僅 deprecated 舊版五日流程 | 本次未連線驗證 | 非 MVP，舊版待停用 |
 
-```mermaid
-erDiagram
-    agri_price_daily {
-        bigint id PK
-        date trans_date
-        text crop_code
-        text crop_name
-        text market_code
-        text market_name
-        numeric upper_price
-        numeric middle_price
-        numeric lower_price
-        numeric avg_price
-        numeric volume
-        text source
-        timestamp_tz created_at
-        timestamp_tz updated_at
-    }
-    
-    data_update_logs {
-        bigint id PK
-        text job_name
-        timestamp_tz run_date
-        text status
-        integer rows_inserted
-        integer rows_updated
-        text error_message
-    }
-    
-    price_reports {
-        integer id PK
-        varchar_50 report_id UK
-        date report_date
-        varchar_100 crop_name
-        varchar_100 product_name
-        varchar_100 market_name
-        numeric user_price
-        varchar_20 unit
-        numeric reference_price
-        numeric price_gap
-        numeric price_gap_percent
-        varchar_255 report_note
-        varchar_50 write_destination
-        timestamp_tz created_at
-    }
-    
-    prediction_results {
-        integer id PK
-        date predict_date
-        varchar_50 crop_code
-        varchar_100 crop_name
-        varchar_50 market_code
-        varchar_100 market_name
-        numeric predicted_price
-        varchar_50 predicted_status
-        timestamp_tz created_at
-    }
-```
+## 2. 正式 MVP 預測表：`price_direction_predictions`
 
----
+用途：存放 LightGBM 下一交易日方向分類結果，供後端 API 與前端顯示。
 
-## 2. 各資料表詳細結構
+主要欄位：
 
-### 2.1. `agri_price_daily` (農產品每日交易行情)
-* **用途**：存放最新 1~3 個月的每日官方交易行情，作為價格搜尋、採買推薦、天氣預警分析的核心線上資料。
-* **資料保留政策**：線上預設保留最近 1 年 (365 天) 資料（可透過環境變數 `SMARTBUY_PRICE_RETENTION_DAYS` 設定），由每日更新腳本自動清理過期資料，完整歷史行情則保留於本機 Parquet 數據湖。
-* **欄位結構**：
-  * `id` (`bigint`): 主鍵，自動遞增。
-  * `trans_date` (`date`): 交易日期（非空）。
-  * `crop_code` (`text`): 作物代號。
-  * `crop_name` (`text`): 作物名稱（非空）。
-  * `market_code` (`text`): 市場代號。
-  * `market_name` (`text`): 市場名稱（非空）。
-  * `upper_price` (`numeric`): 上價。
-  * `middle_price` (`numeric`): 中價。
-  * `lower_price` (`numeric`): 下價。
-  * `avg_price` (`numeric`): 平均價。
-  * `volume` (`numeric`): 交易量。
-  * `source` (`text`): 資料來源，預設為 `'MOA_FarmTransData'`（農業部農產品交易行情 API）。
-  * `created_at` / `updated_at` (`timestamp with time zone`): 建立與更新時間，預設為 `now()`。
-* **約束與索引**：
-  * **主鍵**：`agri_price_daily_pkey` ON `id`
-  * **唯一約束**：`uq_agri_price_daily` ON (`trans_date`, `crop_code`, `market_code`)。用以確保同日、同作物、同市場只有一筆記錄，同時作為 UPSERT (ON CONFLICT) 的主要索引。
-  * **索引**：`uq_agri_price_daily`
+- `upsert_key` (`TEXT PRIMARY KEY`): `market_id__crop_id__base_date`。
+- `market_id`, `market_name`, `crop_id`, `crop_name`: 市場與作物識別。
+- `base_date` (`DATE`): 此市場與作物可取得的最新有效交易日。
+- `global_latest_trade_date` (`DATE`): 全域最新交易日。
+- `data_staleness_days` (`INTEGER`): `base_date` 距全域最新交易日的天數，Schema 限制 0 到 7。
+- `prediction_target` (`TEXT`): 目前為 `next_trade_day`。
+- `pred_label_direction` (`INTEGER`): -1、0、1。
+- `pred_label_name` (`TEXT`): 跌、持平、漲。
+- `prob_down`, `prob_flat`, `prob_up`: 三類機率。
+- `pred_confidence`: 三類機率最大值。
+- `confidence_level`: 低、中、高。
+- `risk_level`: normal、medium、high。
+- `risk_note`, `display_message`: 前端提示文字。
+- `model_type`, `payload_version`, `created_by_stage`, `prepared_at`, `updated_at`: 模型與批次中繼資料。
 
-### 2.2. `prediction_results` (AI 預測結果展示)
-* **用途**：存放由 ML 模組產出的農產品未來行情預測結果，提供前台搜尋頁展示。
-* **欄位結構**：
-  * `id` (`integer`): 主鍵，自動遞增。
-  * `predict_date` (`date`): 預測日期（非空）。
-  * `crop_code` (`varchar(50)`): 作物代號（非空）。
-  * `crop_name` (`varchar(100)`): 作物名稱。
-  * `market_code` (`varchar(50)`): 市場代號（非空）。
-  * `market_name` (`varchar(100)`): 市場名稱。
-  * `predicted_price` (`numeric`): 預測價格。
-  * `predicted_status` (`varchar(50)`): 漲跌趨勢狀態（如 `'cheap'`, `'normal'`, `'expensive'`）。
-  * `created_at` (`timestamp with time zone`): 寫入時間，預設為 `now()`。
-* **約束與索引**：
-  * **主鍵**：`prediction_results_pkey` ON `id`
-  * **唯一約束**：`prediction_results_predict_date_crop_code_market_code_key` ON (`predict_date`, `crop_code`, `market_code`)。確保同日、同品項、同市場僅有一筆預測。
-  * **額外索引**：
-    * `idx_prediction_results_date` ON `predict_date` (加速今日與未來日期的篩選)。
-    * `idx_prediction_results_crop` ON `crop_code` (加速特定作物的預測查詢)。
+已定義索引：
 
-### 2.3. `price_reports` (使用者買貴通報)
-* **用途**：記錄使用者回報的市場實際零售價格，並與當日官方行情比對。
-* **欄位結構**：
-  * `id` (`integer`): 主鍵，自動遞增。
-  * `report_id` (`varchar(50)`): 通報流水號，唯一鍵（非空）。
-  * `report_date` (`date`): 通報日期（非空）。
-  * `crop_name` (`varchar(100)`): 官方作物名稱。
-  * `product_name` (`varchar(100)`): 使用者輸入之品項名稱（非空）。
-  * `market_name` (`varchar(100)`): 通報交易市場/地點（非空）。
-  * `user_price` (`numeric`): 使用者購買價格（非空）。
-  * `unit` (`varchar(20)`): 計價單位，預設為 `'元/公斤'`（非空）。
-  * `reference_price` (`numeric`): 官方對比價格，查無時為 `NULL`。
-  * `price_gap` (`numeric`): 與官方行情之差價，查無時為 `NULL`。
-  * `price_gap_percent` (`numeric`): 價差百分比，查無時為 `NULL`。
-  * `report_note` (`varchar(255)`): 通報備註，預設為 `'待確認'`。
-  * `write_destination` (`varchar(50)`): 寫入目標位置，用以區分資料儲存是實體在 `"Supabase"` 還是 `"本機 CSV"`。
-  * `created_at` (`timestamp with time zone`): 通報時間，預設為 `now()`。
-* **約束與索引**：
-  * **主鍵**：`price_reports_pkey` ON `id`
-  * **唯一約束**：`price_reports_report_id_key` ON `report_id`
-  * **額外索引**：
-    * `idx_price_reports_date` ON `report_date`
-    * `idx_price_reports_product` ON `product_name`
+- `idx_price_direction_predictions_market_crop` on (`market_id`, `crop_id`)
+- `idx_price_direction_predictions_base_date` on (`base_date DESC`)
+- `idx_price_direction_predictions_direction` on (`pred_label_direction`)
 
-### 2.4. `data_update_logs` (每日更新紀錄)
-* **用途**：記錄後台排程資料抓取與 Parquet / Supabase 資料同步任務的狀態與筆數。
-* **欄位結構**：
-  * `id` (`bigint`): 主鍵，自動遞增。
-  * `job_name` (`text`): 任務名稱（非空）。
-  * `run_date` (`timestamp with time zone`): 執行時間，預設為 `now()`。
-  * `status` (`text`): 任務狀態（如 `'success'`, `'failed'`）（非空）。
-  * `rows_inserted` (`integer`): 新增筆數，預設為 `0`。
-  * `rows_updated` (`integer`): 更新筆數，預設為 `0`
-  * `error_message` (`text`): 錯誤訊息，若執行失敗則記錄詳細例外內容。
-* **約束與索引**：
-  * **主鍵**：`data_update_logs_pkey` ON `id`
+程式路徑：
 
----
+- 建表 SQL：`scripts/create_price_direction_predictions_table.sql`
+- 寫入與查詢：`src/data/price_direction_prediction_store.py`
+- 產生批次：`scripts/generate_price_direction_predictions.py`
+- 前端 API：`backend/main.py` 的 `/api/predictions/direction/latest` 與 `/api/predictions/direction`
 
-## 3. 資料與環境邊界劃分
+## 3. 近期行情表：`agri_price_daily`
 
-目前專案運作時明確劃分了線上雲端、本機 Parquet 與備援 CSV 三種不同的資料儲存定位：
+用途：App 近期行情查詢、價格搜尋、採買建議、趨勢圖與每日更新。
 
-1. **Supabase 正式 App 線上資料**
-   * 當資料庫連線正常時，前台（搜尋頁、首頁、通報頁）全部直接存取 Supabase 中的 `agri_price_daily`、`prediction_results`、`price_reports` 實體表。
-   * 資料來源標記為 `"Supabase"`。
-2. **本機 Parquet 歷史資料 (ML 數據湖)**
-   * 存放在 `data/history_parquet/` 目錄下。
-   * **定位**：用來保存長達數年的原始交易大數據，作為機器學習模型離線訓練的核心特徵庫。
-   * **優勢**：可避免大量頻繁查詢 Supabase 造成容量超額或連線瓶頸。
-3. **本機 CSV 備援 / 測試資料**
-   * 存放在 `data/processed/` 或 `data/reports/`。
-   * **定位**：作為離線開發、單元測試、以及 Supabase 故障時的 fallback 備援副本。
-   * **目前檔案**：
-     * `data/processed/market_prices.csv`：供 `price_repository.py` fallback。
-     * `data/reports/price_reports.csv`：供 `report_repository.py` fallback。
-     * `data/processed/prediction_results.csv`：供 `prediction_repository.py` fallback（手動驗證展示用測試資料）。
+程式實際使用欄位：
+
+- `trans_date`
+- `crop_code`, `crop_name`
+- `market_code`, `market_name`
+- `upper_price`, `middle_price`, `lower_price`, `avg_price`
+- `volume`
+
+資料邊界：
+
+- 近期線上查詢可讀 Supabase `agri_price_daily`。
+- 完整歷史行情與 ML 訓練/正式方向推論應優先讀 Parquet 資料湖，不得大量查詢 `agri_price_daily`。
+
+## 4. 買貴通報表：`price_reports`
+
+用途：使用者回報市場實際交易價格，並與官方行情比對。
+
+已定義欄位包含：
+
+- `report_id`, `report_date`
+- `crop_name`, `product_name`, `market_name`
+- `user_price`, `unit`
+- `reference_price`, `price_gap`, `price_gap_percent`
+- `report_note`, `write_destination`, `created_at`
+
+程式路徑：
+
+- 建表 SQL：`scripts/create_price_reports_table.sql`
+- 寫入/查詢：`src/data/report_store.py`, `src/data/report_repository.py`
+
+## 5. 舊版非 MVP 表：`prediction_results`
+
+`prediction_results` 是舊版五日數值價格回歸 / Baseline 設計，欄位包含 `predicted_price` 與 `predicted_status`。它已退出正式 MVP 範圍：
+
+- 目前正式 workflow 未呼叫 `scripts/generate_baseline_predictions.py`。
+- 目前 React 搜尋頁已查詢 `price_direction_predictions`，查無資料時不 fallback 至 `prediction_results` 或 CSV。
+- 保留的 `scripts/create_prediction_results_table.sql`、`src/data/prediction_store.py`、`src/data/prediction_repository.py`、`src/ml/baseline_predictor.py` 與相關測試均標示或歸類為 deprecated / 封存流程。
+
+如果 Supabase 實體表仍存在，建議先人工確認沒有外部報表、舊前台或排程依賴，再另開 migration 討論停用或刪除；本次不得自動執行 `DROP TABLE`。
+
+## 6. 本機與資料湖
+
+- `data/history_parquet/`: 完整歷史行情資料湖，本機目錄可與 Cloudflare R2 同步。
+- `data/processed/market_prices.csv`: 價格查詢離線 fallback。
+- `data/reports/price_reports.csv`: 通報離線 fallback。
+- `data/processed/prediction_results.csv`: 舊版五日 baseline 測試/封存資料，不是正式 MVP fallback。

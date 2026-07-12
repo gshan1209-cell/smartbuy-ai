@@ -10,62 +10,51 @@
 """
 from __future__ import annotations
 
-import os
-import tomllib
 from datetime import date, datetime, timedelta
-from pathlib import Path
 import pandas as pd
 from sqlalchemy import create_engine, text
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+from src.data.database_url import load_database_url
 
 _engine = None  # 共用單一 engine，避免 Supabase session mode 連線數超限
+_engine_url = None
 
 
 def _get_engine():
-    global _engine
-    if _engine is None:
-        url = _load_database_url()
-        if url:
+    global _engine, _engine_url
+    url = _load_database_url()
+    if not url:
+        _engine = None
+        _engine_url = None
+        return None
+
+    if url.startswith("sqlite"):
+        try:
+            return create_engine(url, pool_pre_ping=True)
+        except Exception:
+            return None
+
+    if _engine is None or _engine_url != url:
+        try:
             _engine = create_engine(
                 url,
                 pool_pre_ping=True,
                 pool_size=3,
                 max_overflow=2,
             )
+            _engine_url = url
+        except Exception:
+            _engine = None
+            _engine_url = None
     return _engine
 
 
 def _load_database_url() -> str | None:
     """
     讀取 DATABASE_URL。
-    優先順序：
-    1. 環境變數 DATABASE_URL
-    2. 本機 .streamlit/secrets.toml
-    3. Streamlit secrets
+    目前正式後端以環境變數提供資料庫連線字串。
     """
-    env_url = os.getenv("DATABASE_URL")
-    if env_url:
-        return env_url
-
-    secrets_path = PROJECT_ROOT / ".streamlit" / "secrets.toml"
-    if secrets_path.exists():
-        try:
-            with secrets_path.open("rb") as file:
-                secrets = tomllib.load(file)
-            url = secrets.get("DATABASE_URL")
-            if url:
-                return url
-        except Exception:
-            pass
-
-    try:
-        import streamlit as st
-        return st.secrets.get("DATABASE_URL")
-    except Exception:
-        pass
-
-    return None
+    return load_database_url()
 
 
 def load_latest_prices(limit: int = 200) -> pd.DataFrame:

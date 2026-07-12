@@ -8,7 +8,6 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 import os
-import tomllib
 
 from sqlalchemy import create_engine, text
 
@@ -27,44 +26,16 @@ def load_database_url(raise_on_missing: bool = True) -> str | None:
     """
     讀取 DATABASE_URL。
 
-    優先順序：
-    1. GitHub Actions / 雲端環境變數 DATABASE_URL
-    2. 本機 .streamlit/secrets.toml
-
-    注意：
-    .streamlit/secrets.toml 不可以 commit 到 GitHub。
+    正式 FastAPI / GitHub Actions 架構使用環境變數 DATABASE_URL。
     """
     env_database_url = os.getenv("DATABASE_URL")
 
     if env_database_url:
-        return env_database_url
+        return "".join(env_database_url.splitlines()).strip().strip('"').strip("'")
 
-    secrets_path = PROJECT_ROOT / ".streamlit" / "secrets.toml"
-
-    if not secrets_path.exists():
-        if raise_on_missing:
-            raise FileNotFoundError(
-                "找不到 DATABASE_URL。請設定環境變數 DATABASE_URL，"
-                "或建立 .streamlit/secrets.toml。"
-            )
-        return None
-
-    try:
-        with secrets_path.open("rb") as file:
-            secrets = tomllib.load(file)
-
-        database_url = secrets.get("DATABASE_URL")
-
-        if not database_url:
-            if raise_on_missing:
-                raise ValueError("secrets.toml 中找不到 DATABASE_URL。")
-            return None
-
-        return database_url
-    except Exception:
-        if raise_on_missing:
-            raise
-        return None
+    if raise_on_missing:
+        raise FileNotFoundError("找不到 DATABASE_URL。請設定環境變數 DATABASE_URL。")
+    return None
 
 
 def get_retention_days() -> int:

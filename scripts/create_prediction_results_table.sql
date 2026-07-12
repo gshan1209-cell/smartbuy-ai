@@ -1,5 +1,7 @@
--- 建立 prediction_results 資料表
--- 用於寫回機器學習預測結果，提供前台查詢與展示
+-- DEPRECATED: 建立舊版 prediction_results 資料表
+-- 僅供封存的五日數值 Baseline 預測流程使用。
+-- 此表已退出 SmartBuy AI 正式 MVP 預測範圍；目前前台與每日排程不得依賴此表。
+-- 正式 MVP 預測結果表為 public.price_direction_predictions。
 
 CREATE TABLE IF NOT EXISTS prediction_results (
     id SERIAL PRIMARY KEY,

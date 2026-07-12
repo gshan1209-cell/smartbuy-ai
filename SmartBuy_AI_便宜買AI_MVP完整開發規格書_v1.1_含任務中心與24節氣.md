@@ -16,7 +16,7 @@
 | 文件格式 | Markdown `.md` |
 | 主要使用者 | 婆婆媽媽、家庭採買者、小吃店老闆、小型餐飲採購者 |
 | 開發者設定 | 程式小白 + 六人小組 + AI Agent 協作 |
-| 預設開發形式 | Streamlit Mobile Web App，後續可升級 PWA / FastAPI + Next.js |
+| 預設開發形式 | React / Vite 前端 + FastAPI 後端，前端可部署為 PWA |
 | 主要資料來源 | 農業部農產品交易行情、中央氣象署天氣預報 / 警特報、24 節氣資料、使用者買貴通報 |
 | 設計原則 | 大字體、大按鈕、少圖表、多白話卡片、流程可交接 |
 
@@ -243,9 +243,9 @@ B. 開發協作後台：任務中心儀表板
 |---|---|
 | 使用者帳號系統 | MVP 可先用本機 / session / JSON 儲存 |
 | 即時推播通知 | 需要額外推播服務，先用首頁提醒即可 |
-| 原生手機 App | 第一版用 Streamlit / PWA 較穩 |
+| 原生手機 App | 第一版用 React Web / PWA 較穩 |
 | 全台所有農產品完整預測 | MVP 先選核心品項 |
-| 深度學習預測模型 | 先用規則 + baseline + RandomForest 即可 |
+| 深度學習預測模型 | MVP 預測範圍限定為 LightGBM 下一交易日跌 / 持平 / 漲方向分類，暫不做深度學習或數值價格回歸 |
 | 即時分鐘級價格 | 農產品交易行情通常不是分鐘級資料 |
 | 複雜權限管理 | 任務中心 MVP 先不做登入權限 |
 
@@ -654,8 +654,8 @@ price_gap_rate = (user_price - official_avg_price) / official_avg_price
     "priority": "高",
     "module": "frontend",
     "related_files": [
-      "app/main.py",
-      "app/components/price_card.py"
+      "frontend/src/pages/Home.jsx",
+      "frontend/src/components/PriceCard.jsx"
     ],
     "goal": "建立適合婆婆媽媽使用的大字體首頁。",
     "done_definition": [
@@ -1167,27 +1167,31 @@ def update_task_status(task_id: str, status: str) -> None:
 建議：
 
 ```text
-Streamlit Cloud
+Frontend: Vercel 或其他靜態網站託管
+Backend: Render 或其他 FastAPI / ASGI 託管
 ```
 
 原因：
 
-- 適合 Python 專題
-- 部署速度快
+- 符合目前 React + FastAPI 專案結構
+- 前後端可獨立部署與擴充
 - 手機瀏覽器可直接開
-- 對程式小白比較友善
+- GitHub Actions 可維持每日資料更新與方向預測批次
 
 ---
 
 ## 17.2 requirements.txt 建議
 
 ```text
-streamlit
+fastapi
+uvicorn[standard]
 pandas
 numpy
-plotly
 requests
+sqlalchemy
+psycopg2-binary
 scikit-learn
+lightgbm
 python-dotenv
 ```
 

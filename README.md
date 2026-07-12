@@ -1,8 +1,8 @@
 # SmartBuy AI｜便宜買 AI
 ![alt text](SmartBuy_AI_系統架構圖.png)
-把農產品行情、產地天氣與 24 節氣轉成簡單採買建議的 Streamlit MVP。
+把農產品行情、產地天氣、24 節氣與下一交易日價格方向分類轉成簡單採買建議的 React + FastAPI MVP。
 
-AI Agent 或開發協作者開始工作前，請先完整閱讀 [`AGENT.md`](AGENT.md)，再從 `data/tasks/tasks.json` 讀取任務。
+AI Agent 或開發協作者開始工作前，請先閱讀 `README.md`、`docs/SPEC.md` 與相關任務文件；若未來恢復 `AGENT.md` 或任務中心資料，再依該文件執行。
 
 ## 快速開始
 
@@ -10,7 +10,16 @@ AI Agent 或開發協作者開始工作前，請先完整閱讀 [`AGENT.md`](AGE
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-streamlit run app/main.py
+pip install -r backend/requirements.txt
+python -m uvicorn backend.main:app --reload
+```
+
+另開一個終端啟動前端：
+
+```powershell
+cd frontend
+npm install
+npm start
 ```
 
 執行測試：
@@ -34,26 +43,25 @@ pytest -q
    - **雙層寫入與備援**: 優先寫入 Supabase 的 `price_reports` 資料表（採用參數化防範 SQL 注入），若資料庫連線失敗或離線時，自動安全降級寫入本機 `data/reports/price_reports.csv` 備援，並在前台頁面明確顯示實際資料寫入目標。
    - **無官方行情處理**: 若對應作物查無當日官方行情，相關參考價格與價差欄位寫入 `NULL`，系統與前台防崩潰並允許照常通報。
 
-4. **未來價格預測展示 (prediction_repository.py & UI 展示)**:
-   - **定位**: 提供農產品未來行情的預測展示（由 ML 模組產出結果，本階段專注讀取與呈現）。
-   - **查詢與過濾排序**: 支援「Supabase 優先、本機 CSV 備援 (`data/processed/prediction_results.csv`)」。無論是 Supabase 還是本機 CSV，查詢與讀取時皆強制套用 `predict_date >= today` 過濾，並以 `predict_date ASC` 排序，避免顯示過期資料。
-   - **前台展示對齊**: 在搜尋價格頁中，優先依據作物代碼與市場代碼 (`crop_code` & `market_code`) 進行精準比對以讀取預測資料，代碼缺失時再使用名稱 (`crop_name` & `market_name`) 進行降級比對，避免不同市場或作物的預測資料混淆。
-   - **多卡片呈現**: 展示未來 5 天的預測價格與漲跌趨勢狀態（便宜、正常、偏貴），無資料時顯示「目前尚無該品項的未來價格預測資料」以防崩潰。
-
-5. **每日價格方向 ML 預測 (`price_direction_predictions`)**:
-   - **定位**: 使用已訓練好的 LightGBM 價格方向模型，針對每個市場與作物最新交易日產生「下一交易日跌、持平、漲」方向預測。
+4. **每日價格方向 ML 預測 (`price_direction_predictions`)**:
+   - **定位**: 這是目前正式 MVP 預測流程；使用已訓練好的 LightGBM 價格方向模型，針對每個市場與作物最新有效交易日 `base_date` 產生「下一交易日跌、持平、漲」方向分類。
    - **每日排程**: GitHub Actions `daily_agri_price_update.yml` 在行情更新與 R2 Parquet 同步成功後，執行 `scripts/generate_price_direction_predictions.py`。
    - **資料來源**: 預測腳本呼叫 `load_historical_prices_for_ml()` 讀取 Parquet 資料湖，不大量查詢 Supabase 原始行情表。
    - **寫回表**: 預測結果 upsert 至 Supabase `price_direction_predictions`，欄位包含 `prob_down`、`prob_flat`、`prob_up`、`pred_confidence`、`confidence_level`、`risk_level` 與 `display_message`。
+   - **前台展示**: 顯示預測目標「下一交易日」、預測方向、跌/持平/漲三類機率、模型信心程度、資料基準日、資料新鮮度、風險提示與「僅供參考」聲明。
    - **模型檔案**: 預設載入 `models/07_lightgbm_selected_final.joblib`。若更換模型，請維持 payload 內含 `model`、`model_feature_columns`、`categorical_feature_columns` 與 `category_maps`。
    - **建表 SQL**: 初次部署前請先在 Supabase SQL Editor 執行 `scripts/create_price_direction_predictions_table.sql`。
+
+5. **舊版五日數值 Baseline（已退出正式 MVP）**:
+   - `prediction_results`、`predicted_price`、`prediction_repository.py` 與 `scripts/generate_baseline_predictions.py` 屬於舊版五日價格回歸 / Baseline 設計。
+   - 這些元件不得作為目前前台或每日排程的正式預測路徑，也不得作為查無方向分類結果時的 fallback。
 
 2. **Cloudflare R2 Parquet 歷史資料湖 (ML 數據湖 - Data Lake)**:
    - **定位**: 專為機器學習模型訓練提供的高壓縮比、欄位導向 (Column-oriented) 歷史數據儲存層。
    - **雙向同步與持久化**: 由於 GitHub Actions runner 為暫時機器，歷史資料湖 Parquet 檔案（按月分割，儲存於 `data/history_parquet/`）會雙向同步至 Cloudflare R2 儲存桶。每次行情更新前會自動從 R2 下載既有 Parquet 檔，合併新行情後再上傳更新至 R2 並進行完整性大小驗證。
    - **安全阻斷**: 僅在 Parquet 上傳 R2 成功且驗證通過後，才允許執行 Supabase 90 天前的舊資料 Pruning，確保歷史行情資料安全。
    - **ML 訓練載入方式**: 模型訓練時，應優先讀取 Parquet 數據湖（呼叫 `load_historical_prices_for_ml()` 函式），而不是大量查詢 Supabase 資料庫，避免造成雲端資料庫負擔與限制瓶頸。
-   - **預測結果**: Baseline 未來價格預測寫回 Supabase 的 `prediction_results`；價格方向分類模型寫回 `price_direction_predictions`。
+   - **預測結果**: 正式 MVP 預測結果寫回 `price_direction_predictions`。舊版 `prediction_results` 不再是正式 MVP 預測資料表。
 
 ## Agent 任務自動化
 
@@ -84,7 +92,7 @@ Agent 可先列出候選任務，但不得自行認領：
   --next-step "進行人工驗收"
 ```
 
-詳細規則與結果狀態對照請見 [`AGENT.md`](AGENT.md)。
+若未來恢復 `AGENT.md`，詳細規則與結果狀態對照再以該文件為準。
 
 目前版本使用 `data/` 內的示範資料，可在沒有 API 金鑰的情況下完整展示。正式串接農業部與中央氣象署 API 前，請先確認資料授權、欄位與更新頻率。
 

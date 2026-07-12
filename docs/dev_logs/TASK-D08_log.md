@@ -29,7 +29,7 @@
 ## 5. 測試方式
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q --ignore=tests/test_home_view.py
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
 ## 6. 測試結果

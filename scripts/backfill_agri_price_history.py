@@ -21,7 +21,6 @@ import argparse
 import os
 import sys
 import time
-import tomllib
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -47,41 +46,16 @@ def load_database_url(raise_on_missing: bool = True) -> str | None:
     """
     讀取 DATABASE_URL。
 
-    優先順序：
-    1. 環境變數 DATABASE_URL
-    2. 本機 .streamlit/secrets.toml
+    正式 FastAPI / GitHub Actions 架構使用環境變數 DATABASE_URL。
     """
     env_database_url = os.getenv("DATABASE_URL")
 
     if env_database_url:
         return clean_database_url(env_database_url)
 
-    secrets_path = PROJECT_ROOT / ".streamlit" / "secrets.toml"
-
-    if not secrets_path.exists():
-        if raise_on_missing:
-            raise FileNotFoundError(
-                "找不到 DATABASE_URL。請設定環境變數 DATABASE_URL，"
-                "或建立 .streamlit/secrets.toml。"
-            )
-        return None
-
-    try:
-        with secrets_path.open("rb") as file:
-            secrets = tomllib.load(file)
-
-        database_url = secrets.get("DATABASE_URL")
-
-        if not database_url:
-            if raise_on_missing:
-                raise ValueError("secrets.toml 中找不到 DATABASE_URL。")
-            return None
-
-        return clean_database_url(database_url)
-    except Exception:
-        if raise_on_missing:
-            raise
-        return None
+    if raise_on_missing:
+        raise FileNotFoundError("找不到 DATABASE_URL。請設定環境變數 DATABASE_URL。")
+    return None
 
 
 UPSERT_SQL = text(

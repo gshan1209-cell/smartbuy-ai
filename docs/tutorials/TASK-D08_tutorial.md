@@ -28,7 +28,7 @@
 ## 5. 怎麼測試？
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q --ignore=tests/test_home_view.py
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
 ## 6. 預期與實際結果

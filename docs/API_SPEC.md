@@ -1,6 +1,24 @@
-# 函式介面
+# API 與函式介面
 
-MVP 採單體 Streamlit 應用，頁面透過 Python 函式呼叫領域模組，暫不提供公開 HTTP API。
+目前 MVP 採 FastAPI 後端與 React/Vite 前端。前端透過 HTTP API 呼叫後端，後端再呼叫 Python 領域模組與資料存取層。
+
+## HTTP API
+
+| 路徑 | 用途 |
+|---|---|
+| `GET /health` | 健康檢查 |
+| `GET /api/home` | 首頁節氣、天氣提醒與採買推薦 |
+| `GET /api/markets` | 市場清單 |
+| `GET /api/products` | 品項列表與行情狀態 |
+| `GET /api/products/{name}` | 單一品項行情、建議與天氣影響 |
+| `GET /api/products/{name}/history` | 單一品項歷史價格走勢 |
+| `GET /api/predictions/direction/latest` | 單一市場作物最新下一交易日方向分類 |
+| `GET /api/predictions/direction` | 多筆下一交易日方向分類列表 |
+| `POST /api/report` | 使用者買貴通報 |
+| `GET /api/weather-summary` | 天氣影響摘要 |
+| `GET /api/solar-term` | 目前節氣 |
+
+## Python 內部函式
 
 | 函式 | 輸入 | 主要輸出 |
 |---|---|---|
@@ -11,5 +29,5 @@ MVP 採單體 Streamlit 應用，頁面透過 Python 函式呼叫領域模組，
 | `load_tasks` | 選填 JSON 路徑 | 任務陣列 |
 | `update_task_status` | 任務 ID、狀態 | 無；更新 JSON |
 
-未來拆成 FastAPI 時可保持輸出字典欄位，降低前端改版成本。
+若任務中心檔案不存在，任務相關函式與文件應視為歷史規劃，不是目前執行入口。
 

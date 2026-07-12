@@ -6,7 +6,7 @@
 【相關元件 (Related Components)】
 - 依賴: sqlalchemy
 - 依賴: pandas
-- 依賴: src.data.prediction_store._load_database_url
+- 依賴: src.data.database_url.load_database_url
 - 依賴: src.ml.price_direction_predictor.validate_price_direction_payload
 - 被依賴: scripts.generate_price_direction_predictions
 """
@@ -18,7 +18,7 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import create_engine, text
 
-from src.data.prediction_store import _load_database_url
+from src.data.database_url import load_database_url
 from src.ml.price_direction_predictor import BASE_PAYLOAD_COLUMNS, validate_price_direction_payload
 
 
@@ -176,7 +176,7 @@ def save_price_direction_predictions_to_supabase(payload_df: pd.DataFrame) -> in
         int: 寫入或更新的筆數。
     """
     validate_price_direction_payload(payload_df)
-    database_url = _load_database_url()
+    database_url = load_database_url()
     if not database_url:
         raise RuntimeError("未偵測到 DATABASE_URL，無法寫入 price_direction_predictions。")
 
@@ -210,7 +210,7 @@ def query_latest_prediction(
     max_staleness_days: int = 7,
 ) -> dict | None:
     """查詢單一市場作物最新批次方向預測。優先用 id，fallback 用 name。"""
-    database_url = _load_database_url()
+    database_url = load_database_url()
     if not database_url:
         return None
 
@@ -250,7 +250,7 @@ def query_prediction_list(
     max_staleness_days: int = 7,
 ) -> list[dict]:
     """查詢多筆批次方向預測列表，依 risk_level、pred_confidence、base_date 排序。"""
-    database_url = _load_database_url()
+    database_url = load_database_url()
     if not database_url:
         return []
 

@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 模組名稱: src.ml.baseline_predictor
-功能說明: 提供農產品未來行情 Baseline 預測的核心運算邏輯，包括 MA7 價格計算與 MA30/全均值狀態分類。
+功能說明: [DEPRECATED] 舊版五日數值 Baseline 預測核心邏輯，包括 MA7 價格計算與 MA30/全均值狀態分類。
+
+注意:
+    此模組已退出正式 MVP 範圍。正式 MVP 使用 LightGBM 下一交易日方向分類，
+    並寫入 `price_direction_predictions`。
 
 【相關元件 (Related Components)】
 - 依賴: pandas
@@ -23,7 +27,7 @@ def predict_next_5_days(
     days: int = 5,
 ) -> pd.DataFrame:
     """
-    計算給定歷史交易行情下，特定作物與市場組合未來幾天的價格預測及漲跌狀態。
+    [DEPRECATED] 計算給定歷史交易行情下，特定作物與市場組合未來幾天的價格預測及狀態。
     
     預測原則：
     1. 依交易日期遞增排序，排除 avg_price 為空或小於等於 0 的異常紀錄。

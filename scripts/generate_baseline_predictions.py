@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 腳本名稱: scripts/generate_baseline_predictions
-功能說明: 後台行情預測產生任務，計算未來 5 天價格走勢，並 UPSERT 寫入 Supabase 'prediction_results'。
+功能說明: [DEPRECATED] 舊版五日數值 Baseline 預測任務，計算未來 5 天價格走勢，並 UPSERT 寫入 Supabase 'prediction_results'。
+
+注意:
+    此腳本已退出正式 MVP 範圍，不得加入每日正式排程或前台 fallback。
+    正式 MVP 預測流程是 `scripts/generate_price_direction_predictions.py`
+    產生下一交易日方向分類並寫入 `price_direction_predictions`。
 """
 from __future__ import annotations
 

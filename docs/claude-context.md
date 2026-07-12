@@ -84,7 +84,7 @@
 - **Supabase Auth**：取代假登入
 
 ### 🟢 低優先 / Future
-- **AI 價格預測**：`src/ml/baseline_predictor.py` 已存在，未串 API
+- **AI 價格預測**：正式 MVP 為 LightGBM 下一交易日跌 / 持平 / 漲方向分類，使用 `price_direction_predictions`；`src/ml/baseline_predictor.py` 僅為 deprecated 舊版五日數值 Baseline
 - **推播通知串接**：等 Auth 完成
 - **歷史比較**：折線圖疊加去年同期
 - **產地地圖**：點擊縣市看天氣 + 主要農產

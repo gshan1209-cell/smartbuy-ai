@@ -23,6 +23,7 @@ def get_purchase_advice(
     mappings: pd.DataFrame | None = None,
     weather: pd.DataFrame | None = None,
     market_name: str | None = None,
+    target_date: str | None = None,
 ) -> dict:
     price = get_price_status(product_name, prices=prices, market_name=market_name)
     weather_result = get_origin_weather_risk(product_name, mappings=mappings, weather=weather)

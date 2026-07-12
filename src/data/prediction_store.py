@@ -1,6 +1,11 @@
 """
 模組名稱: src.data.prediction_store
-功能說明: 提供機器學習預測結果寫回 Supabase `prediction_results` 資料表的功能。
+功能說明: [DEPRECATED] 舊版五日數值 Baseline 預測寫回 `prediction_results` 的封存模組。
+
+注意:
+    `prediction_results` 與 predicted_price/predicted_status 屬於舊版五日價格回歸/基準線展示設計，
+    已退出正式 MVP 預測範圍。正式 MVP 請使用 `price_direction_predictions` 與
+    `src.data.price_direction_prediction_store`。
 
 【相關元件 (Related Components)】
 - 依賴: sqlalchemy
@@ -8,50 +13,19 @@
 """
 from __future__ import annotations
 
-import os
-import tomllib
 from datetime import date, datetime
 from pathlib import Path
 import pandas as pd
 from sqlalchemy import create_engine, text
 
+from src.data.database_url import load_database_url as _load_database_url
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-def _load_database_url() -> str | None:
-    """
-    讀取 DATABASE_URL。
-    優先順序：
-    1. 環境變數 DATABASE_URL
-    2. 本機 .streamlit/secrets.toml
-    3. Streamlit secrets
-    """
-    env_url = os.getenv("DATABASE_URL")
-    if env_url:
-        return env_url
-
-    secrets_path = PROJECT_ROOT / ".streamlit" / "secrets.toml"
-    if secrets_path.exists():
-        try:
-            with secrets_path.open("rb") as file:
-                secrets = tomllib.load(file)
-            url = secrets.get("DATABASE_URL")
-            if url:
-                return url
-        except Exception:
-            pass
-
-    try:
-        import streamlit as st
-        return st.secrets.get("DATABASE_URL")
-    except Exception:
-        pass
-
-    return None
 
 
 def save_predictions_to_supabase(predictions_df: pd.DataFrame) -> int:
     """
-    將機器學習預測結果寫入 Supabase 中的 `prediction_results` 資料表。
+    [DEPRECATED] 將舊版五日 Baseline 預測結果寫入 Supabase 中的 `prediction_results` 資料表。
     若資料表不存在，會自動建立該表。
     使用 UPSERT (ON CONFLICT DO UPDATE) 寫入，以 (predict_date, crop_code, market_code) 作為唯一鍵。
 

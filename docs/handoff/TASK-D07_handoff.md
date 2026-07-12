@@ -43,7 +43,7 @@
 
 ## 測試結果
 
-相關測試 28 passed；真模型 dry-run 成功產生 2946 筆可寫入 payload；py_compile 通過。全專案 pytest 目前因既有 tests/test_home_view.py 匯入不存在的 app.home_view 於 collection 階段失敗，非本次 D07 變更造成。
+相關測試 28 passed；真模型 dry-run 成功產生 2946 筆可寫入 payload；py_compile 通過。後續已移除舊版首頁測試，全專案 pytest 可直接執行。
 
 ## 尚未完成／下一步
 

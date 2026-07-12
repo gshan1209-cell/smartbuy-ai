@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 模組名稱: src.data.prediction_repository
-功能說明: 行情預測資料庫存取層，優先讀取 Supabase，失敗時 fallback 讀取本機 CSV。
+功能說明: [DEPRECATED] 舊版五日數值 Baseline 預測讀取層，優先讀取 Supabase，失敗時 fallback 讀取本機 CSV。
+
+注意:
+    本模組只服務已退出 MVP 範圍的 `prediction_results` / predicted_price 流程。
+    目前前台與每日排程不得使用本模組作為正式預測資料來源。
 
 【相關元件 (Related Components)】
 - 依賴: src.data.price_repository._load_database_url
@@ -36,7 +40,7 @@ def load_predictions(
     target_date: date | None = None,
 ) -> pd.DataFrame:
     """
-    載入農產品未來行情預測資料。優先從 Supabase 讀取，失敗時自動安全 fallback 至本機 CSV。
+    [DEPRECATED] 載入舊版五日數值 Baseline 預測資料。優先從 Supabase 讀取，失敗時自動安全 fallback 至本機 CSV。
     預設只加載大於或等於今日的未來預測行情，並依預測日期遞增排序。
     """
     today_val = target_date or date.today()
