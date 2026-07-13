@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const LS_TOKEN = 'yz_auth_token';
 const LS_KEY = 'smartbuy_notif_prefs';
 const DEFAULT_PREFS = { priceAlert: true, weatherAlert: true, mutualAidReply: false };
 
@@ -22,6 +24,32 @@ function saveDisplayPrefs(next) {
   localStorage.setItem(LS_DISPLAY_KEY, JSON.stringify(next));
   document.documentElement.setAttribute('data-theme', next.theme);
   document.documentElement.setAttribute('data-fontsize', next.fontSize);
+}
+
+function splitPrefs(data) {
+  return {
+    prefs: {
+      priceAlert: data.priceAlert,
+      weatherAlert: data.weatherAlert,
+      mutualAidReply: data.mutualAidReply,
+    },
+    display: {
+      fontSize: data.fontSize,
+      layout: data.layout,
+      theme: data.theme,
+    },
+  };
+}
+
+async function savePreferences(patch) {
+  const token = localStorage.getItem(LS_TOKEN);
+  const res = await fetch(`${BASE}/auth/preferences`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error('設定同步失敗');
+  return res.json();
 }
 
 const PREF_ITEMS = [
@@ -92,6 +120,33 @@ export default function Settings() {
   const [prefs, setPrefs] = useState(loadPrefs);
   const [displayPrefs, setDisplayPrefs] = useState(loadDisplayPrefs);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!user) return;
+
+    async function loadServerPreferences() {
+      const token = localStorage.getItem(LS_TOKEN);
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${BASE}/auth/preferences`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('設定載入失敗');
+        const data = await res.json();
+        const { prefs: nextPrefs, display: nextDisplay } = splitPrefs(data);
+        setPrefs(nextPrefs);
+        setDisplayPrefs(nextDisplay);
+        localStorage.setItem(LS_KEY, JSON.stringify(nextPrefs));
+        saveDisplayPrefs(nextDisplay);
+      } catch (err) {
+        setError(err.message);
+      }
+    }
+
+    loadServerPreferences();
+  }, [user]);
 
   if (!user) {
     return (
@@ -102,26 +157,35 @@ export default function Settings() {
     );
   }
 
-  function handleSaveName(e) {
+  async function handleSaveName(e) {
     e.preventDefault();
     if (!name.trim()) return;
-    updateProfile({ name: name.trim() });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setError('');
+    try {
+      await updateProfile({ name: name.trim() });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   function togglePref(key) {
+    setError('');
     setPrefs(p => {
       const next = { ...p, [key]: !p[key] };
       localStorage.setItem(LS_KEY, JSON.stringify(next));
+      savePreferences({ [key]: next[key] }).catch(err => setError(err.message));
       return next;
     });
   }
 
   function updateDisplay(key, val) {
+    setError('');
     const next = { ...displayPrefs, [key]: val };
     setDisplayPrefs(next);
     saveDisplayPrefs(next);
+    savePreferences({ [key]: val }).catch(err => setError(err.message));
   }
 
   function handleShare() {
@@ -145,6 +209,7 @@ export default function Settings() {
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>設定</h1>
         <p style={{ fontSize: 13, color: 'var(--yz-mut)', marginBottom: 24 }}>帳號、顯示偏好與推播設定</p>
+        {error && <p style={{ fontSize: 13, color: 'var(--yz-red, #e53e3e)', marginBottom: 16 }}>{error}</p>}
 
         {/* 帳號資料 */}
         <div className="yz-card" style={sectionStyle}>
