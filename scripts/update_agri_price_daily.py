@@ -92,6 +92,23 @@ def write_log(
     )
 
 
+def refresh_agri_price_features(conn) -> dict[str, object] | None:
+    """呼叫 Supabase 端的每日時間序列特徵重算程序。"""
+    result = conn.execute(
+        text(
+            """
+            SELECT
+                upserted_rows,
+                deleted_stale_rows,
+                feature_computed_at
+            FROM public.refresh_agri_price_features();
+            """
+        )
+    ).mappings().first()
+
+    return dict(result) if result else None
+
+
 def upsert_agri_prices() -> None:
     """
     抓取農產品交易行情，並以 upsert 寫入 agri_price_daily。
@@ -112,6 +129,7 @@ def run_pipeline() -> None:
     5. verify R2 upload (若已配置或為嚴格模式)
     6. upsert Supabase
     7. prune Supabase old records
+    8. refresh Supabase agri_price_features_daily
     """
     from src.data.r2_sync import (
         download_parquet_from_r2,
@@ -262,12 +280,28 @@ def run_pipeline() -> None:
                 pruned_rows = prune_result.rowcount
                 print(f"歷史資料清理完成，已刪除 {pruned_rows} 筆過期資料。", flush=True)
 
+                print("開始重新產製 Supabase agri_price_features_daily...", flush=True)
+                feature_refresh = refresh_agri_price_features(conn)
+                feature_message = "feature_refresh: not available"
+                if feature_refresh is not None:
+                    feature_message = (
+                        "feature_refresh: "
+                        f"upserted_rows={feature_refresh['upserted_rows']}; "
+                        f"deleted_stale_rows={feature_refresh['deleted_stale_rows']}; "
+                        f"feature_computed_at={feature_refresh['feature_computed_at']}"
+                    )
+                print(f"每日特徵資料更新完成，{feature_message}", flush=True)
+
                 write_log(
                     conn,
                     status="success",
                     rows_inserted=insert_count,
                     rows_updated=update_count,
-                    error_message=f"retention_days: {retention_days}; pruned_rows: {pruned_rows}",
+                    error_message=(
+                        f"retention_days: {retention_days}; "
+                        f"pruned_rows: {pruned_rows}; "
+                        f"{feature_message}"
+                    ),
                 )
 
             print("農產品交易行情更新完成。", flush=True)
