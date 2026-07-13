@@ -6,6 +6,11 @@
 
 ## 1. 資料庫欄位說明
 
+> [!NOTE]
+> 此任務已於 2026-07-13 完成並部署。前端設定頁目前會透過 `/auth/preferences` 同步讀寫 `public.user_preferences`，請勿再把推播與顯示偏好當成未串接項目重做。
+
+### 1.1 `public.members`
+
 | 欄位 | 型別 | 必填 | 說明 |
 |------|------|------|------|
 | `id` | INTEGER | 自動 | 系統自動遞增，前端不需傳入 |
@@ -19,9 +24,25 @@
 > [!IMPORTANT]
 > `plan` 欄位**不得**出現在會員申請表單中。前端無論在哪個頁面都不需要傳送此欄位。
 
+### 1.2 `public.user_preferences`
+
+| 欄位 | 型別 | 必填 | 預設值 | 說明 |
+|------|------|------|--------|------|
+| `member_id` | INTEGER | ✅ | 無 | 會員 ID，外鍵連到 `public.members(id)`，`ON DELETE CASCADE` |
+| `price_alert` | BOOLEAN | ✅ | `true` | 品項降價通知 |
+| `weather_alert` | BOOLEAN | ✅ | `true` | 產地天氣異常警示 |
+| `mutual_aid_reply` | BOOLEAN | ✅ | `false` | 互助網回應通知 |
+| `font_size` | TEXT | ✅ | `md` | `sm`、`md`、`lg` |
+| `layout_mode` | TEXT | ✅ | `simple` | `simple`、`detailed` |
+| `theme` | TEXT | ✅ | `light` | `light`、`dark` |
+| `created_at` | TIMESTAMPTZ | 自動 | `NOW()` | 建立時間 |
+| `updated_at` | TIMESTAMPTZ | 自動 | `NOW()` | 更新時間，自動 trigger |
+
 ---
 
 ## 2. 後端 API 合約
+
+> 目前前端實際使用的 auth base path 是 `/auth`。下列 `/api/auth/*` 是早期文件保留的舊合約，若新增功能請優先對齊現行 `backend/routers/auth.py` 的 `/auth/*` route。
 
 ### 2.1 POST `/api/auth/register` — 會員註冊
 
@@ -141,6 +162,63 @@ Authorization: Bearer <token>
 
 ---
 
+### 2.4 GET `/auth/preferences` — 讀取設定偏好（需登入）
+
+**Request Headers**
+
+```text
+Authorization: Bearer <token>
+```
+
+**成功回應 `200 OK`**
+
+```json
+{
+  "priceAlert": true,
+  "weatherAlert": true,
+  "mutualAidReply": false,
+  "fontSize": "md",
+  "layout": "simple",
+  "theme": "light"
+}
+```
+
+---
+
+### 2.5 PUT `/auth/preferences` — 更新設定偏好（需登入）
+
+**Request Headers**
+
+```text
+Authorization: Bearer <token>
+```
+
+**Request Body（JSON，可只傳需要變更的欄位）**
+
+```json
+{
+  "priceAlert": false,
+  "weatherAlert": true,
+  "mutualAidReply": false,
+  "fontSize": "lg",
+  "layout": "detailed",
+  "theme": "dark"
+}
+```
+
+**成功回應 `200 OK`**
+
+```json
+{
+  "priceAlert": false,
+  "weatherAlert": true,
+  "mutualAidReply": false,
+  "fontSize": "lg",
+  "layout": "detailed",
+  "theme": "dark"
+}
+```
+
 ## 3. 需要實作的頁面
 
 ### 3.1 `/register` — 會員申請頁（全新頁面）
@@ -168,7 +246,7 @@ Authorization: Bearer <token>
 
 ---
 
-### 3.2 `/login` — 會員登入頁（修改現有假登入）
+### 3.2 `/login` — 會員登入頁（已串接真實登入）
 
 **UI 需求**
 
@@ -183,10 +261,9 @@ Authorization: Bearer <token>
   - 導向首頁 `/`
 - 頁面下方加上「還沒有帳號？立即申請」的連結，跳至 `/register`
 
-**AuthContext.jsx 修改說明**
+**AuthContext.jsx 現行狀態**
 
-- 原來的假登入（DEMO_USER 硬寫）須替換為呼叫真實的 `/api/auth/login`
-- `login(email, password)` 函式改為非同步（async）呼叫 API
+- 假登入已移除，`login(email, password)` 已改為非同步（async）呼叫真實 API
 - `logout()` 函式須同時清除 `yz_auth_token` 與 `yz_auth_user`
 - 介面（`user`、`isAuthenticated`、`login`、`logout`、`updateProfile`）保持不變，下游元件不須改動
 
@@ -205,8 +282,10 @@ Authorization: Bearer <token>
   - 顯示目前計畫名稱（`user.plan`），例如「免費會員」或「訂閱夥伴」
   - 可加上「升級計畫」按鈕（按下後暫時顯示「敬請期待」），不需串接升級流程
 
-- **推播偏好區塊**（維持現狀，暫存 `localStorage`，待後端串接）：
-  - 保留原有三個開關的 UI，不需要串接 members 資料表
+- **推播與顯示偏好區塊**（已串接）：
+  - 進入設定頁時呼叫 `GET /auth/preferences`
+  - 修改三個通知開關、字體大小、版面模式與主題時呼叫 `PUT /auth/preferences`
+  - `localStorage` 僅作為前端快取與立即套用主題，不是唯一資料來源
 
 ---
 
@@ -216,15 +295,18 @@ Authorization: Bearer <token>
 |-----|------|------|
 | `yz_auth_token` | JWT Token，每次 API 需要鑑權的請求帶入 `Authorization: Bearer` Header | string |
 | `yz_auth_user` | 已登入會員的公開資訊（`id`, `email`, `name`, `plan`） | JSON object |
+| `smartbuy_notif_prefs` | 通知偏好的前端快取；實際資料來源為 `user_preferences` | JSON object |
+| `smartbuy_display_prefs` | 顯示偏好的前端快取；實際資料來源為 `user_preferences` | JSON object |
 
 ---
 
 ## 5. 實作順序建議
 
-1. **修改 `AuthContext.jsx`**：將假登入改為真實 API 呼叫（先確認後端 `/api/auth/login` 已就緒）
+1. **已完成**：`AuthContext.jsx` 已使用真實 API 呼叫
 2. **建立 `/register` 頁面**：表單 UI + 驗證 + 串接 `/api/auth/register`
 3. **更新 `/login` 頁面**：連結到真實 API，加上「前往申請」入口
 4. **更新 `/settings` 頁面**：保留顯示名稱編輯 + 新增訂閱計畫唯讀區塊
+5. **已完成項目請勿重做**：`/auth/preferences` 與 `user_preferences` 同步已上線
 
 ---
 

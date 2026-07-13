@@ -1,7 +1,7 @@
 # Claude 專案 Context（SmartBuy AI）
 
 > 下次對話開始時，請 Claude 先讀這個檔案再繼續工作。
-> 最後更新：2026-07-02
+> 最後更新：2026-07-13
 
 ---
 
@@ -11,7 +11,7 @@
 |------|------|-----|
 | 前端 React | Vercel | https://smartbuy-ai-alpha.vercel.app/ |
 | 後端 FastAPI | Render (Free) | https://smartbuyai-react.onrender.com |
-| 資料庫 | Supabase PostgreSQL | table: `agri_price_daily` |
+| 資料庫 | Supabase PostgreSQL | tables: `agri_price_daily`, `members`, `user_preferences` |
 | Git repo | GitHub | github.com/gshan1209-cell/smartbuy-ai (main) |
 
 - push to main → Vercel + Render 自動部署
@@ -26,9 +26,9 @@
 - **前端**：React + Vite + React Router v6，無 UI library，自訂 CSS（yz- prefix 設計系統）
 - **後端**：FastAPI + SQLAlchemy + pandas
 - **天氣**：CWA 開放資料 API → `scripts/fetch_weather_history.py` → `data/weather/weather_daily.csv`
-- **Auth**：目前假登入，帳密硬寫在 `frontend/src/context/AuthContext.jsx`
-  - 帳號：`farmer@example.com` / 密碼：`farmer1234`
-  - localStorage key：`yz_auth_user`
+- **Auth**：已串接 FastAPI + Supabase `members`
+  - 主要路由：`/auth/register`, `/auth/login`, `/auth/me`, `/auth/preferences`
+  - localStorage key：`yz_auth_user`, `yz_auth_token`
 
 ---
 
@@ -41,7 +41,7 @@
 | `/news` | 農產新知 | ⚠️ mock 文章（6篇寫死） |
 | `/mutual-aid` | 互助網 | ⚠️ mock 貼文（重整消失） |
 | `/basket` | 我的菜籃 | ✅ localStorage |
-| `/settings` | 設定 | ⚠️ 推播偏好未串接 |
+| `/settings` | 設定 | ✅ 會員資料 + 偏好同步 Supabase |
 
 ---
 
@@ -57,6 +57,10 @@
 | GET | `/api/solar-term/all` | 全部節氣 |
 | GET | `/api/weather-summary` | 天氣影響摘要 |
 | POST | `/api/report` | 回報菜價 |
+| POST | `/auth/register` | 會員註冊，建立 `members` 與 `user_preferences` |
+| POST | `/auth/login` | 會員登入 |
+| GET/PUT | `/auth/me` | 讀取/更新會員資料 |
+| GET/PUT | `/auth/preferences` | 讀取/更新通知與顯示偏好 |
 
 ---
 
@@ -65,10 +69,12 @@
 | Key | 用途 |
 |-----|------|
 | `yz_auth_user` | 登入狀態 |
+| `yz_auth_token` | JWT token |
 | `smartbuy_basket` | 菜籃品項 |
 | `smartbuy_saved_news` | 收藏文章 |
 | `smartbuy_saved_post_ids` | 收藏貼文 ID |
-| `smartbuy_notif_prefs` | 推播偏好 |
+| `smartbuy_notif_prefs` | 推播偏好快取，實際同步到 `user_preferences` |
+| `smartbuy_display_prefs` | 顯示偏好快取，實際同步到 `user_preferences` |
 
 ---
 
@@ -81,11 +87,11 @@
 ### 🟡 中優先
 - **農產新知真實資料**：需後端 proxy 農業部 API
 - **品名 alias 表**：「甘藍」=「高麗菜」等，影響菜籃×農產新知關聯
-- **Supabase Auth**：取代假登入
+- **Supabase Auth**：目前使用自建 `members` + JWT；若要改 Supabase Auth，需另開遷移任務
 
 ### 🟢 低優先 / Future
 - **AI 價格預測**：正式 MVP 為 LightGBM 下一交易日跌 / 持平 / 漲方向分類，使用 `price_direction_predictions`；`src/ml/baseline_predictor.py` 僅為 deprecated 舊版五日數值 Baseline
-- **推播通知串接**：等 Auth 完成
+- **推播通知實際發送**：偏好已儲存，尚未串接實際推播服務
 - **歷史比較**：折線圖疊加去年同期
 - **產地地圖**：點擊縣市看天氣 + 主要農產
 - **互助網圖片上傳**：需 Supabase Storage / Cloudflare R2

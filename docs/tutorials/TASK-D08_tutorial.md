@@ -6,35 +6,57 @@
 
 ## 2. 這次完成了什麼？
 
-已修改 members 會員資訊資料表 SQL 腳本以精簡會員欄位，僅保留會員核心欄位與 Email 索引。
+已完成會員資料表與偏好設定同步：
+
+- 建立/對齊 `public.members`
+- 建立/對齊 `public.user_preferences`
+- 新增必要唯一值、外鍵、check constraints 與 `updated_at` trigger
+- 後端新增 `/auth/preferences`
+- 前端設定頁已可把通知與顯示偏好同步到 Supabase
 
 ## 3. 功能流程
 
 ```text
-讀取任務
+會員註冊
   ↓
-修改相關檔案
+INSERT members
   ↓
-執行測試
+INSERT user_preferences (member_id)
   ↓
-產生文件並更新任務狀態
+設定頁讀取 /auth/preferences
+  ↓
+使用者修改通知或顯示偏好
+  ↓
+PUT /auth/preferences
+  ↓
+更新 Supabase user_preferences
 ```
 
 ## 4. 相關檔案
 
 - `scripts/create_members_table.sql`
-- `data/tasks/tasks.json`
+- `backend/routers/auth.py`
+- `frontend/src/pages/Settings.jsx`
 
 ## 5. 怎麼測試？
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q
+python -m py_compile backend/routers/auth.py
+cd frontend
+npm ci
+npm run build
 ```
 
 ## 6. 預期與實際結果
 
-測試套件 77 項全部通過，且修改後的 SQL 建表與欄位約束已在 Supabase 交易及回滾測試中驗證通過。
+已驗證：
+
+- SQL 在 Supabase SQL Editor 執行成功。
+- 註冊帳號會新增 `members` 與 `user_preferences`。
+- 修改顯示名稱會更新 `members.name`。
+- 修改通知、字體、版面、主題會更新 `user_preferences`。
+- 線上 `/auth/preferences` 已生效。
 
 ## 7. 下一步可以怎麼做？
 
-請在 Supabase 專案的 SQL Editor 執行 scripts/create_members_table.sql 以在線上建立最新的實體 members 資料表。
+此任務已完成，不需要再重做會員資料表或設定偏好同步。後續若要新增更多會員設定，請沿用 `user_preferences` 與 `/auth/preferences` 擴充。
