@@ -72,6 +72,15 @@ CREATE INDEX IF NOT EXISTS idx_agri_price_daily_feature_source_order
       AND avg_price > 0
       AND volume > 0;
 
+CREATE INDEX IF NOT EXISTS idx_agri_price_daily_feature_lookup_desc
+    ON public.agri_price_daily (market_code, crop_code, trans_date DESC)
+    INCLUDE (market_name, crop_name, avg_price, volume)
+    WHERE trans_date IS NOT NULL
+      AND market_code IS NOT NULL
+      AND crop_code IS NOT NULL
+      AND avg_price > 0
+      AND volume > 0;
+
 ALTER TABLE public.agri_price_features_daily ENABLE ROW LEVEL SECURITY;
 
 CREATE OR REPLACE FUNCTION public.refresh_agri_price_features()
@@ -83,7 +92,449 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
-SET statement_timeout = '10min'
+SET statement_timeout = '30min'
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *
+    FROM public.refresh_agri_price_features(CURRENT_DATE, CURRENT_DATE);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.refresh_agri_price_features(
+    p_start_date DATE,
+    p_end_date DATE
+)
+RETURNS TABLE (
+    upserted_rows INTEGER,
+    deleted_stale_rows INTEGER,
+    feature_computed_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+SET statement_timeout = '30min'
+AS $$
+DECLARE
+    v_start_date DATE := COALESCE(p_start_date, CURRENT_DATE);
+    v_end_date DATE := COALESCE(p_end_date, COALESCE(p_start_date, CURRENT_DATE));
+    v_duplicate_count INTEGER;
+    v_upserted_rows INTEGER := 0;
+    v_deleted_rows INTEGER := 0;
+    v_pruned_rows INTEGER := 0;
+    v_computed_at TIMESTAMPTZ := NOW();
+BEGIN
+    IF v_start_date > v_end_date THEN
+        RAISE EXCEPTION
+            'p_start_date (%) must be less than or equal to p_end_date (%)',
+            v_start_date,
+            v_end_date;
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_duplicate_count
+    FROM (
+        SELECT trans_date, crop_code, market_code
+        FROM public.agri_price_daily
+        WHERE trans_date BETWEEN v_start_date AND v_end_date
+          AND trans_date IS NOT NULL
+          AND crop_code IS NOT NULL
+          AND market_code IS NOT NULL
+          AND avg_price > 0
+          AND volume > 0
+        GROUP BY trans_date, crop_code, market_code
+        HAVING COUNT(*) > 1
+    ) duplicates;
+
+    IF v_duplicate_count > 0 THEN
+        RAISE EXCEPTION
+            'agri_price_daily has % duplicate valid source keys in refresh range %..%; stop feature refresh',
+            v_duplicate_count,
+            v_start_date,
+            v_end_date;
+    END IF;
+
+    WITH changed_rows AS (
+        SELECT
+            trans_date::date AS trade_date,
+            market_code::text AS market_id,
+            market_name::text AS market_name,
+            crop_code::text AS crop_id,
+            crop_name::text AS crop_name,
+            avg_price::double precision AS avg_price,
+            volume::double precision AS volume
+        FROM public.agri_price_daily
+        WHERE trans_date BETWEEN v_start_date AND v_end_date
+          AND trans_date IS NOT NULL
+          AND market_code IS NOT NULL
+          AND crop_code IS NOT NULL
+          AND avg_price > 0
+          AND volume > 0
+    ),
+    future_refresh_rows AS (
+        SELECT
+            future_rows.trans_date::date AS trade_date,
+            future_rows.market_code::text AS market_id,
+            future_rows.market_name::text AS market_name,
+            future_rows.crop_code::text AS crop_id,
+            future_rows.crop_name::text AS crop_name,
+            future_rows.avg_price::double precision AS avg_price,
+            future_rows.volume::double precision AS volume
+        FROM changed_rows changed
+        CROSS JOIN LATERAL (
+            SELECT
+                source_rows.trans_date,
+                source_rows.market_code,
+                source_rows.market_name,
+                source_rows.crop_code,
+                source_rows.crop_name,
+                source_rows.avg_price,
+                source_rows.volume
+            FROM public.agri_price_daily source_rows
+            WHERE source_rows.market_code = changed.market_id
+              AND source_rows.crop_code = changed.crop_id
+              AND source_rows.trans_date > changed.trade_date
+              AND source_rows.trans_date IS NOT NULL
+              AND source_rows.market_code IS NOT NULL
+              AND source_rows.crop_code IS NOT NULL
+              AND source_rows.avg_price > 0
+              AND source_rows.volume > 0
+            ORDER BY source_rows.trans_date ASC
+            LIMIT 14
+        ) future_rows
+    ),
+    valid_refresh_rows AS (
+        SELECT DISTINCT ON (trade_date, market_id, crop_id)
+            trade_date,
+            market_id,
+            market_name,
+            crop_id,
+            crop_name,
+            avg_price,
+            volume
+        FROM (
+            SELECT *
+            FROM changed_rows
+            UNION ALL
+            SELECT *
+            FROM future_refresh_rows
+        ) refresh_union
+        ORDER BY trade_date, market_id, crop_id
+    ),
+    refresh_features AS (
+        SELECT
+            refresh_rows.trade_date,
+            refresh_rows.market_id,
+            refresh_rows.market_name,
+            refresh_rows.crop_id,
+            refresh_rows.crop_name,
+            refresh_rows.avg_price,
+            refresh_rows.volume,
+
+            history.price_lag_1,
+            history.price_lag_3,
+            history.price_lag_7,
+            history.price_lag_14,
+
+            history.volume_lag_1,
+            history.volume_lag_3,
+            history.volume_lag_7,
+            history.volume_lag_14,
+
+            refresh_rows.avg_price / NULLIF(history.price_lag_1, 0) - 1 AS price_return_1,
+            refresh_rows.avg_price / NULLIF(history.price_lag_3, 0) - 1 AS price_return_3,
+            refresh_rows.avg_price / NULLIF(history.price_lag_7, 0) - 1 AS price_return_7,
+            refresh_rows.avg_price / NULLIF(history.price_lag_14, 0) - 1 AS price_return_14,
+
+            refresh_rows.volume / NULLIF(history.volume_lag_1, 0) - 1 AS volume_change_1,
+            refresh_rows.volume / NULLIF(history.volume_lag_7, 0) - 1 AS volume_change_7,
+
+            CASE WHEN history.price_count_7 = 7 THEN history.price_ma_7_raw END AS price_ma_7,
+            CASE WHEN history.price_count_14 = 14 THEN history.price_ma_14_raw END AS price_ma_14,
+            CASE WHEN history.volume_count_7 = 7 THEN history.volume_ma_7_raw END AS volume_ma_7,
+            CASE WHEN history.volume_count_14 = 14 THEN history.volume_ma_14_raw END AS volume_ma_14,
+            CASE WHEN history.price_count_7 = 7 THEN history.price_std_7_raw END AS price_std_7,
+            CASE WHEN history.price_count_14 = 14 THEN history.price_std_14_raw END AS price_std_14,
+
+            CASE
+                WHEN history.price_count_7 = 7 AND history.price_ma_7_raw > 0
+                THEN refresh_rows.avg_price / history.price_ma_7_raw - 1
+            END AS price_vs_ma_7,
+
+            CASE
+                WHEN history.volume_count_7 = 7 AND history.volume_ma_7_raw > 0
+                THEN refresh_rows.volume / history.volume_ma_7_raw - 1
+            END AS volume_vs_ma_7,
+
+            EXTRACT(ISODOW FROM refresh_rows.trade_date)::smallint - 1 AS day_of_week,
+            EXTRACT(MONTH FROM refresh_rows.trade_date)::smallint AS month,
+            sequence_rows.history_sequence_no
+        FROM valid_refresh_rows refresh_rows
+        CROSS JOIN LATERAL (
+            SELECT COUNT(*)::integer AS history_sequence_no
+            FROM public.agri_price_daily source_rows
+            WHERE source_rows.market_code = refresh_rows.market_id
+              AND source_rows.crop_code = refresh_rows.crop_id
+              AND source_rows.trans_date <= refresh_rows.trade_date
+              AND source_rows.trans_date IS NOT NULL
+              AND source_rows.market_code IS NOT NULL
+              AND source_rows.crop_code IS NOT NULL
+              AND source_rows.avg_price > 0
+              AND source_rows.volume > 0
+        ) sequence_rows
+        LEFT JOIN LATERAL (
+            SELECT
+                MAX(history_rows.avg_price) FILTER (WHERE history_rows.row_offset = 1) AS price_lag_1,
+                MAX(history_rows.avg_price) FILTER (WHERE history_rows.row_offset = 3) AS price_lag_3,
+                MAX(history_rows.avg_price) FILTER (WHERE history_rows.row_offset = 7) AS price_lag_7,
+                MAX(history_rows.avg_price) FILTER (WHERE history_rows.row_offset = 14) AS price_lag_14,
+
+                MAX(history_rows.volume) FILTER (WHERE history_rows.row_offset = 1) AS volume_lag_1,
+                MAX(history_rows.volume) FILTER (WHERE history_rows.row_offset = 3) AS volume_lag_3,
+                MAX(history_rows.volume) FILTER (WHERE history_rows.row_offset = 7) AS volume_lag_7,
+                MAX(history_rows.volume) FILTER (WHERE history_rows.row_offset = 14) AS volume_lag_14,
+
+                COUNT(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 6) AS price_count_7,
+                COUNT(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS price_count_14,
+                COUNT(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 6) AS volume_count_7,
+                COUNT(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS volume_count_14,
+
+                AVG(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 6) AS price_ma_7_raw,
+                AVG(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS price_ma_14_raw,
+                AVG(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 6) AS volume_ma_7_raw,
+                AVG(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS volume_ma_14_raw,
+                STDDEV_POP(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 6) AS price_std_7_raw,
+                STDDEV_POP(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS price_std_14_raw
+            FROM (
+                SELECT
+                    0::integer AS row_offset,
+                    refresh_rows.avg_price,
+                    refresh_rows.volume
+                UNION ALL
+                SELECT
+                    previous_rows.row_offset,
+                    previous_rows.avg_price,
+                    previous_rows.volume
+                FROM (
+                    SELECT
+                        (ROW_NUMBER() OVER (ORDER BY source_rows.trans_date DESC))::integer AS row_offset,
+                        source_rows.avg_price::double precision AS avg_price,
+                        source_rows.volume::double precision AS volume
+                    FROM public.agri_price_daily source_rows
+                    WHERE source_rows.market_code = refresh_rows.market_id
+                      AND source_rows.crop_code = refresh_rows.crop_id
+                      AND source_rows.trans_date < refresh_rows.trade_date
+                      AND source_rows.trans_date IS NOT NULL
+                      AND source_rows.market_code IS NOT NULL
+                      AND source_rows.crop_code IS NOT NULL
+                      AND source_rows.avg_price > 0
+                      AND source_rows.volume > 0
+                    ORDER BY source_rows.trans_date DESC
+                    LIMIT 14
+                ) previous_rows
+            ) history_rows
+        ) history ON TRUE
+    ),
+    final_feature_rows AS (
+        SELECT
+            *,
+            (
+                market_id IS NOT NULL
+                AND crop_id IS NOT NULL
+                AND avg_price IS NOT NULL
+                AND volume IS NOT NULL
+                AND price_lag_1 IS NOT NULL
+                AND price_lag_3 IS NOT NULL
+                AND price_lag_7 IS NOT NULL
+                AND price_lag_14 IS NOT NULL
+                AND volume_lag_1 IS NOT NULL
+                AND volume_lag_3 IS NOT NULL
+                AND volume_lag_7 IS NOT NULL
+                AND volume_lag_14 IS NOT NULL
+                AND price_return_1 IS NOT NULL
+                AND price_return_3 IS NOT NULL
+                AND price_return_7 IS NOT NULL
+                AND price_return_14 IS NOT NULL
+                AND volume_change_1 IS NOT NULL
+                AND volume_change_7 IS NOT NULL
+                AND price_ma_7 IS NOT NULL
+                AND price_ma_14 IS NOT NULL
+                AND volume_ma_7 IS NOT NULL
+                AND volume_ma_14 IS NOT NULL
+                AND price_std_7 IS NOT NULL
+                AND price_std_14 IS NOT NULL
+                AND price_vs_ma_7 IS NOT NULL
+                AND volume_vs_ma_7 IS NOT NULL
+                AND day_of_week IS NOT NULL
+                AND month IS NOT NULL
+            ) AS is_feature_complete,
+            'v1_no_month_cycle'::text AS feature_version,
+            v_computed_at AS feature_computed_at
+        FROM refresh_features
+    ),
+    upserted AS (
+        INSERT INTO public.agri_price_features_daily (
+            trade_date,
+            market_id,
+            market_name,
+            crop_id,
+            crop_name,
+            avg_price,
+            volume,
+            price_lag_1,
+            price_lag_3,
+            price_lag_7,
+            price_lag_14,
+            volume_lag_1,
+            volume_lag_3,
+            volume_lag_7,
+            volume_lag_14,
+            price_return_1,
+            price_return_3,
+            price_return_7,
+            price_return_14,
+            volume_change_1,
+            volume_change_7,
+            price_ma_7,
+            price_ma_14,
+            volume_ma_7,
+            volume_ma_14,
+            price_std_7,
+            price_std_14,
+            price_vs_ma_7,
+            volume_vs_ma_7,
+            day_of_week,
+            month,
+            history_sequence_no,
+            is_feature_complete,
+            feature_version,
+            feature_computed_at
+        )
+        SELECT
+            final_rows.trade_date,
+            final_rows.market_id,
+            final_rows.market_name,
+            final_rows.crop_id,
+            final_rows.crop_name,
+            final_rows.avg_price,
+            final_rows.volume,
+            final_rows.price_lag_1,
+            final_rows.price_lag_3,
+            final_rows.price_lag_7,
+            final_rows.price_lag_14,
+            final_rows.volume_lag_1,
+            final_rows.volume_lag_3,
+            final_rows.volume_lag_7,
+            final_rows.volume_lag_14,
+            final_rows.price_return_1,
+            final_rows.price_return_3,
+            final_rows.price_return_7,
+            final_rows.price_return_14,
+            final_rows.volume_change_1,
+            final_rows.volume_change_7,
+            final_rows.price_ma_7,
+            final_rows.price_ma_14,
+            final_rows.volume_ma_7,
+            final_rows.volume_ma_14,
+            final_rows.price_std_7,
+            final_rows.price_std_14,
+            final_rows.price_vs_ma_7,
+            final_rows.volume_vs_ma_7,
+            final_rows.day_of_week,
+            final_rows.month,
+            final_rows.history_sequence_no,
+            final_rows.is_feature_complete,
+            final_rows.feature_version,
+            final_rows.feature_computed_at
+        FROM final_feature_rows final_rows
+        ON CONFLICT (trade_date, market_id, crop_id)
+        DO UPDATE SET
+            market_name = EXCLUDED.market_name,
+            crop_name = EXCLUDED.crop_name,
+            avg_price = EXCLUDED.avg_price,
+            volume = EXCLUDED.volume,
+            price_lag_1 = EXCLUDED.price_lag_1,
+            price_lag_3 = EXCLUDED.price_lag_3,
+            price_lag_7 = EXCLUDED.price_lag_7,
+            price_lag_14 = EXCLUDED.price_lag_14,
+            volume_lag_1 = EXCLUDED.volume_lag_1,
+            volume_lag_3 = EXCLUDED.volume_lag_3,
+            volume_lag_7 = EXCLUDED.volume_lag_7,
+            volume_lag_14 = EXCLUDED.volume_lag_14,
+            price_return_1 = EXCLUDED.price_return_1,
+            price_return_3 = EXCLUDED.price_return_3,
+            price_return_7 = EXCLUDED.price_return_7,
+            price_return_14 = EXCLUDED.price_return_14,
+            volume_change_1 = EXCLUDED.volume_change_1,
+            volume_change_7 = EXCLUDED.volume_change_7,
+            price_ma_7 = EXCLUDED.price_ma_7,
+            price_ma_14 = EXCLUDED.price_ma_14,
+            volume_ma_7 = EXCLUDED.volume_ma_7,
+            volume_ma_14 = EXCLUDED.volume_ma_14,
+            price_std_7 = EXCLUDED.price_std_7,
+            price_std_14 = EXCLUDED.price_std_14,
+            price_vs_ma_7 = EXCLUDED.price_vs_ma_7,
+            volume_vs_ma_7 = EXCLUDED.volume_vs_ma_7,
+            day_of_week = EXCLUDED.day_of_week,
+            month = EXCLUDED.month,
+            history_sequence_no = EXCLUDED.history_sequence_no,
+            is_feature_complete = EXCLUDED.is_feature_complete,
+            feature_version = EXCLUDED.feature_version,
+            feature_computed_at = EXCLUDED.feature_computed_at
+        RETURNING 1
+    )
+    SELECT COUNT(*)::integer
+    INTO v_upserted_rows
+    FROM upserted;
+
+    DELETE FROM public.agri_price_features_daily feature_rows
+    WHERE feature_rows.trade_date BETWEEN v_start_date AND v_end_date
+      AND NOT EXISTS (
+          SELECT 1
+          FROM public.agri_price_daily source_rows
+          WHERE source_rows.trans_date = feature_rows.trade_date
+            AND source_rows.market_code = feature_rows.market_id
+            AND source_rows.crop_code = feature_rows.crop_id
+            AND source_rows.trans_date IS NOT NULL
+            AND source_rows.market_code IS NOT NULL
+            AND source_rows.crop_code IS NOT NULL
+            AND source_rows.avg_price > 0
+            AND source_rows.volume > 0
+      );
+
+    GET DIAGNOSTICS v_deleted_rows = ROW_COUNT;
+
+    DELETE FROM public.agri_price_features_daily feature_rows
+    WHERE feature_rows.trade_date < (
+        SELECT MIN(source_rows.trans_date)::date
+        FROM public.agri_price_daily source_rows
+        WHERE source_rows.trans_date IS NOT NULL
+          AND source_rows.market_code IS NOT NULL
+          AND source_rows.crop_code IS NOT NULL
+          AND source_rows.avg_price > 0
+          AND source_rows.volume > 0
+    );
+
+    GET DIAGNOSTICS v_pruned_rows = ROW_COUNT;
+    v_deleted_rows := v_deleted_rows + v_pruned_rows;
+
+    RETURN QUERY
+    SELECT v_upserted_rows, v_deleted_rows, v_computed_at;
+END;
+$$;
+
+-- Full rebuild helper for first-time deployment or manual repair. Daily Actions should
+-- call refresh_agri_price_features(start_date, end_date) to avoid full-table timeouts.
+CREATE OR REPLACE FUNCTION public.refresh_agri_price_features_full()
+RETURNS TABLE (
+    upserted_rows INTEGER,
+    deleted_stale_rows INTEGER,
+    feature_computed_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+SET statement_timeout = '30min'
 AS $$
 DECLARE
     v_duplicate_count INTEGER;
@@ -591,3 +1042,5 @@ GRANT EXECUTE ON FUNCTION public.get_agri_price_feature_history(TEXT, TEXT, DATE
 
 -- refresh function is intended for backend/GitHub Actions DATABASE_URL role only.
 REVOKE ALL ON FUNCTION public.refresh_agri_price_features() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.refresh_agri_price_features(DATE, DATE) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.refresh_agri_price_features_full() FROM PUBLIC, anon, authenticated;

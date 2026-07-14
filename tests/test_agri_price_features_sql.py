@@ -12,10 +12,20 @@ from scripts.update_agri_price_daily import refresh_agri_price_features
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SQL_PATH = PROJECT_ROOT / "scripts" / "create_agri_price_features_daily.sql"
+UPDATE_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "update_agri_price_daily.py"
+WORKFLOW_PATH = PROJECT_ROOT / ".github" / "workflows" / "daily_agri_price_update.yml"
 
 
 def _sql() -> str:
     return SQL_PATH.read_text(encoding="utf-8")
+
+
+def _update_script() -> str:
+    return UPDATE_SCRIPT_PATH.read_text(encoding="utf-8")
+
+
+def _workflow() -> str:
+    return WORKFLOW_PATH.read_text(encoding="utf-8")
 
 
 def test_feature_sql_uses_expected_source_mapping_and_layers():
@@ -35,6 +45,50 @@ def test_feature_sql_uses_expected_source_mapping_and_layers():
         "final_feature_rows AS",
     ]:
         assert layer in sql
+
+
+def test_feature_sql_defines_incremental_refresh_contract():
+    sql = _sql()
+    incremental_sql = sql.split("CREATE OR REPLACE FUNCTION public.refresh_agri_price_features_full()")[0]
+
+    assert "CREATE OR REPLACE FUNCTION public.refresh_agri_price_features(" in sql
+    assert "p_start_date DATE" in sql
+    assert "p_end_date DATE" in sql
+    assert "CREATE OR REPLACE FUNCTION public.refresh_agri_price_features_full()" in sql
+    assert "idx_agri_price_daily_feature_lookup_desc" in sql
+    assert "LEFT JOIN LATERAL" in sql
+    assert "WITH changed_rows AS" in incremental_sql
+    assert "future_refresh_rows AS" in incremental_sql
+    assert "source_rows.trans_date > changed.trade_date" in incremental_sql
+    assert "LIMIT 14" in incremental_sql
+    assert "FROM valid_refresh_rows refresh_rows" in incremental_sql
+    assert "FROM final_feature_rows final_rows" in incremental_sql
+    assert "valid_source AS" not in incremental_sql
+    assert "FROM final_feature_rows final_rows" not in incremental_sql.split("valid_refresh_rows AS")[0]
+    assert "FROM public.refresh_agri_price_features(CURRENT_DATE, CURRENT_DATE)" in sql
+    assert (
+        "REVOKE ALL ON FUNCTION public.refresh_agri_price_features(DATE, DATE) FROM PUBLIC, anon, authenticated"
+        in sql
+    )
+
+
+def test_feature_sql_and_workflow_timeouts_are_extended():
+    sql = _sql()
+    workflow = _workflow()
+
+    assert "SET statement_timeout = '30min'" in sql
+    assert "SET statement_timeout = '10min'" not in sql
+    assert "timeout-minutes: 120" in workflow
+    assert "timeout-minutes: 60" not in workflow
+
+
+def test_daily_pipeline_passes_api_date_range_to_incremental_refresh():
+    update_script = _update_script()
+
+    assert 'feature_start_date = df["trans_date"].min()' in update_script
+    assert 'feature_end_date = df["trans_date"].max()' in update_script
+    assert "start_date=feature_start_date" in update_script
+    assert "end_date=feature_end_date" in update_script
 
 
 def test_feature_sql_matches_notebook_window_semantics():
@@ -102,9 +156,11 @@ class _FakeResult:
 class _FakeConnection:
     def __init__(self):
         self.executed_sql = ""
+        self.parameters = None
 
-    def execute(self, statement):
+    def execute(self, statement, parameters=None):
         self.executed_sql = str(statement)
+        self.parameters = parameters
         return _FakeResult()
 
 
@@ -114,6 +170,27 @@ def test_refresh_agri_price_features_calls_database_function():
     result = refresh_agri_price_features(conn)
 
     assert "FROM public.refresh_agri_price_features()" in conn.executed_sql
+    assert result == {
+        "upserted_rows": 20,
+        "deleted_stale_rows": 0,
+        "feature_computed_at": "2026-07-13T00:00:00+00:00",
+    }
+
+
+def test_refresh_agri_price_features_calls_incremental_database_function_with_dates():
+    conn = _FakeConnection()
+
+    result = refresh_agri_price_features(
+        conn,
+        start_date="2026-07-13",
+        end_date="2026-07-14",
+    )
+
+    assert "FROM public.refresh_agri_price_features(:start_date, :end_date)" in conn.executed_sql
+    assert conn.parameters == {
+        "start_date": "2026-07-13",
+        "end_date": "2026-07-14",
+    }
     assert result == {
         "upserted_rows": 20,
         "deleted_stale_rows": 0,
