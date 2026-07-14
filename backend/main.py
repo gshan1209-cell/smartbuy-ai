@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Literal
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
@@ -27,6 +28,7 @@ from src.anomaly.price_status import get_price_status, get_all_price_statuses
 from src.data.price_repository import load_latest_prices, load_price_history
 from src.ml.direction_predictor import predict_direction
 from src.data.price_direction_prediction_store import query_latest_prediction, query_prediction_list
+from src.data.agri_news_repository import query_agri_news
 from src.data.member_repository import (
     register_member,
     login_member,
@@ -116,6 +118,41 @@ def home():
         "weather_alerts": weather_alerts,
         "recommendations": recommendations,
     }
+
+
+# ── 農業新聞 ──────────────────────────────────────────────────────────────────
+
+@app.get("/api/news")
+def get_agri_news(
+    source: Literal["農業部", "農糧署"] | None = Query(default=None),
+    q: str | None = Query(default=None, max_length=100),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
+    try:
+        rows = query_agri_news(
+            source_name=source,
+            keyword=q,
+            limit=limit,
+            offset=offset,
+        )
+        response_fields = [
+            "id",
+            "article_key",
+            "source_name",
+            "source_article_id",
+            "title",
+            "published_date",
+            "source_url",
+            "content_text",
+            "updated_at",
+        ]
+        return [{key: row.get(key) for key in response_fields} for row in rows]
+    except RuntimeError:
+        raise HTTPException(
+            status_code=503,
+            detail="新聞資料暫時無法取得，請稍後再試。",
+        )
 
 
 # ── 菜價搜尋 ──────────────────────────────────────────────────────────────────
