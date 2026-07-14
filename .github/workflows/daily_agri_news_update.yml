@@ -1,0 +1,65 @@
+name: Daily Agri News Update
+
+on:
+  schedule:
+    - cron: "15 7 * * *"
+      timezone: "Asia/Taipei"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-agri-news-update
+  cancel-in-progress: false
+
+jobs:
+  update-agri-news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run agricultural news update
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL secret is missing"
+            exit 1
+          fi
+
+          echo "DATABASE_URL secret is configured"
+
+          for attempt in 1 2 3; do
+            echo "News update attempt ${attempt}"
+
+            if python scripts/update_agri_news_daily.py; then
+              echo "Agriculture news update succeeded"
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Attempt ${attempt} failed; retrying in 60 seconds"
+              sleep 60
+            fi
+          done
+
+          echo "Agriculture news update failed after 3 attempts"
+          exit 1
