@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi, get } from '../hooks/useApi';
+import Chart from 'chart.js/auto';
 
 const FEATURED_COUNT = 20;
 const STATUS_RANK = { '便宜': 0, '正常': 1, '偏貴': 2, '資料不足': 3 };
@@ -18,795 +20,365 @@ const STATUS_ARROW = {
   '資料不足': { arrow: '·', color: '#9B9A90' },
 };
 
-const labelStyle = { fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 7 };
-const metricLabel = { fontSize: 11, fontWeight: 600, color: 'var(--yz-mut)', marginBottom: 7 };
+// ── 市場選擇器 ────────────────────────────────────────────────────────────────
 
-// 24節氣推薦食材沿用早期示範資料的命名，跟批發市場真實品名（crop_name）用詞不同，
-// 例如「高麗菜」在真實資料叫「甘藍」、「冬瓜」沒有單一品項只有「冬瓜-其他」等細分品種。
-// 這裡做別名對照，讓點擊後能找到對應的真實品項。
-const PRODUCT_ALIASES = {
-  '高麗菜': '甘藍',
-  '空心菜': '蕹菜',
-  '四季豆': '菜豆',
-  '地瓜': '甘薯',
-  '地瓜葉': '甘薯葉',
-  '白蘿蔔': '蘿蔔',
-  '青江菜': '青江白菜',
-};
+function MarketSelector({ markets, market, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState('');
+  const ref = useRef(null);
 
-const EVENT_LABELS = {
-  heavy_rain: { icon: '🌧', text: '多雨', color: '#1D4ED8' },
-  drought:    { icon: '🏜', text: '乾旱', color: '#B45309' },
-  high_heat:  { icon: '🌡', text: '高溫', color: '#DC2626' },
-  cold_snap:  { icon: '🧊', text: '低溫', color: '#0891B2' },
-};
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
 
-function countyAdvice(county, events) {
-  if (!events || events.length === 0) return null;
-  const ev = events[0];
-  const d = ev.detail || {};
-  if (ev.type === 'heavy_rain') {
-    const days = d.rain_days ?? 0;
-    if (days >= 5) return `${county}連續 ${days} 天有效降雨，採收困難，建議等雨停後 10 天再大量出貨`;
-    if (days >= 3) return `${county}有效雨日 ${days} 天，採收品質不穩，建議觀望 7 天`;
-    return `${county}降雨集中但天數少（${days} 天），採收窗口相對充裕，可適量安排出貨`;
+  const filtered = markets.filter(m => !input || m.includes(input));
+
+  function select(m) {
+    onChange(m);
+    setOpen(false);
+    setInput('');
   }
-  if (ev.type === 'drought') return `${county}雨量偏少，加強灌溉，密切注意後續行情`;
-  if (ev.type === 'high_heat') return `${county}高溫持續 ${d.high_heat_days ?? ''} 天，葉菜老化加速，少量多批出貨`;
-  if (ev.type === 'cold_snap') return `${county}氣溫偏低，葉菜生長加速，供應增加，短期可能降價`;
-  return null;
-}
-
-// 合併「行情分析」與「天氣影響」成統一的行情解析卡
-function PriceInsightCard({ detail }) {
-  const [weatherExpanded, setWeatherExpanded] = useState(true);
-  const impact = detail?.weather_impact;
-  const priceStatus = detail?.price_status;
-  const todayPrice = detail?.today_price;
-  const recentAvg = detail?.price_detail?.recent_average;
-  const reason = detail?.price_detail?.reason;
-  const advice = detail?.advice;
-  const suggestion = detail?.price_detail?.suggestion;
-
-  const priceDiff = todayPrice && recentAvg
-    ? Math.round((todayPrice - recentAvg) / recentAvg * 100)
-    : null;
-
-  const hasWeather = impact?.has_impact;
-  const counties = impact?.all_counties || impact?.county_details || [];
-  const allRains = counties.map(c => { const ev = (c.events || [])[0]; return ev ? (ev.detail?.rain_total_mm ?? 0) : 0; });
-  const maxRain = Math.max(...allRains, 200) * 1.1;
-  const warnPct = (200 / maxRain) * 100;
-  const period = counties.find(c => c.impact_period && !c.no_data)?.impact_period;
-  const showPriceCorr = impact?.overall_direction === 'up' && priceStatus === '偏貴' && priceDiff > 10;
-  const affectedAdvices = counties.filter(c => c.events?.length > 0).map(c => countyAdvice(c.county, c.events)).filter(Boolean);
-
-  const priceEmoji = priceStatus === '便宜' ? '📉' : priceStatus === '偏貴' ? '📈' : '📊';
 
   return (
-    <div className="yz-card" style={{ padding: 0, marginBottom: 16, overflow: 'hidden' }}>
-      {/* 行情說明（常駐展開） */}
-      <div style={{ padding: '16px 20px', borderBottom: hasWeather ? '1px solid var(--yz-bdr)' : 'none' }}>
-        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>行情解析</p>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.3 }}>{priceEmoji}</span>
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--yz-txt)', lineHeight: 1.6, marginBottom: advice || suggestion ? 6 : 0 }}>{reason}</p>
-            {(advice || suggestion) && (
-              <p style={{ fontSize: 12, color: 'var(--yz-mut)', lineHeight: 1.65 }}>{advice}{advice && suggestion ? ' ' : ''}{suggestion}</p>
+    <div ref={ref} style={{ position: 'relative', marginBottom: 12 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '9px 16px', borderRadius: 8, cursor: 'pointer',
+          background: 'var(--yz-gl)', border: '1px solid var(--yz-bdr)',
+          fontSize: 14, fontWeight: 600, color: 'var(--yz-txt)',
+          minWidth: 220,
+        }}
+      >
+        <span style={{ flex: 1, textAlign: 'left' }}>{market || '選擇批發市場'}</span>
+        <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0,
+          background: '#fff', border: '1px solid var(--yz-bdr)', borderRadius: 8,
+          zIndex: 20, minWidth: 320, maxWidth: 520, boxShadow: '0 4px 16px rgba(0,0,0,.1)',
+        }}>
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--yz-bdr)' }}>
+            <input
+              className="yz-input"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="搜尋市場..."
+              autoFocus
+              style={{ fontSize: 13 }}
+            />
+          </div>
+          <div style={{ padding: '10px 12px', maxHeight: 280, overflowY: 'auto' }}>
+            {filtered.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--yz-mut)', padding: '4px 2px' }}>無符合市場</div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* 天氣影響（有異常才展開，無異常顯示小條） */}
-      {impact && !hasWeather && (
-        <div style={{ padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 6, background: '#F0FDF4', fontSize: 12, color: '#15803D' }}>
-          <span>✓</span>
-          <span>近期產地天氣正常</span>
-          {impact.all_counties?.length > 0 && (
-            <span style={{ color: '#86EFAC', fontSize: 11 }}>（{impact.all_counties.map(c => c.county).join('、')}）</span>
-          )}
-        </div>
-      )}
-      {hasWeather && (
-        <div style={{ background: '#FFFBF5' }}>
-          {/* 天氣區標題 */}
-          <div style={{ padding: '10px 20px', borderBottom: '1px solid #FEE9C9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14 }}>⛈</span>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#92400E' }}>產地天氣異常</span>
-              {impact.overall_direction === 'up' && <span className="yz-bdg yz-bdg-o">供應風險 ↑</span>}
-              {impact.overall_direction === 'down' && <span className="yz-bdg yz-bdg-g">供應充足 ↓</span>}
-              {period && (
-                <span style={{ fontSize: 10, color: '#B45309', background: '#FEF3C7', padding: '2px 7px', borderRadius: 4 }}>
-                  {period.from} ～ {period.to}
-                </span>
-              )}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {filtered.map(m => (
+                <button
+                  key={m}
+                  onMouseDown={() => select(m)}
+                  style={{
+                    padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', border: '1.5px solid',
+                    background: m === market ? 'var(--yz-g)' : 'transparent',
+                    color: m === market ? '#fff' : 'var(--yz-mut)',
+                    borderColor: m === market ? 'var(--yz-g)' : 'var(--yz-bdr)',
+                  }}
+                >{m}</button>
+              ))}
             </div>
-            <button onClick={() => setWeatherExpanded(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#B45309', fontWeight: 600 }}>
-              {weatherExpanded ? '▴ 收合' : '▾ 展開'}
-            </button>
           </div>
-
-          {weatherExpanded && (
-            <>
-              {/* 縣市雨量條 */}
-              <div style={{ padding: '12px 20px', borderBottom: '1px solid #FEE9C9' }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 10 }}>
-                  各產地 · 累積降雨 vs 200mm 警戒
-                </p>
-                {counties.map(c => {
-                  const ev = (c.events || [])[0];
-                  const rain = ev ? (ev.detail?.rain_total_mm ?? 0) : 0;
-                  const days = ev ? (ev.detail?.rain_days ?? 0) : 0;
-                  const vsNormal = ev ? (ev.detail?.vs_normal_pct ?? null) : null;
-                  const hasEvent = c.events?.length > 0;
-                  const noData = c.no_data === true;
-                  const evMeta = ev ? (EVENT_LABELS[ev.type] || {}) : {};
-                  const fillPct = rain > 0 ? Math.min((rain / maxRain) * 100, 100) : 0;
-                  const isOverWarn = rain >= 200;
-                  return (
-                    <div key={c.county} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 8, marginBottom: 8, borderBottom: '1px solid #FFF3E0', opacity: hasEvent ? 1 : noData ? 0.35 : 0.6 }}>
-                      <div style={{ width: 44, flexShrink: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{c.county}</div>
-                        <div style={{ fontSize: 10, color: '#9CA3AF' }}>{Math.round(c.weight * 100)}%</div>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: '#6B7280', marginBottom: 3 }}>
-                          <span>
-                            {noData ? <span style={{ color: '#9CA3AF', fontStyle: 'italic' }}>無測站資料</span>
-                              : rain > 0 ? <><strong style={{ color: '#B45309' }}>{rain} mm</strong>{vsNormal !== null && vsNormal > 0 ? ` (+${vsNormal}%)` : vsNormal !== null && vsNormal < 0 ? ` (${vsNormal}%)` : ''}</>
-                              : '正常'}
-                          </span>
-                          {hasEvent && (
-                            <span style={{ color: isOverWarn ? '#EF4444' : '#F59E0B', fontWeight: 600 }}>
-                              {evMeta.icon} {evMeta.text}{isOverWarn ? ' ⚠ 超警戒' : ' ⚠ 超基準'}
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ position: 'relative', height: 7, background: '#FEF3C7', borderRadius: 4, overflow: 'hidden' }}>
-                          {fillPct > 0 && (
-                            <div style={{ height: '100%', width: `${fillPct}%`, borderRadius: 4, background: isOverWarn ? 'linear-gradient(90deg,#F59E0B,#EF4444)' : '#FCD34D' }} />
-                          )}
-                          <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${warnPct}%`, width: 2, background: '#EF4444', opacity: .7 }} />
-                        </div>
-                      </div>
-                      <div style={{ width: 36, flexShrink: 0, textAlign: 'right', fontSize: 10.5, color: '#9CA3AF' }}>
-                        {days > 0 ? <><strong style={{ fontSize: 11, color: '#B45309' }}>{days}</strong>天</> : '—'}
-                      </div>
-                    </div>
-                  );
-                })}
-                <div style={{ display: 'flex', gap: 12, fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>
-                  <span>■ <span style={{ color: '#F59E0B' }}>超基準</span></span>
-                  <span>■ <span style={{ color: '#EF4444' }}>超 200mm</span></span>
-                  <span style={{ marginLeft: 'auto' }}>右側 = 有效雨日</span>
-                </div>
-              </div>
-
-              {/* 價格天氣關聯 */}
-              {showPriceCorr && (
-                <div style={{ padding: '10px 20px', borderBottom: '1px solid #FEE9C9', display: 'flex', gap: 8, background: '#FFF7ED' }}>
-                  <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>📈</span>
-                  <p style={{ fontSize: 12, color: '#92400E', lineHeight: 1.65 }}>
-                    今日均價 <strong>{todayPrice} 元</strong>，比 30 天均價高 <strong>{priceDiff}%</strong>（均價 {recentAvg} 元）。
-                    {impact.affected_counties?.length > 0 && `${impact.affected_counties.join('、')}近期持續降雨，供應縮減可能是主要漲價原因。`}
-                  </p>
-                </div>
-              )}
-
-              {/* 建議 */}
-              <div style={{ padding: '10px 20px' }}>
-                {affectedAdvices.length > 0
-                  ? affectedAdvices.map((text, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 8, marginBottom: i < affectedAdvices.length - 1 ? 8 : 0 }}>
-                      <span style={{ fontSize: 13, flexShrink: 0 }}>💡</span>
-                      <p style={{ fontSize: 12, color: '#92400E', lineHeight: 1.65 }}>{text}</p>
-                    </div>
-                  ))
-                  : (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <span style={{ fontSize: 13 }}>💡</span>
-                      <p style={{ fontSize: 12, color: '#92400E', lineHeight: 1.65 }}>{impact.farmer_advice}</p>
-                    </div>
-                  )}
-              </div>
-            </>
-          )}
         </div>
       )}
     </div>
   );
 }
 
-const DIRECTION_META = {
-  up:   { label: '預測方向：漲', color: '#DC2626', bg: '#FEF2F2', badge: '#FCA5A5', arrow: '↑' },
-  down: { label: '預測方向：跌', color: '#16A34A', bg: '#F0FDF4', badge: '#86EFAC', arrow: '↓' },
-  flat: { label: '預測方向：持平', color: '#6B7280', bg: '#F9FAFB', badge: '#D1D5DB', arrow: '→' },
-};
+// ── 本週市場情報區塊 ────────────────────────────────────────────────────────────
 
-// 將每日批次表的欄位正規化成 DirectionCard 的統一格式
-function _normalizeBatchPrediction(d) {
-  const dirMap = { 漲: 'up', 跌: 'down', 持平: 'flat' };
-  return {
-    direction: dirMap[d.pred_label_name] || 'flat',
-    confidence: d.pred_confidence,
-    prob_down: d.prob_down,
-    prob_flat: d.prob_flat,
-    prob_up: d.prob_up,
-    trade_date: d.base_date,
-    note: d.display_message,
-    risk_level: d.risk_level,
-    risk_note: d.risk_note,
-    confidence_level: d.confidence_level,
-    data_staleness_days: d.data_staleness_days,
-    base_date: d.base_date,
-    prediction_target: d.prediction_target,
-    source: 'batch',
-  };
+const MOCK_VOLATILITY = [
+  { crop_name: '甘藍', volatility_pct: 8.2, is_anomaly: false },
+  { crop_name: '芒果', volatility_pct: 22.5, is_anomaly: true },
+  { crop_name: '番茄', volatility_pct: 11.4, is_anomaly: false },
+  { crop_name: '青蔥', volatility_pct: 19.8, is_anomaly: true },
+  { crop_name: '蘿蔔', volatility_pct: 6.3, is_anomaly: false },
+  { crop_name: '香蕉', volatility_pct: 14.1, is_anomaly: false },
+  { crop_name: '辣椒', volatility_pct: 28.7, is_anomaly: true },
+  { crop_name: '菠菜', volatility_pct: 9.6, is_anomaly: false },
+];
+
+function RiskGauge({ value, color }) {
+  const r = 34;
+  const cx = 40;
+  const cy = 40;
+  const circumference = Math.PI * r;
+  const filled = Math.min(Math.max(value || 0, 0), 1) * circumference;
+  return (
+    <svg viewBox="0 0 80 44" width="80" height="44" style={{ display: 'block', margin: '6px 0 4px' }}>
+      <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+        fill="none" stroke="#E5E7EB" strokeWidth="6" strokeLinecap="round" />
+      <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+        fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
+        strokeDasharray={`${filled} ${circumference}`} />
+      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="11" fontWeight="700" fill={color}>
+        {value != null ? value.toFixed(2) : '—'}
+      </text>
+    </svg>
+  );
 }
 
-function DirectionCard({ productName, market }) {
+function VolatilityBarChart({ items }) {
+  const THRESHOLD = 15;
+  const maxVal = Math.max(...items.map(i => i.volatility_pct), THRESHOLD + 2);
+  const H = 100;
+  const PAD_B = 20;
+  const chartH = H - PAD_B;
+  const barW = Math.max(12, Math.floor((100 / items.length) * 0.6));
+
+  return (
+    <svg viewBox={`0 0 100 ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: 'block' }}>
+      {/* 閾值虛線 */}
+      {(() => {
+        const y = chartH - (THRESHOLD / maxVal) * chartH;
+        return (
+          <line x1="0" y1={y} x2="100" y2={y}
+            stroke="#F59E0B" strokeWidth="0.8" strokeDasharray="2,2" />
+        );
+      })()}
+      {items.map((item, i) => {
+        const x = (i / items.length) * 100 + (100 / items.length) * 0.2;
+        const barH = (item.volatility_pct / maxVal) * chartH;
+        const y = chartH - barH;
+        return (
+          <g key={item.crop_name}>
+            <rect x={x} y={y} width={barW} height={barH}
+              fill={item.is_anomaly ? '#F59E0B' : '#D1D5DB'} rx="1" />
+            <text x={x + barW / 2} y={H - 4} textAnchor="middle" fontSize="4.5" fill="#9CA3AF">
+              {item.crop_name.slice(0, 2)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function MarketIntelPanel() {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!productName) return;
-    setData(null);
-    setLoading(true);
-
-    const batchParams = market
-      ? `crop_name=${encodeURIComponent(productName)}&market_name=${encodeURIComponent(market)}`
-      : `crop_name=${encodeURIComponent(productName)}`;
-
-    get(`/api/predictions/direction/latest?${batchParams}`)
-      .then(d => setData(_normalizeBatchPrediction(d)))
+    get('/api/market-intel')
+      .then(d => setData(d))
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [productName, market]);
+  }, []);
+
+  useEffect(() => {
+    if (!data || !chartRef.current) return;
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+      chartInstance.current = null;
+    }
+
+    const gainers = (data.gainers || []).slice().reverse();
+    const losers = (data.losers || []).slice();
+    const allItems = [...gainers, ...losers];
+    const labels = allItems.map(i => i.crop_name);
+    const values = allItems.map(i => Math.round((i.price_return_7 || 0) * 1000) / 10);
+    const colors = values.map(v => v >= 0 ? 'rgba(239,68,68,0.8)' : 'rgba(22,163,74,0.8)');
+    const prices = allItems.map(i => i.today_price);
+
+    chartInstance.current = new Chart(chartRef.current, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colors,
+          borderRadius: 4,
+          borderSkipped: false,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const pct = ctx.raw > 0 ? `+${ctx.raw}%` : `${ctx.raw}%`;
+                const price = prices[ctx.dataIndex];
+                return [`7日漲跌：${pct}`, price != null ? `今日均價：${price} 元` : ''];
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { callback: v => `${v > 0 ? '+' : ''}${v}%`, font: { size: 10 } },
+            grid: { color: 'rgba(0,0,0,0.05)' },
+          },
+          y: { ticks: { font: { size: 11 } } },
+        },
+      },
+    });
+    return () => { chartInstance.current?.destroy(); chartInstance.current = null; };
+  }, [data]);
 
   if (loading) return (
-    <div style={{ padding: '10px 14px', borderRadius: 8, background: '#F9FAFB', fontSize: 12, color: 'var(--yz-mut)' }}>
-      AI 方向預測載入中…
+    <div style={{ padding: '16px 20px', marginBottom: 16, background: 'var(--yz-gl)', borderRadius: 10, border: '1px solid var(--yz-bdr)', fontSize: 12, color: 'var(--yz-mut)' }}>
+      全台市場總覽載入中…
     </div>
   );
 
-  if (!data || !data.direction) return (
-    <div style={{ padding: '10px 14px', borderRadius: 8, background: '#F9FAFB', fontSize: 12, color: 'var(--yz-mut)' }}>
-      AI 方向預測：尚無下一交易日方向預測結果
-    </div>
-  );
+  if (!data || (!data.market_stability && !data.gainers)) return null;
 
-  const meta = DIRECTION_META[data.direction] || DIRECTION_META.flat;
-  const bars = [
-    { label: '看跌', key: 'prob_down', color: '#16A34A' },
-    { label: '持平', key: 'prob_flat', color: '#9CA3AF' },
-    { label: '看漲', key: 'prob_up',   color: '#DC2626' },
-  ];
-  const confPct = Math.round((data.confidence || 0) * 100);
+  const { market_stability: ms, market_bias: mb, gainers = [], losers = [], alerts = [] } = data;
+  const riskColor = ms?.risk_level === '高風險' ? '#DC2626' : ms?.risk_level === '中風險' ? '#D97706' : '#16A34A';
+  const biasColor = mb?.bias === '偏多' ? '#DC2626' : mb?.bias === '偏空' ? '#16A34A' : '#6B7280';
+  const volatilityItems = data.crop_volatility || MOCK_VOLATILITY;
+  const normalCount = volatilityItems.filter(i => !i.is_anomaly).length;
+  const cardLabel = { fontSize: 13, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: 8 };
+  const cardText = { fontSize: 12, color: 'var(--yz-mut)', lineHeight: 1.7 };
 
   return (
-    <div style={{ borderRadius: 10, border: `1.5px solid ${meta.badge}`, background: meta.bg, overflow: 'hidden' }}>
-      {/* 標題列 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${meta.badge}` }}>
-        <span style={{ fontSize: 20, lineHeight: 1 }}>{meta.arrow}</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: meta.color }}>{meta.label}</span>
-            <span style={{
-              fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 12,
-              background: meta.badge, color: meta.color,
-            }}>信心 {confPct}%</span>
+    <div style={{ marginBottom: 20 }}>
+      {/* 標題 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--yz-txt)' }}>全台市場總覽</span>
+        {data.latest_trade_date && (
+          <span style={{ fontSize: 10, color: 'var(--yz-dim)', marginLeft: 'auto' }}>
+            資料日：{data.latest_trade_date}
+          </span>
+        )}
+      </div>
+      <p style={{ fontSize: 11, color: 'var(--yz-mut)', marginBottom: 14 }}>
+        資料來源：全台批發市場（綜合統計），非當前市場專屬
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr 2fr', gap: 10 }}>
+        {/* 風險指數卡 */}
+        <div className="yz-card" style={{ padding: '16px 18px' }}>
+          <p style={cardLabel}>市場風險指數</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{ fontSize: 32, fontWeight: 900, color: riskColor }}>{ms?.risk_index}</span>
+            <span style={{ fontSize: 12, color: riskColor, fontWeight: 700 }}>{ms?.risk_level}</span>
           </div>
-          <p style={{ fontSize: 11, color: 'var(--yz-mut)', marginTop: 2 }}>
-            預測目標：下一交易日 · 資料基準日：{data.base_date || data.trade_date}
+          <RiskGauge value={ms?.risk_index} color={riskColor} />
+          <p style={{ ...cardText, fontSize: 10, lineHeight: 1.5, marginBottom: 6 }}>
+            綜合近 7 日價格波動幅度與異常品項比例計算
           </p>
+          {ms?.volatile_crops?.length > 0 && (
+            <p style={{ ...cardText, fontSize: 11 }}>波動：{ms.volatile_crops.join('、')}</p>
+          )}
+          {ms?.stable_crops?.length > 0 && (
+            <p style={{ ...cardText, fontSize: 11 }}>穩定：{ms.stable_crops.join('、')}</p>
+          )}
         </div>
-      </div>
 
-      {/* 機率條 */}
-      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-        {bars.map(({ label, key, color }) => {
-          const pct = Math.round((data[key] || 0) * 100);
-          return (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 28, fontSize: 11, fontWeight: 600, color, flexShrink: 0 }}>{label}</span>
-              <div style={{ flex: 1, height: 8, background: '#E5E7EB', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width .4s' }} />
-              </div>
-              <span style={{ width: 32, fontSize: 11, fontWeight: 700, color, textAlign: 'right', flexShrink: 0 }}>{pct}%</span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* 風險提醒（批次資料才有） */}
-      {data.risk_level && data.risk_level !== 'normal' && data.risk_note && (
-        <div style={{ margin: '0 16px 10px', padding: '8px 10px', borderRadius: 6, background: data.risk_level === 'high' ? '#FEF2F2' : '#FFFBEB', fontSize: 11, color: data.risk_level === 'high' ? '#DC2626' : '#92400E' }}>
-          ⚠ {data.risk_note}
-        </div>
-      )}
-
-      {/* 資料新鮮度（批次才有） */}
-      {data.data_staleness_days > 0 && (
-        <div style={{ padding: '0 16px 6px', fontSize: 10, color: 'var(--yz-mut)' }}>
-          資料新鮮度：距全域最新交易日 {data.data_staleness_days} 天
-        </div>
-      )}
-      {data.data_staleness_days === 0 && (
-        <div style={{ padding: '0 16px 6px', fontSize: 10, color: 'var(--yz-mut)' }}>
-          資料新鮮度：最新交易日資料
-        </div>
-      )}
-
-      {data.note && (
-        <div style={{ padding: '0 16px 6px', fontSize: 10, color: 'var(--yz-mut)' }}>
-          {data.note}
-        </div>
-      )}
-
-      <div style={{ padding: '0 16px 10px', fontSize: 10, color: 'var(--yz-mut)' }}>
-        僅供參考，請勿作為唯一採買依據
-      </div>
-    </div>
-  );
-}
-
-function PriceChart({ productName, market }) {
-  const [history, setHistory] = useState(null);
-  const [tooltip, setTooltip] = useState(null); // {x, y, date, price}
-
-  useEffect(() => {
-    if (!productName) return;
-    setHistory(null);
-    const params = market ? `?market=${encodeURIComponent(market)}` : '';
-    get(`/api/products/${encodeURIComponent(productName)}/history${params}`)
-      .then(d => setHistory(d.history || []))
-      .catch(() => setHistory([]));
-  }, [productName, market]);
-
-  if (history === null) return <div style={{ height: 148, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--yz-dim)', fontSize: 12 }}>載入中…</div>;
-  if (history.length < 2) return <div style={{ height: 60, display: 'flex', alignItems: 'center', color: 'var(--yz-dim)', fontSize: 12 }}>歷史資料不足，無法繪製走勢圖</div>;
-
-  // layout
-  const W = 650, H = 148, PAD_L = 44, PAD_R = 16, PAD_T = 14, PAD_B = 28;
-  const chartW = W - PAD_L - PAD_R;
-  const chartH = H - PAD_T - PAD_B;
-
-  const prices = history.map(r => r.price);
-  const minP = Math.min(...prices);
-  const maxP = Math.max(...prices);
-  const range = maxP - minP || 1;
-
-  const toX = i => PAD_L + (i / (history.length - 1)) * chartW;
-  const toY = p => PAD_T + chartH - ((p - minP) / range) * chartH;
-
-  const points = history.map((r, i) => [toX(i), toY(r.price)]);
-  const linePath = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-  const areaPath = linePath + ` L${points[points.length - 1][0].toFixed(1)},${(PAD_T + chartH).toFixed(1)} L${PAD_L},${(PAD_T + chartH).toFixed(1)} Z`;
-
-  // y-axis ticks (3 lines)
-  const ticks = [0, 0.5, 1].map(t => ({
-    y: PAD_T + chartH * (1 - t),
-    label: (minP + range * t).toFixed(1),
-  }));
-
-  // x-axis labels: first, mid, last
-  const xLabels = [0, Math.floor((history.length - 1) / 2), history.length - 1].map(i => ({
-    x: toX(i),
-    label: history[i].date.slice(5), // MM-DD
-  }));
-
-  const lastPt = points[points.length - 1];
-
-  return (
-    <div style={{ position: 'relative' }}>
-      <svg
-        viewBox={`0 0 ${W} ${H}`} width="100%" height={H}
-        style={{ overflow: 'visible', display: 'block' }}
-        onMouseLeave={() => setTooltip(null)}
-      >
-        <defs>
-          <linearGradient id="yz-cg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1D9E75" stopOpacity="0.13" />
-            <stop offset="100%" stopColor="#1D9E75" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {/* grid lines */}
-        {ticks.map(t => (
-          <g key={t.label}>
-            <line x1={PAD_L} y1={t.y} x2={W - PAD_R} y2={t.y} stroke="#E2DDD2" strokeWidth="1" />
-            <text x={PAD_L - 4} y={t.y + 3.5} fontSize="9" fill="#9B9A90" textAnchor="end">{t.label}</text>
-          </g>
-        ))}
-
-        {/* area + line */}
-        <path d={areaPath} fill="url(#yz-cg)" />
-        <path d={linePath} stroke="#1D9E75" strokeWidth="2.2" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-
-        {/* latest dot */}
-        <circle cx={lastPt[0]} cy={lastPt[1]} r="4.5" fill="white" stroke="#1D9E75" strokeWidth="2.2" />
-
-        {/* x labels */}
-        {xLabels.map(l => (
-          <text key={l.label} x={l.x} y={H - 4} fontSize="9" fill="#9B9A90" textAnchor="middle">{l.label}</text>
-        ))}
-
-        {/* hover detection strips */}
-        {history.map((r, i) => {
-          const x = toX(i);
-          const y = toY(r.price);
-          const stripW = chartW / history.length;
-          return (
-            <rect
-              key={i}
-              x={x - stripW / 2} y={PAD_T} width={stripW} height={chartH}
-              fill="transparent"
-              onMouseEnter={() => setTooltip({ x, y, date: r.date, price: r.price })}
-            />
-          );
-        })}
-
-        {/* tooltip crosshair */}
-        {tooltip && (
-          <>
-            <line x1={tooltip.x} y1={PAD_T} x2={tooltip.x} y2={PAD_T + chartH} stroke="#1D9E75" strokeWidth="1" strokeDasharray="3,2" />
-            <circle cx={tooltip.x} cy={tooltip.y} r="3.5" fill="#1D9E75" />
-          </>
-        )}
-      </svg>
-
-      {/* tooltip box */}
-      {tooltip && (
-        <div style={{
-          position: 'absolute',
-          left: `calc(${(tooltip.x / W) * 100}% + 8px)`,
-          top: tooltip.y - 10,
-          background: '#1A1A18',
-          color: '#fff',
-          borderRadius: 6,
-          padding: '4px 8px',
-          fontSize: 11,
-          pointerEvents: 'none',
-          whiteSpace: 'nowrap',
-          zIndex: 10,
-          transform: tooltip.x > W * 0.7 ? 'translateX(-110%)' : 'none',
-        }}>
-          <span style={{ color: '#86EFAC' }}>{tooltip.date}</span>
-          <span style={{ marginLeft: 6, fontWeight: 700 }}>{tooltip.price} 元</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AuctionDetailModal({ detail, onClose }) {
-  const d = detail.price_detail || {};
-  const rows = [
-    ['交易日期', d.trans_date || '—'],
-    ['批發市場', d.market_name || '—'],
-    ['上價', d.upper_price != null ? `${d.upper_price} 元/kg` : '—'],
-    ['中價（今日均價）', d.middle_price != null ? `${d.middle_price} 元/kg` : '—'],
-    ['下價', d.lower_price != null ? `${d.lower_price} 元/kg` : '—'],
-    ['交易量', d.volume != null ? `${d.volume} 公斤` : '—'],
-  ];
-  return (
-    <div
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(26,26,24,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
-    >
-      <div onClick={e => e.stopPropagation()} className="yz-card" style={{ width: 360, padding: '24px 26px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700 }}>{detail.product_name} · 拍賣行情明細</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--yz-dim)' }}>✕</button>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {rows.map(([label, value]) => (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, paddingBottom: 8, borderBottom: '1px solid #F0ECE5' }}>
-              <span style={{ color: 'var(--yz-mut)' }}>{label}</span>
-              <span style={{ fontWeight: 600 }}>{value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PriceListPanel() {
-  const [query, setQuery] = useState('');
-  const [markets, setMarkets] = useState([]);
-  const [market, setMarket] = useState('');
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showAll, setShowAll] = useState(false);
-  const [selectedName, setSelectedName] = useState(null);
-  const [detail, setDetail] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [auctionModalOpen, setAuctionModalOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sortBy, setSortBy] = useState('default');
-
-  useEffect(() => {
-    get('/api/markets').then(d => {
-      const list = d.markets || [];
-      setMarkets(list);
-      const first = list[0] || '';
-      setMarket(prev => prev || first);
-      doSearch('', first, true);
-    }).catch(() => {
-      setMarkets([]);
-      doSearch('', '', true);
-    });
-  }, []); // eslint-disable-line
-
-  async function doSearch(q, m, autoSelect = true) {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (q) params.set('q', q);
-      if (m) params.set('market', m);
-      const data = await get(`/api/products?${params.toString()}`);
-      setItems(data);
-      if (data.length && autoSelect) openDetail(data[0].product_name, m);
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function openDetail(name, m = market) {
-    setSelectedName(name);
-    setDetailLoading(true);
-    setAuctionModalOpen(false);
-    try {
-      const params = m ? `?market=${encodeURIComponent(m)}` : '';
-      const d = await get(`/api/products/${encodeURIComponent(name)}${params}`);
-      setDetail(d);
-    } catch {
-      setDetail(null);
-    } finally {
-      setDetailLoading(false);
-    }
-  }
-
-  async function resolveAndJump(name) {
-    // 24節氣的推薦食材名稱可能跟真實品項用詞不同，改用搜尋＋別名比對找出最接近的真實品項
-    const term = PRODUCT_ALIASES[name] || name;
-    try {
-      const matches = await get(`/api/products?q=${encodeURIComponent(term)}`);
-      if (matches.length) {
-        openDetail(matches[0].product_name);
-        return;
-      }
-    } catch { /* fall through to not-found state below */ }
-    setSelectedName(name);
-    setDetail(null);
-  }
-
-  function handleSearchSubmit(e) {
-    e.preventDefault();
-    setShowAll(false);
-    doSearch(query, market);
-  }
-
-  function handleMarketChange(e) {
-    const m = e.target.value;
-    setMarket(m);
-    setShowAll(false);
-    doSearch(query, m);
-  }
-
-  const isFiltering = query.trim() !== '';
-
-  function diffPct(item) {
-    if (item.today_price == null || !item.recent_average) return null;
-    return Math.round((item.today_price - item.recent_average) / item.recent_average * 100);
-  }
-
-  const processedItems = (() => {
-    let list = filterStatus ? items.filter(i => i.status === filterStatus) : items;
-    if (sortBy === 'diff_desc') {
-      list = [...list].sort((a, b) => (diffPct(b) ?? -999) - (diffPct(a) ?? -999));
-    } else if (sortBy === 'diff_asc') {
-      list = [...list].sort((a, b) => (diffPct(a) ?? 999) - (diffPct(b) ?? 999));
-    } else {
-      list = [...list].sort((a, b) => (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9));
-    }
-    return list;
-  })();
-
-  const visibleItems = isFiltering || showAll || filterStatus
-    ? processedItems
-    : processedItems.slice(0, FEATURED_COUNT);
-
-  return (
-    <div>
-      <SolarTermStrip />
-    <div className="yz-price-layout" style={{ display: 'flex', minHeight: 600, border: '1px solid var(--yz-bdr)', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
-      {/* Left sidebar */}
-      <div className="yz-price-sidebar" style={{ width: 256, flexShrink: 0, borderRight: '1px solid var(--yz-bdr)', display: 'flex', flexDirection: 'column' }}>
-        <form onSubmit={handleSearchSubmit} style={{ padding: '14px 14px 10px' }}>
-          <input className="yz-input" placeholder="搜尋品項..." value={query} onChange={e => setQuery(e.target.value)} />
-        </form>
-        <div style={{ padding: '0 14px 10px' }}>
-          <p style={labelStyle}>批發市場</p>
-          <select className="yz-input" value={market} onChange={handleMarketChange} style={{ fontSize: 13 }}>
-            {markets.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </div>
-        {/* 篩選 + 排序 */}
-        <div style={{ padding: '8px 14px 10px', borderBottom: '1px solid var(--yz-bdr)' }}>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 7 }}>
-            {[['', '全部'], ['便宜', '↓ 便宜'], ['正常', '→ 正常'], ['偏貴', '↑ 偏貴']].map(([val, label]) => (
-              <button key={val} onClick={() => { setFilterStatus(val); setShowAll(false); }}
-                style={{
-                  flex: 1, padding: '4px 0', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid',
-                  background: filterStatus === val ? 'var(--yz-g)' : '#F7F4EF',
-                  color: filterStatus === val ? '#fff' : 'var(--yz-mut)',
-                  borderColor: filterStatus === val ? 'var(--yz-g)' : 'var(--yz-bdr)',
-                }}
-              >{label}</button>
-            ))}
+        {/* 多空偏向卡 */}
+        <div className="yz-card" style={{ padding: '16px 18px' }}>
+          <p style={cardLabel}>本週漲跌偏向</p>
+          <div style={{ marginBottom: 8 }}>
+            <span style={{ fontSize: 32, fontWeight: 900, color: biasColor }}>
+              {mb?.bias}
+            </span>
+            {mb?.bias && (
+              <span style={{ fontSize: 12, color: 'var(--yz-mut)', marginLeft: 6 }}>
+                （{mb.bias === '偏多' ? `看漲 ${mb?.bullish_count} 項` : `看跌 ${mb?.bearish_count} 項`}）
+              </span>
+            )}
           </div>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-            style={{ width: '100%', padding: '5px 8px', borderRadius: 6, fontSize: 11, border: '1px solid var(--yz-bdr)', color: 'var(--yz-mut)', background: '#F7F4EF', cursor: 'pointer', fontFamily: 'inherit' }}>
-            <option value="default">排序：預設（依狀態）</option>
-            <option value="diff_desc">排序：漲幅最高優先</option>
-            <option value="diff_asc">排序：跌幅最大優先</option>
-          </select>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {!isFiltering && !filterStatus && (
-            <p style={{ padding: '10px 14px 2px', fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.07em', textTransform: 'uppercase' }}>
-              {showAll ? `全部品項（${items.length}）` : '精選品項'}
-            </p>
+          <p style={cardText}>
+            ↑ 看漲：<strong style={{ color: '#DC2626' }}>{mb?.bullish_count}</strong>
+            {'  '}↓ 看跌：<strong style={{ color: '#16A34A' }}>{mb?.bearish_count}</strong>
+          </p>
+          {mb?.top_bullish?.length > 0 && (
+            <p style={{ ...cardText, fontSize: 11, color: '#DC2626' }}>↑ {mb.top_bullish.join('、')}</p>
           )}
-          {filterStatus && !loading && (
-            <p style={{ padding: '10px 14px 2px', fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.07em', textTransform: 'uppercase' }}>
-              {filterStatus}（{processedItems.length} 項）
-            </p>
-          )}
-          {loading && <p style={{ padding: 14, fontSize: 12, color: 'var(--yz-dim)' }}>載入中...</p>}
-          {!loading && items.length === 0 && <p style={{ padding: 14, fontSize: 12, color: 'var(--yz-dim)' }}>查無品項，請先啟動 API 伺服器或換個關鍵字</p>}
-          {visibleItems.map(item => {
-            const active = item.product_name === selectedName;
-            const { arrow, color } = STATUS_ARROW[item.status] || STATUS_ARROW['資料不足'];
-            const wev = item.weather_risk ? (EVENT_LABELS[item.weather_risk] || {}) : null;
-            return (
-              <div
-                key={item.product_name}
-                onClick={() => openDetail(item.product_name)}
-                style={{
-                  padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #F0ECE5',
-                  background: active ? 'var(--yz-gl)' : 'transparent',
-                  borderLeft: active ? '3px solid var(--yz-g)' : '3px solid transparent',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-                    <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, color: active ? 'var(--yz-gd)' : 'var(--yz-txt)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</span>
-                    {wev && <span title={`產地${wev.text}`} style={{ fontSize: 11, flexShrink: 0 }}>{wev.icon}</span>}
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color, flexShrink: 0, marginLeft: 4 }}>{arrow} {item.status}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--yz-g)' : 'var(--yz-dim)' }}>
-                    {item.today_price != null ? `${item.today_price} 元/kg` : '暫無報價'}
-                  </span>
-                  {(() => {
-                    const d = diffPct(item);
-                    if (d == null) return null;
-                    const dc = d > 0 ? '#DC2626' : d < 0 ? '#16A34A' : '#9CA3AF';
-                    return <span style={{ fontSize: 11, fontWeight: 600, color: dc }}>{d > 0 ? `+${d}` : d}%</span>;
-                  })()}
-                </div>
-              </div>
-            );
-          })}
-          {!isFiltering && !loading && items.length > FEATURED_COUNT && (
-            <button
-              onClick={() => setShowAll(v => !v)}
-              style={{ width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderTop: '1px solid var(--yz-bdr)', color: 'var(--yz-g)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-            >
-              {showAll ? '▴ 收合' : `顯示全部 ${items.length} 項 ▾`}
-            </button>
+          {mb?.top_bearish?.length > 0 && (
+            <p style={{ ...cardText, fontSize: 11, color: '#16A34A' }}>↓ {mb.top_bearish.join('、')}</p>
           )}
         </div>
-      </div>
 
-      {/* Right detail panel */}
-      <div style={{ flex: 1, padding: '28px 32px', overflowY: 'auto' }}>
-        {!selectedName && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>請從左側選擇品項查看詳情</p>}
-        {selectedName && detailLoading && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>載入中...</p>}
-        {selectedName && !detailLoading && !detail && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>無法取得詳細資料</p>}
-        {selectedName && !detailLoading && detail && (
-          <>
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
-                <h2 style={{ fontSize: 24, fontWeight: 900 }}>{detail.product_name}</h2>
-                <span className={`yz-bdg ${STATUS_BADGE[detail.price_status] || 'yz-bdg-gr'}`}>{detail.price_status}</span>
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--yz-mut)' }}>
-                {detail.price_detail?.market_name ? `${detail.price_detail.market_name} · ` : ''}近 30 天資料
+        {/* 漲跌榜 Chart.js */}
+        <div className="yz-card" style={{ padding: '16px 18px' }}>
+          <p style={cardLabel}>漲幅榜 / 跌幅榜（7日）</p>
+          <div style={{ height: 180 }}>
+            <canvas ref={chartRef} />
+          </div>
+        </div>
+
+        {/* 異常警報 */}
+        <div className="yz-card" style={{ padding: '16px 18px', overflowY: 'auto', maxHeight: 260 }}>
+          <p style={cardLabel}>異常警報</p>
+          {alerts.length === 0 ? (
+            <div>
+              <p style={{ ...cardText, marginBottom: 10 }}>
+                本週 <strong style={{ color: 'var(--yz-txt)' }}>{volatilityItems.length}</strong> 個品項中，
+                <strong style={{ color: '#16A34A' }}>{normalCount}</strong> 項波動在正常範圍（±1.5σ）內
               </p>
+              <VolatilityBarChart items={volatilityItems} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, fontSize: 10, color: 'var(--yz-mut)' }}>
+                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#D1D5DB', borderRadius: 2, verticalAlign: 'middle', marginRight: 3 }} />正常</span>
+                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#F59E0B', borderRadius: 2, verticalAlign: 'middle', marginRight: 3 }} />異常（&gt;1.5σ）</span>
+              </div>
             </div>
-
-            {(() => {
-              const diffPct = detail.today_price && detail.price_detail?.recent_average
-                ? Math.round((detail.today_price - detail.price_detail.recent_average) / detail.price_detail.recent_average * 100)
-                : null;
-              const diffColor = diffPct == null ? 'var(--yz-dim)' : diffPct > 0 ? '#DC2626' : diffPct < 0 ? '#16A34A' : '#888';
-              return (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 22 }}>
-                  <div
-                    className="yz-card yz-metric-clickable"
-                    style={{ padding: '16px 20px', cursor: 'pointer', transition: 'box-shadow .15s' }}
-                    onClick={() => setAuctionModalOpen(true)}
-                    title="點擊查看完整拍賣行情明細"
+          ) : (
+            alerts.map(a => (
+              <div key={a.crop_name} style={{ padding: '8px 0', borderBottom: '1px solid var(--yz-bdr)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    onClick={() => navigate(`/product/${encodeURIComponent(a.crop_name)}`)}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--yz-gd)', textDecoration: 'underline' }}
                   >
-                    <p style={metricLabel}>今日均價</p>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                      <span style={{ fontSize: 30, fontWeight: 900 }}>{detail.today_price ?? '—'}</span>
-                      <span style={{ fontSize: 13, color: 'var(--yz-mut)' }}>元/kg</span>
-                    </div>
-                    <p style={{ fontSize: 11, color: 'var(--yz-g)', fontWeight: 600, marginTop: 6 }}>拍賣明細 →</p>
-                  </div>
-                  <div className="yz-card" style={{ padding: '16px 20px' }}>
-                    <p style={metricLabel}>30 天均價</p>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                      <span style={{ fontSize: 30, fontWeight: 900 }}>{detail.price_detail?.recent_average ?? '—'}</span>
-                      <span style={{ fontSize: 13, color: 'var(--yz-mut)' }}>元/kg</span>
-                    </div>
-                  </div>
-                  <div className="yz-card" style={{ padding: '16px 20px' }}>
-                    <p style={metricLabel}>漲跌幅（30 天）</p>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                      <span style={{ fontSize: 30, fontWeight: 900, color: diffColor }}>
-                        {diffPct == null ? '—' : diffPct > 0 ? `+${diffPct}` : diffPct}
-                      </span>
-                      {diffPct != null && <span style={{ fontSize: 13, color: diffColor }}>%</span>}
-                    </div>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--yz-g)', marginTop: 6 }}>{detail.recommendation}</p>
-                  </div>
+                    {a.crop_name}
+                  </button>
+                  <span className={`yz-bdg ${a.severity === 'high' ? 'yz-bdg-o' : 'yz-bdg-gr'}`}
+                    style={a.severity === 'high' ? { background: '#FEF2F2', color: '#DC2626', borderColor: '#FCA5A5' } : {}}>
+                    {a.status}
+                  </span>
+                  {a.divergence && (
+                    <span style={{ fontSize: 10, fontWeight: 600, color: '#92400E', background: '#FEF3C7', padding: '1px 6px', borderRadius: 4 }}>
+                      {a.divergence}
+                    </span>
+                  )}
                 </div>
-              );
-            })()}
-
-            <div className="yz-card" style={{ padding: '20px 24px', marginBottom: 16 }}>
-              <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>{detail.product_name} · 30 天走勢</h4>
-              <PriceChart productName={detail.product_name} market={market} />
-            </div>
-
-            <PriceInsightCard detail={detail} />
-
-            <DirectionCard productName={detail.product_name} market={market} />
-          </>
-        )}
+                <div style={{ fontSize: 10, color: 'var(--yz-mut)' }}>
+                  z={a.z_score > 0 ? '+' : ''}{a.z_score}
+                  {' · '}7日{a.price_return_7 >= 0 ? '+' : ''}{Math.round(a.price_return_7 * 100)}%
+                  {a.today_price != null && ` · ${a.today_price} 元`}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
-
-      {auctionModalOpen && detail && (
-        <AuctionDetailModal detail={detail} onClose={() => setAuctionModalOpen(false)} />
-      )}
-    </div>
     </div>
   );
 }
 
-const SEASON_EMOJI = {
-  春: '🌱', 夏: '☀️', 秋: '🍂', 冬: '❄️',
-};
+// ── 節氣條 ────────────────────────────────────────────────────────────────────
+
+const SEASON_EMOJI = { 春: '🌱', 夏: '☀️', 秋: '🍂', 冬: '❄️' };
 const TERM_SEASON = {
   立春: '春', 雨水: '春', 驚蟄: '春', 春分: '春', 清明: '春', 穀雨: '春',
   立夏: '夏', 小滿: '夏', 芒種: '夏', 夏至: '夏', 小暑: '夏', 大暑: '夏',
   立秋: '秋', 處暑: '秋', 白露: '秋', 秋分: '秋', 寒露: '秋', 霜降: '秋',
   立冬: '冬', 小雪: '冬', 大雪: '冬', 冬至: '冬', 小寒: '冬', 大寒: '冬',
 };
-// 依太陽黃道經度排列（與後端 _TERM_NAMES 一致）
 const TERM_ORDER = [
   '春分','清明','穀雨','立夏','小滿','芒種','夏至','小暑','大暑',
   '立秋','處暑','白露','秋分','寒露','霜降','立冬','小雪','大雪',
@@ -814,68 +386,45 @@ const TERM_ORDER = [
 ];
 function nextTermName(current) {
   const i = TERM_ORDER.indexOf(current);
-  if (i === -1) return null;
-  return TERM_ORDER[(i + 1) % TERM_ORDER.length];
+  return i === -1 ? null : TERM_ORDER[(i + 1) % TERM_ORDER.length];
 }
-
-// 給定年份 Y，估算 TERM_ORDER[i] 的日期
-// index 0-18: 以 Y 年春分 (3/20) 為基準
-// index 19-23: 以 (Y-1) 年春分為基準，結果落在 Y 年 1-3 月
 function _termDate(i, year) {
   const baseYear = i >= 19 ? year - 1 : year;
   return new Date(Date.UTC(baseYear, 2, 20) + i * 15.218 * 86400000);
 }
-
 function daysUntilNextTerm(currentTermName) {
-  const todayUTC = new Date(); todayUTC.setUTCHours(0,0,0,0);
+  const todayUTC = new Date(); todayUTC.setUTCHours(0, 0, 0, 0);
   const year = todayUTC.getUTCFullYear();
   const ci = TERM_ORDER.indexOf(currentTermName);
   if (ci === -1) return null;
   const ni = (ci + 1) % TERM_ORDER.length;
-  // 下個節氣的估算年份：若 ni < ci（跨回春分），表示已進入下一輪，用 year+1
   const refYear = ni < ci ? year + 1 : year;
   let d = _termDate(ni, refYear);
-  // 若估算日仍在今天之前（估算誤差），往後找下一個符合的年份
   if (d <= todayUTC) d = _termDate(ni, refYear + 1);
   return Math.round((d - todayUTC) / 86400000) || null;
 }
 
 function SolarTermStrip() {
   const { data: term, loading } = useApi('/api/solar-term');
-
   if (loading) return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--yz-gl)', border: '1px solid var(--yz-bdr)', borderRadius: 20, padding: '6px 14px', marginBottom: 14, fontSize: 12, color: 'var(--yz-mut)' }}>
       ⏳ 載入節氣…
     </div>
   );
-
   if (!term || term.error) return null;
-
   const season = TERM_SEASON[term.term_name];
   const emoji = SEASON_EMOJI[season] || '🌿';
   const resolvedNext = term.next_term_name || nextTermName(term.term_name);
   const days = term.days_until_next ?? daysUntilNextTerm(term.term_name);
-
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-      {/* 當前節氣泡泡 */}
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        background: 'var(--yz-gl)', border: '1px solid var(--yz-bdr)',
-        borderRadius: 20, padding: '6px 14px',
-      }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--yz-gl)', border: '1px solid var(--yz-bdr)', borderRadius: 20, padding: '6px 14px' }}>
         <span style={{ fontSize: 15, lineHeight: 1 }}>{emoji}</span>
         <span style={{ fontSize: 11, color: 'var(--yz-mut)', fontWeight: 500 }}>現在節氣</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--yz-gd)' }}>{term.term_name}</span>
       </div>
-
-      {/* 下個節氣泡泡 */}
       {resolvedNext && (
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          background: '#F7F4EF', border: '1px solid var(--yz-bdr)',
-          borderRadius: 20, padding: '6px 14px',
-        }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#F7F4EF', border: '1px solid var(--yz-bdr)', borderRadius: 20, padding: '6px 14px' }}>
           <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>距</span>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--yz-txt)' }}>{resolvedNext}</span>
           {days != null && <>
@@ -889,11 +438,224 @@ function SolarTermStrip() {
   );
 }
 
+// ── 列表頁主體 ─────────────────────────────────────────────────────────────────
+
 export default function PriceSearch() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const market = searchParams.get('market') || '';
+  const filterStatus = searchParams.get('filter') || '';
+  const sortBy = searchParams.get('sort') || 'default';
+
+  const [query, setQuery] = useState('');
+  const [markets, setMarkets] = useState([]);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
+  const [priceRange, setPriceRange] = useState([0, 500]);
+
+  const updateParam = useCallback((key, value) => {
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      if (value) p.set(key, value);
+      else p.delete(key);
+      return p;
+    });
+  }, [setSearchParams]);
+
+  // 初始化：載入市場清單，若 URL 無市場則設第一個
+  useEffect(() => {
+    get('/api/markets').then(d => {
+      const list = d.markets || [];
+      setMarkets(list);
+      if (!searchParams.get('market') && list.length) {
+        setSearchParams(prev => {
+          const p = new URLSearchParams(prev);
+          p.set('market', list[0]);
+          return p;
+        }, { replace: true });
+      }
+    }).catch(() => setMarkets([]));
+  }, []); // eslint-disable-line
+
+  // 每次 market / filterStatus 變化重新載入品項
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (market) params.set('market', market);
+    get(`/api/products?${params.toString()}`)
+      .then(data => setItems(data))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, [market]);
+
+  function diffPct(item) {
+    if (item.today_price == null || !item.recent_average) return null;
+    return Math.round((item.today_price - item.recent_average) / item.recent_average * 100);
+  }
+
+  const processedItems = (() => {
+    let list = filterStatus ? items.filter(i => i.status === filterStatus) : items;
+    list = list.filter(i => i.today_price == null || (i.today_price >= priceRange[0] && i.today_price <= priceRange[1]));
+    if (query.trim()) list = list.filter(i => i.product_name.includes(query.trim()));
+    if (sortBy === 'diff_desc') {
+      list = [...list].sort((a, b) => (diffPct(b) ?? -999) - (diffPct(a) ?? -999));
+    } else if (sortBy === 'diff_asc') {
+      list = [...list].sort((a, b) => (diffPct(a) ?? 999) - (diffPct(b) ?? 999));
+    } else {
+      list = [...list].sort((a, b) => (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9));
+    }
+    return list;
+  })();
+
+  const isFiltering = query.trim() !== '';
+  const visibleItems = isFiltering || showAll || filterStatus
+    ? processedItems
+    : processedItems.slice(0, FEATURED_COUNT);
+
+  function handleItemClick(name) {
+    navigate(`/product/${encodeURIComponent(name)}?${searchParams.toString()}`);
+  }
+
   return (
     <div className="yz-page yz-price-page" style={{ padding: '28px 40px 56px' }}>
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-        <PriceListPanel />
+        <SolarTermStrip />
+
+        {/* 全台市場總覽（置頂灰底區塊） */}
+        <div style={{ background: 'var(--yz-gl)', borderTop: '1px solid var(--yz-bdr)', borderBottom: '1px solid var(--yz-bdr)', margin: '0 -40px 24px', padding: '20px 40px' }}>
+          <MarketIntelPanel />
+        </div>
+
+        {/* 市場選擇器 */}
+        <MarketSelector markets={markets} market={market} onChange={m => updateParam('market', m)} />
+
+        {/* 篩選 + 搜尋 控制列 */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+          <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', gap: 6 }}>
+            <input
+              className="yz-input"
+              placeholder="搜尋品項..."
+              value={query}
+              onChange={e => { setQuery(e.target.value); setShowAll(false); }}
+              style={{ width: 160 }}
+            />
+          </form>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[['', '全部'], ['便宜', '↓ 便宜'], ['正常', '→ 正常'], ['偏貴', '↑ 偏貴']].map(([val, label]) => (
+              <button key={val} onClick={() => { updateParam('filter', val); setShowAll(false); }}
+                style={{
+                  padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid',
+                  background: filterStatus === val ? 'var(--yz-g)' : '#F7F4EF',
+                  color: filterStatus === val ? '#fff' : 'var(--yz-mut)',
+                  borderColor: filterStatus === val ? 'var(--yz-g)' : 'var(--yz-bdr)',
+                }}
+              >{label}</button>
+            ))}
+          </div>
+          <select value={sortBy} onChange={e => updateParam('sort', e.target.value === 'default' ? '' : e.target.value)}
+            style={{ padding: '5px 8px', borderRadius: 6, fontSize: 11, border: '1px solid var(--yz-bdr)', color: 'var(--yz-mut)', background: '#F7F4EF', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <option value="default">排序：預設</option>
+            <option value="diff_desc">漲幅最高優先</option>
+            <option value="diff_asc">跌幅最大優先</option>
+          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--yz-mut)' }}>
+            <span>價格</span>
+            <input type="range" min={0} max={500} step={5} value={priceRange[0]}
+              onChange={e => setPriceRange([Math.min(Number(e.target.value), priceRange[1] - 5), priceRange[1]])}
+              style={{ width: 80, accentColor: 'var(--yz-g)' }} />
+            <span>{priceRange[0]}–{priceRange[1]}</span>
+            <input type="range" min={0} max={500} step={5} value={priceRange[1]}
+              onChange={e => setPriceRange([priceRange[0], Math.max(Number(e.target.value), priceRange[0] + 5)])}
+              style={{ width: 80, accentColor: 'var(--yz-g)' }} />
+            <span>元</span>
+          </div>
+        </div>
+
+        {/* 品項計數標題 */}
+        {!isFiltering && !filterStatus && (
+          <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: 6 }}>
+            {showAll ? `全部品項（${items.length}）` : '精選品項'}
+          </p>
+        )}
+        {filterStatus && !loading && (
+          <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: 6 }}>
+            {filterStatus}（{processedItems.length} 項）
+          </p>
+        )}
+
+        {/* 品項列表 */}
+        <div style={{ border: '1px solid var(--yz-bdr)', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+          {loading && <p style={{ padding: 14, fontSize: 12, color: 'var(--yz-dim)' }}>載入中...</p>}
+          {!loading && items.length === 0 && (
+            <p style={{ padding: 14, fontSize: 12, color: 'var(--yz-dim)' }}>查無品項，請確認後端已啟動或換個關鍵字</p>
+          )}
+          {!loading && visibleItems.length > 0 && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr',
+              padding: '8px 16px',
+              borderBottom: '2px solid var(--yz-bdr)',
+              background: 'var(--yz-gl)',
+            }}>
+              {['品項名稱', '今日均價', '上價', '下價', '交易量', '7 日漲跌'].map(h => (
+                <span key={h} style={{ fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.06em', textTransform: 'uppercase' }}>{h}</span>
+              ))}
+            </div>
+          )}
+          {visibleItems.map((item, idx) => {
+            const { arrow, color } = STATUS_ARROW[item.status] || STATUS_ARROW['資料不足'];
+            const d = diffPct(item);
+            const dc = d == null ? 'var(--yz-dim)' : d > 0 ? '#DC2626' : d < 0 ? '#16A34A' : '#9CA3AF';
+            const dArrow = d == null ? '' : d > 0 ? '↑' : d < 0 ? '↓' : '→';
+            return (
+              <div
+                key={item.product_name}
+                onClick={() => handleItemClick(item.product_name)}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr',
+                  padding: '11px 16px', cursor: 'pointer', alignItems: 'center',
+                  borderBottom: idx < visibleItems.length - 1 ? '1px solid #F0ECE5' : 'none',
+                  transition: 'background .12s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--yz-gl)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <div>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--yz-txt)' }}>{item.product_name}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color, marginLeft: 6 }}>{arrow} {item.status}</span>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--yz-dim)' }}>
+                  {item.today_price != null ? `${item.today_price} 元` : '—'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--yz-mut)' }}>
+                  {item.upper_price != null ? `${item.upper_price} 元` : '—'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--yz-mut)' }}>
+                  {item.lower_price != null ? `${item.lower_price} 元` : '—'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--yz-mut)' }}>
+                  {item.volume != null ? `${item.volume.toLocaleString()} kg` : '—'}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: dc }}>
+                  {d != null ? `${dArrow} ${d > 0 ? '+' : ''}${d}%` : '—'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 顯示更多 */}
+        {!isFiltering && !loading && items.length > FEATURED_COUNT && (
+          <button
+            onClick={() => setShowAll(v => !v)}
+            style={{ marginTop: 8, width: '100%', padding: '10px 14px', background: 'none', border: '1px solid var(--yz-bdr)', borderRadius: 8, color: 'var(--yz-g)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+          >
+            {showAll ? '▴ 收合' : `顯示全部 ${items.length} 項 ▾`}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -291,4 +291,9 @@ def get_latest_trans_date() -> tuple[str | None, str]:
             return date_str, "本機 CSV"
     except Exception:
         pass
+
+
+def get_db_engine():
+    """回傳共用 SQLAlchemy engine，供其他模組直接執行 SQL。"""
+    return _get_engine()
     return None, "本機 CSV"
