@@ -28,24 +28,9 @@ const DIRECTION_META = {
 // MA 線設定
 const MA_CONFIG = {
   ma7:  { label: 'MA7',  color: '#F59E0B', dash: [4, 3] },
-  ma30: { label: 'MA30', color: '#3B82F6', dash: [4, 3] },
-  ma90: { label: 'MA90', color: '#A855F7', dash: [6, 3] },
+  ma14: { label: 'MA14', color: '#3B82F6', dash: [4, 3] },
+  ma30: { label: 'MA30', color: '#A855F7', dash: [6, 3] },
 };
-
-// ── 工具函式 ──────────────────────────────────────────────────────────────────
-
-function calcMA(prices, n) {
-  return prices.map((_, i) =>
-    i < n - 1 ? null : prices.slice(i - n + 1, i + 1).reduce((s, v) => s + v, 0) / n
-  );
-}
-
-function calcStd(prices) {
-  if (prices.length < 2) return 0;
-  const mean = prices.reduce((s, v) => s + v, 0) / prices.length;
-  const variance = prices.reduce((s, v) => s + (v - mean) ** 2, 0) / (prices.length - 1);
-  return Math.sqrt(variance);
-}
 
 // ── Sparkline（sidebar 用 SVG 迷你折線）────────────────────────────────────
 
@@ -68,75 +53,96 @@ function Sparkline({ data, color = '#1D9E75', width = 48, height = 20 }) {
   );
 }
 
-// ── Bollinger Band 視覺化 ────────────────────────────────────────────────────
+// ── 行情位置儀表盤 ────────────────────────────────────────────────────────────
 
-function BollingerGauge({ bollinger, todayPrice }) {
-  if (!bollinger || todayPrice == null) return null;
+function getZScoreLabel(z) {
+  if (z == null)  return { label: '資料不足',               color: '#9CA3AF' };
+  if (z < -1.5)   return { label: '比過去 9 成交易日都便宜', color: '#16A34A' };
+  if (z < -1.0)   return { label: '比過去 7 成交易日便宜',   color: '#16A34A' };
+  if (z < 0)      return { label: '略低於近期均價',           color: '#6B7280' };
+  if (z < 1.0)    return { label: '接近近期均價',             color: '#6B7280' };
+  if (z < 1.5)    return { label: '略高於近期均價',           color: '#D97706' };
+  return           { label: '比過去 7 成交易日都貴',           color: '#DC2626' };
+}
 
-  const { upper, lower, mean } = bollinger;
-  const range = upper - lower;
+function PriceInsightCard({ detail, todayPrice }) {
+  const zScore     = detail?.z_score       ?? null;
+  const priceVsMa7 = detail?.price_vs_ma_7 ?? null;
+  const ma7        = detail?.price_ma_7    ?? null;
+  const ma14       = detail?.price_ma_14   ?? null;
+  const ma30       = detail?.price_ma_30   ?? null;
 
-  const W = 520, H = 90;
-  const BAND_Y = 25, BAND_H = 40;
+  if (zScore == null && ma7 == null) return null;
 
-  const rawPos = range > 0 ? (todayPrice - lower) / range : 0.5;
-  const clampedX = Math.min(Math.max(rawPos, -0.08), 1.08) * W;
-  const dotY = BAND_Y + BAND_H / 2;
-
-  const pct = range > 0 ? Math.round(rawPos * 100) : 50;
-  let posLabel, posColor;
-  if (rawPos < 0) {
-    posLabel = '正常區間下方（偏低）'; posColor = '#16A34A';
-  } else if (rawPos > 1) {
-    posLabel = '正常區間上方（偏高）'; posColor = '#DC2626';
-  } else if (pct < 20) {
-    posLabel = `區間下緣（${pct}%）`; posColor = '#16A34A';
-  } else if (pct > 80) {
-    posLabel = `區間上緣（${pct}%）`; posColor = '#DC2626';
-  } else {
-    posLabel = `區間中段（${pct}%）`; posColor = '#6B7280';
-  }
+  const dotPct = zScore != null
+    ? Math.min(Math.max(((zScore + 3) / 6) * 100, 2), 98)
+    : 50;
+  const { label, color } = getZScoreLabel(zScore);
+  const vsMa7Pct = priceVsMa7 != null
+    ? `${priceVsMa7 >= 0 ? '+' : ''}${(priceVsMa7 * 100).toFixed(1)}%`
+    : null;
 
   return (
-    <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--yz-bdr)' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }}
-        role="img" aria-label={`布林帶圖：今日價格 ${todayPrice} 元，${posLabel}`}>
-        <rect x="0" y={BAND_Y} width={W} height={BAND_H} fill="rgba(22,163,74,0.09)" rx="4" />
-        <line x1="0" y1={BAND_Y} x2={W} y2={BAND_Y} stroke="#16A34A" strokeWidth="1.2" strokeDasharray="5,3" />
-        <line x1="0" y1={BAND_Y + BAND_H} x2={W} y2={BAND_Y + BAND_H} stroke="#16A34A" strokeWidth="1.2" strokeDasharray="5,3" />
-        <line x1="0" y1={BAND_Y + BAND_H / 2} x2={W} y2={BAND_Y + BAND_H / 2} stroke="#3B82F6" strokeWidth="1" strokeDasharray="4,3" opacity="0.7" />
-        <text x="4" y={BAND_Y - 5} fontSize="10" fill="#16A34A" fontWeight="600">上界 {upper.toFixed(1)}</text>
-        <text x="4" y={BAND_Y + BAND_H / 2 - 4} fontSize="9" fill="#3B82F6" opacity="0.8">MA30 {mean.toFixed(1)}</text>
-        <text x="4" y={BAND_Y + BAND_H + 13} fontSize="10" fill="#16A34A" fontWeight="600">下界 {lower.toFixed(1)}</text>
-        <line x1={clampedX} y1={BAND_Y - 8} x2={clampedX} y2={BAND_Y + BAND_H + 8} stroke={posColor} strokeWidth="1.2" strokeDasharray="3,2" opacity="0.5" />
-        <circle cx={clampedX} cy={dotY} r="8" fill={posColor} opacity="0.12" />
-        <circle cx={clampedX} cy={dotY} r="5" fill={posColor} />
-        <circle cx={clampedX} cy={dotY} r="2.5" fill="white" />
-        <rect x={Math.min(clampedX - 26, W - 56)} y={BAND_Y + BAND_H + 14} width="56" height="16" rx="3" fill={posColor} opacity="0.12" />
-        <text x={Math.min(clampedX, W - 30)} y={BAND_Y + BAND_H + 26} fontSize="10" fill={posColor} fontWeight="700" textAnchor="middle">今日 {todayPrice} 元</text>
-      </svg>
-      <p style={{ fontSize: 11, color: 'var(--yz-mut)', marginTop: 6, lineHeight: 1.6 }}>
-        今日價格位於 30 日正常區間的<strong style={{ color: posColor }}> {posLabel}</strong>
+    <div className="yz-card" style={{ padding: '16px 20px', marginBottom: 16 }}>
+      <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>
+        行情位置
       </p>
-      <div style={{ display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
-        {[
-          { color: 'rgba(22,163,74,0.25)', border: '1px dashed #16A34A', label: '正常區間（MA30 ± 1σ）' },
-          { color: '#3B82F6', label: 'MA30', round: true },
-          { color: '#6B7280', label: '今日均價', round: true },
-        ].map(({ color, border, label, round }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--yz-mut)' }}>
-            <div style={{ width: 10, height: 10, background: color, border: border || 'none', borderRadius: round ? '50%' : 2, flexShrink: 0 }} />
-            {label}
-          </div>
-        ))}
+      {/* 色帶 */}
+      <div style={{ position: 'relative', marginBottom: 8 }}>
+        <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden' }}>
+          <div style={{ flex: 1, background: 'rgba(22,163,74,0.25)' }} />
+          <div style={{ flex: 1, background: 'rgba(22,163,74,0.15)' }} />
+          <div style={{ flex: 1, background: 'rgba(156,163,175,0.20)' }} />
+          <div style={{ flex: 1, background: 'rgba(217,119,6,0.20)' }} />
+          <div style={{ flex: 1, background: 'rgba(220,38,38,0.25)' }} />
+        </div>
+        <div style={{
+          position: 'absolute', top: -4, left: `${dotPct}%`,
+          transform: 'translateX(-50%)',
+          width: 20, height: 20, borderRadius: '30%',
+          background: color, border: '2px solid #fff',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+        }} />
       </div>
+      {/* 標籤 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--yz-mut)', marginBottom: 14 }}>
+        <span>偏低</span><span>正常</span><span>偏高</span>
+      </div>
+      {/* 說明文字方塊 */}
+      <div style={{
+        background: color === '#16A34A' ? 'rgba(22,163,74,0.08)' : color === '#DC2626' ? 'rgba(220,38,38,0.08)' : 'rgba(156,163,175,0.10)',
+        border: `1px solid ${color}33`,
+        borderRadius: 8, padding: '10px 14px', marginBottom: 14,
+      }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color, margin: '0 0 4px' }}>{label}</p>
+        {todayPrice != null && ma7 != null && (
+          <p style={{ fontSize: 12, color: 'var(--yz-mut)', margin: 0 }}>
+            今日 {todayPrice} 元
+            {vsMa7Pct && <span style={{ color, fontWeight: 600 }}> {vsMa7Pct}</span>}
+            {' '}vs MA7 均價 {ma7.toFixed(1)} 元
+          </p>
+        )}
+      </div>
+      {/* MA 三格 */}
+      {(ma7 != null || ma14 != null || ma30 != null) && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[['MA7', ma7], ['MA14', ma14], ['MA30', ma30]].map(([lbl, val]) => (
+            <div key={lbl} style={{ flex: 1, background: 'var(--yz-gl)', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+              <p style={{ fontSize: 10, color: 'var(--yz-mut)', margin: '0 0 4px' }}>{lbl}</p>
+              <p style={{ fontSize: val != null ? 15 : 10, fontWeight: 700, color: val != null ? 'var(--yz-txt)' : 'var(--yz-mut)', margin: 0 }}>
+                {val != null ? val.toFixed(1) : '資料不足'}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-// ── 行情解析卡 ────────────────────────────────────────────────────────────────
+// ── 行情解析文字卡 ────────────────────────────────────────────────────────────
 
-function PriceInsightCard({ detail, bollinger, todayPrice }) {
+function PriceReasonCard({ detail }) {
   const reason = detail?.price_detail?.reason;
   const advice = detail?.advice;
   const suggestion = detail?.price_detail?.suggestion;
@@ -157,7 +163,6 @@ function PriceInsightCard({ detail, bollinger, todayPrice }) {
           )}
         </div>
       </div>
-      <BollingerGauge bollinger={bollinger} todayPrice={todayPrice} />
     </div>
   );
 }
@@ -311,7 +316,7 @@ export default function ProductDetail() {
   // 批次載入 sidebar sparkline（每個品項打一次 history API，取近 7 筆）
   useEffect(() => {
     if (!sidebarItems.length) return;
-    const visibleItems = sidebarItems.slice(0, 40); // 只載入前 40 個避免 burst
+    const visibleItems = sidebarItems.slice(0, 40);
     visibleItems.forEach(item => {
       const mktParam = market ? `&market=${encodeURIComponent(market)}` : '';
       get(`/api/products/${encodeURIComponent(item.product_name)}/history?days=14${mktParam}`)
@@ -490,10 +495,10 @@ const crosshairPlugin = {
     ctx.setLineDash([4, 3]);
     ctx.stroke();
 
-    // 水平線（均價 dataset = index 2，跳過正常上界/下界）
+    // 水平線（找 label === '均價' 的 dataset）
     const idx = chart._activeDataIndex;
     if (idx != null) {
-      const priceDataset = chart.data.datasets[2]; // 均價
+      const priceDataset = chart.data.datasets.find(ds => ds.label === '均價');
       const priceVal = priceDataset?.data?.[idx];
       if (priceVal != null) {
         const yPos = y.getPixelForValue(priceVal);
@@ -557,24 +562,25 @@ const crosshairPlugin = {
 // ── 詳情內容 ──────────────────────────────────────────────────────────────────
 
 function DetailContent({ productName, market, detail }) {
-  const [period, setPeriod] = useState('90');
+  const [period, setPeriod] = useState('30');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [history, setHistory] = useState(null);
-  const [bollinger, setBollinger] = useState(null);
-  // MA toggle: { ma7, ma30, ma90 }
-  const [maVisible, setMaVisible] = useState({ ma7: true, ma30: true, ma90: true });
+  const [chartMode, setChartMode] = useState('line');
+  // MA toggle: { ma7, ma14, ma30 }
+  const [maVisible, setMaVisible] = useState({
+    upper: true, lower: true, avg: true,
+    ma7: true, ma14: true, ma30: true,
+    volume: true,
+  });
 
   const priceChartRef = useRef(null);
-  const volChartRef = useRef(null);
   const priceChartInst = useRef(null);
-  const volChartInst = useRef(null);
 
   // 載入走勢圖資料（固定拉 180 天，前端依 period 過濾）
   useEffect(() => {
     if (period === 'custom' && (!customFrom || !customTo)) return;
     setHistory(null);
-    setBollinger(null);
     const params = new URLSearchParams({ days: '180' });
     if (market) params.set('market', market);
     get(`/api/products/${encodeURIComponent(productName)}/history?${params.toString()}`)
@@ -586,125 +592,291 @@ function DetailContent({ productName, market, detail }) {
           h = h.slice(-Number(period));
         }
         setHistory(h);
-        if (h.length >= 30) {
-          const slice = h.slice(-30);
-          const mean = slice.reduce((s, r) => s + r.price, 0) / 30;
-          const variance = slice.reduce((s, r) => s + (r.price - mean) ** 2, 0) / 30;
-          const sigma = Math.sqrt(variance);
-          setBollinger({ upper: mean + sigma, lower: mean - sigma, mean });
-        }
       })
       .catch(() => setHistory([]));
   }, [productName, market, period, customFrom, customTo]); // eslint-disable-line
 
   // 建立 Chart.js 圖表
   useEffect(() => {
-    if (!history || !priceChartRef.current || !volChartRef.current) return;
+    if (!history || !priceChartRef.current) return;
     const sliced = history;
     if (sliced.length < 2) return;
 
-    const labels = sliced.map(r => r.date.slice(5));
-    const prices = sliced.map(r => r.price);
-    const volumes = sliced.map(r => r.volume ?? null);
-
-    const ma7  = calcMA(prices, 7);
-    const ma30 = calcMA(prices, 30);
-    const ma90 = calcMA(prices, 90);
-    const std  = calcStd(prices.slice(-30));
-    const upper = ma30.map(v => v != null ? parseFloat((v + std).toFixed(1)) : null);
-    const lower = ma30.map(v => v != null ? parseFloat((v - std).toFixed(1)) : null);
+    const labels     = sliced.map(r => r.date.slice(5));
+    const prices     = sliced.map(r => r.price);
+    const volumes    = sliced.map(r => r.volume ?? null);
+    const upperPrices = sliced.map(r => r.upper_price ?? null);
+    const lowerPrices = sliced.map(r => r.lower_price ?? null);
+    const ma7Data    = sliced.map(r => r.price_ma_7  ?? null);
+    const ma14Data   = sliced.map(r => r.price_ma_14 ?? null);
+    const ma30Data   = sliced.map(r => r.price_ma_30 ?? null);
 
     if (priceChartInst.current) { priceChartInst.current.destroy(); priceChartInst.current = null; }
-    if (volChartInst.current) { volChartInst.current.destroy(); volChartInst.current = null; }
 
-    priceChartInst.current = new Chart(priceChartRef.current, {
-      type: 'line',
-      plugins: [crosshairPlugin],
-      data: {
-        labels,
-        datasets: [
-          // index 0: 正常上界（fill 到 index 1）
-          { label: '正常上界', data: upper, fill: '+1', backgroundColor: 'rgba(22,163,74,0.08)', borderColor: 'transparent', pointRadius: 0, tension: 0.3 },
-          // index 1: 正常下界
-          { label: '正常下界', data: lower, fill: false, borderColor: 'transparent', pointRadius: 0, tension: 0.3 },
-          // index 2: 均價（crosshair plugin 讀這個）
-          { label: '均價', data: prices, borderColor: '#1D9E75', borderWidth: 2.2, pointRadius: 0, pointHoverRadius: 4, tension: 0.2, fill: false },
-          // index 3: MA7
-          { label: 'MA7',  data: ma7,  borderColor: MA_CONFIG.ma7.color,  borderWidth: 1.5, borderDash: MA_CONFIG.ma7.dash,  pointRadius: 0, tension: 0.2, fill: false, hidden: !maVisible.ma7 },
-          // index 4: MA30
-          { label: 'MA30', data: ma30, borderColor: MA_CONFIG.ma30.color, borderWidth: 1.5, borderDash: MA_CONFIG.ma30.dash, pointRadius: 0, tension: 0.2, fill: false, hidden: !maVisible.ma30 },
-          // index 5: MA90
-          { label: 'MA90', data: ma90, borderColor: MA_CONFIG.ma90.color, borderWidth: 1.5, borderDash: MA_CONFIG.ma90.dash, pointRadius: 0, tension: 0.2, fill: false, hidden: !maVisible.ma90 },
-        ],
+    const hasVolume = volumes.some(v => v != null);
+    const step = Math.max(1, Math.floor(labels.length / 8));
+    const xAxisTicksConfig = {
+      autoSkip: false,
+      maxRotation: 0,
+      font: { size: 12 },
+      callback: function(val, index) {
+        return index % step === 0 ? this.getLabelForValue(val) : '';
       },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: {
-            display: true,
-            labels: {
-              filter: item => !['正常上界', '正常下界'].includes(item.text),
-              font: { size: 11 }, boxWidth: 20,
-            },
-            onClick: (e, legendItem, legend) => {
-              const label = legendItem.text;
-              const key = label === 'MA7' ? 'ma7' : label === 'MA30' ? 'ma30' : label === 'MA90' ? 'ma90' : null;
-              if (key) setMaVisible(prev => ({ ...prev, [key]: !prev[key] }));
-              Chart.defaults.plugins.legend.onClick.call(legend.chart, e, legendItem, legend);
-            },
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                if (['正常上界', '正常下界'].includes(ctx.dataset.label)) return null;
-                return ctx.raw != null ? `${ctx.dataset.label}：${ctx.raw} 元/kg` : null;
-              },
-              filter: item => item.raw != null,
-            },
-          },
-        },
-        scales: {
-          // 價格圖隱藏 X 軸（由下方量圖的 X 軸代勞）
-          x: { display: false },
-          y: {
-            position: 'right',
-            grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { font: { size: 10 } },
-            title: { display: true, text: '元/kg', font: { size: 10 }, color: 'var(--yz-mut)', padding: { bottom: 0 } },
-          },
-        },
-      },
-    });
+    };
+    const xAxisGridConfig = { display: false };
 
-    if (volumes.some(v => v != null)) {
-      volChartInst.current = new Chart(volChartRef.current, {
-        type: 'bar',
+    if (chartMode === 'line') {
+      priceChartInst.current = new Chart(priceChartRef.current, {
+        type: 'line',
+        plugins: [crosshairPlugin],
         data: {
           labels,
-          datasets: [{ label: '成交量', data: volumes, backgroundColor: 'rgba(156,163,175,0.45)', borderColor: 'rgba(156,163,175,0.7)', borderWidth: 1, borderRadius: 1 }],
+          datasets: [
+            // index 0: 上價色帶（fill 到 index 1）
+            {
+              label: '上價',
+              data: upperPrices,
+              fill: '+1',
+              backgroundColor: 'rgba(29,158,117,0.10)',
+              borderColor: 'rgba(29,158,117,0.4)',
+              borderWidth: 1,
+              borderDash: [3, 3],
+              pointRadius: 0,
+              tension: 0.2,
+              yAxisID: 'y',
+              hidden: !maVisible.upper,
+            },
+            // index 1: 下價色帶下界
+            {
+              label: '下價',
+              data: lowerPrices,
+              fill: false,
+              borderColor: 'rgba(29,158,117,0.4)',
+              borderWidth: 1,
+              borderDash: [3, 3],
+              pointRadius: 0,
+              tension: 0.2,
+              yAxisID: 'y',
+              hidden: !maVisible.lower,
+            },
+            // index 2: 均價主線（crosshair plugin 讀這個）
+            {
+              label: '均價',
+              data: prices,
+              borderColor: '#1D9E75',
+              borderWidth: 2.2,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              tension: 0.2,
+              fill: false,
+              yAxisID: 'y',
+              hidden: !maVisible.avg,
+            },
+            // index 3: MA7
+            {
+              label: 'MA7', data: ma7Data,
+              borderColor: MA_CONFIG.ma7.color,
+              borderWidth: 1.5,
+              //borderDash: MA_CONFIG.ma7.dash, 
+              pointRadius: 0,
+              tension: 0.2, 
+              fill: false, 
+              yAxisID: 'y',
+              hidden: !maVisible.ma7,
+            },
+            // index 4: MA14
+            {
+              label: 'MA14', data: ma14Data,
+              borderColor: MA_CONFIG.ma14.color, 
+              borderWidth: 1.5,
+              //borderDash: MA_CONFIG.ma14.dash, 
+              pointRadius: 0,
+              tension: 0.2, fill: false, 
+              yAxisID: 'y',
+              hidden: !maVisible.ma14,
+            },
+            // index 5: MA30
+            {
+              label: 'MA30', data: ma30Data,
+              borderColor: MA_CONFIG.ma30.color, 
+              borderWidth: 1.5,
+              //borderDash: MA_CONFIG.ma30.dash, 
+              pointRadius: 0,
+              tension: 0.2, fill: false, 
+              yAxisID: 'y',
+              hidden: !maVisible.ma30,
+            },
+            // index 6: 成交量 bar（左 Y 軸）
+            {
+              type: 'bar',
+              label: '成交量',
+              data: hasVolume ? volumes : [],
+              backgroundColor: 'rgba(156,163,175,0.35)',
+              borderColor: 'rgba(156,163,175,0.6)',
+              borderWidth: 1,
+              borderRadius: 1,
+              yAxisID: 'yVol',
+              hidden: !maVisible.volume || !hasVolume,
+              order: 10,
+            },
+          ],
         },
         options: {
           responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
-            tooltip: { callbacks: { label: ctx => ctx.raw != null ? `成交量：${Math.round(ctx.raw).toLocaleString()} kg` : null } },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  if (ctx.dataset.label === '成交量') {
+                    return ctx.raw != null ? `成交量：${Math.round(ctx.raw).toLocaleString()} kg` : null;
+                  }
+                  return ctx.raw != null ? `${ctx.dataset.label}：${ctx.raw} 元/kg` : null;
+                },
+                filter: item => item.raw != null,
+              },
+            },
           },
           scales: {
             x: {
-              ticks: {
-                maxTicksLimit: 8,
-                autoSkip: true,
-                font: { size: 10 },
-                maxRotation: 0,
-              },
+              display: true,
+              ticks: xAxisTicksConfig,
+              grid: xAxisGridConfig,
+            },
+            y: {
+              suggestedMin: 0,
+              position: 'right',
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { font: { size: 12 } },
+              title: { display: true, text: '成交價(元 / kg)', font: { size: 14 }, color: 'var(--yz-mut)', padding: { bottom: 0 } },
+            },
+            yVol: {
+              position: 'left',
+              display: hasVolume && maVisible.volume,
               grid: { display: false },
+              ticks: { font: { size: 12 }, maxTicksLimit: 3,
+                callback: v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v },
+              title: { display: true, text: '成交量(公斤)', font: { size: 14 }, color: 'var(--yz-mut)' },
+            },
+          },
+        },
+      });
+    } else {
+      // 技術圖模式（floating bar 三價棒）
+      priceChartInst.current = new Chart(priceChartRef.current, {
+        type: 'bar',
+        plugins: [crosshairPlugin],
+        data: {
+          labels,
+          datasets: [
+            // index 0: 三價棒主體
+            {
+              type: 'bar',
+              label: '成交區間',
+              data: sliced.map(r => [r.lower_price ?? r.price, r.upper_price ?? r.price]),
+              backgroundColor: 'rgba(29,158,117,0.18)',
+              borderColor: '#1D9E75',
+              borderWidth: 1,
+              borderRadius: 1,
+              borderSkipped: false,
+              yAxisID: 'y',
+              hidden: !maVisible.upper,
+            },
+            // index 1: 均價點（crosshair plugin 讀這個）
+            {
+              type: 'line',
+              label: '均價',
+              data: prices,
+              borderColor: '#1D9E75',
+              borderWidth: 0,
+              pointRadius: 3,
+              pointBackgroundColor: '#1D9E75',
+              pointHoverRadius: 5,
+              fill: false,
+              tension: 0,
+              yAxisID: 'y',
+              hidden: !maVisible.avg,
+            },
+            // index 2: MA7
+            {
+              type: 'line', label: 'MA7', data: ma7Data,
+              borderColor: MA_CONFIG.ma7.color, borderWidth: 1.5,
+              pointRadius: 0, tension: 0.2, fill: false,
+              borderDash: MA_CONFIG.ma7.dash, yAxisID: 'y',
+              hidden: !maVisible.ma7,
+            },
+            // index 3: MA14
+            {
+              type: 'line', label: 'MA14', data: ma14Data,
+              borderColor: MA_CONFIG.ma14.color, borderWidth: 1.5,
+              pointRadius: 0, tension: 0.2, fill: false,
+              borderDash: MA_CONFIG.ma14.dash, yAxisID: 'y',
+              hidden: !maVisible.ma14,
+            },
+            // index 4: MA30
+            {
+              type: 'line', label: 'MA30', data: ma30Data,
+              borderColor: MA_CONFIG.ma30.color, borderWidth: 1.5,
+              pointRadius: 0, tension: 0.2, fill: false,
+              borderDash: MA_CONFIG.ma30.dash, yAxisID: 'y',
+              hidden: !maVisible.ma30,
+            },
+            // index 5: 成交量 bar（左 Y 軸）
+            {
+              type: 'bar',
+              label: '成交量',
+              data: hasVolume ? volumes : [],
+              backgroundColor: 'rgba(156,163,175,0.35)',
+              borderColor: 'rgba(156,163,175,0.6)',
+              borderWidth: 1,
+              borderRadius: 1,
+              yAxisID: 'yVol',
+              hidden: !maVisible.volume || !hasVolume,
+              order: 10,
+            },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  if (ctx.dataset.label === '成交量') {
+                    return ctx.raw != null ? `成交量：${Math.round(ctx.raw).toLocaleString()} kg` : null;
+                  }
+                  if (ctx.dataset.label === '成交區間') {
+                    const [lo, hi] = Array.isArray(ctx.raw) ? ctx.raw : [null, null];
+                    return lo != null ? `上價：${hi} 元/kg  下價：${lo} 元/kg` : null;
+                  }
+                  return ctx.raw != null ? `${ctx.dataset.label}：${ctx.raw} 元/kg` : null;
+                },
+                filter: item => item.raw != null,
+              },
+            },
+          },
+          scales: {
+            x: {
+              display: true,
+              ticks: xAxisTicksConfig,
+              grid: xAxisGridConfig,
             },
             y: {
               position: 'right',
-              ticks: { font: { size: 9 }, maxTicksLimit: 3 },
-              grid: { color: 'rgba(0,0,0,0.04)' },
-              title: { display: true, text: 'kg', font: { size: 10 }, color: 'var(--yz-mut)' },
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { font: { size: 10 } },
+              title: { display: true, text: '元/kg', font: { size: 10 }, color: 'var(--yz-mut)', padding: { bottom: 0 } },
+            },
+            yVol: {
+              position: 'left',
+              display: hasVolume && maVisible.volume,
+              grid: { display: false },
+              ticks: { font: { size: 9 }, maxTicksLimit: 3,
+                callback: v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v },
+              title: { display: false },
             },
           },
         },
@@ -713,16 +885,14 @@ function DetailContent({ productName, market, detail }) {
 
     return () => {
       if (priceChartInst.current) { priceChartInst.current.destroy(); priceChartInst.current = null; }
-      if (volChartInst.current) { volChartInst.current.destroy(); volChartInst.current = null; }
     };
-  }, [history]); // eslint-disable-line
+  }, [history, chartMode]); // eslint-disable-line
 
-  // MA 指標卡數值
-  const allPrices = (history || []).map(r => r.price);
-  const lastNonNull = arr => [...arr].reverse().find(v => v != null) ?? null;
-  const ma7Val  = allPrices.length >= 7  ? lastNonNull(calcMA(allPrices, 7))  : null;
-  const ma30Val = allPrices.length >= 30 ? lastNonNull(calcMA(allPrices, 30)) : null;
-  const ma90Val = allPrices.length >= 90 ? lastNonNull(calcMA(allPrices, 90)) : null;
+  // MA 指標卡數值（從 history 最後一筆取後端預計算值）
+  const lastRecord = history && history.length > 0 ? history[history.length - 1] : null;
+  const ma7Val  = lastRecord?.price_ma_7  ?? null;
+  const ma14Val = lastRecord?.price_ma_14 ?? null;
+  const ma30Val = lastRecord?.price_ma_30 ?? null;
 
   // 昨日價格（history 倒數第二筆）
   const yesterdayPrice = history && history.length >= 2 ? history[history.length - 2]?.price ?? null : null;
@@ -736,7 +906,6 @@ function DetailContent({ productName, market, detail }) {
   const pricePct  = priceDiff != null && yesterdayPrice > 0 ? parseFloat(((priceDiff / yesterdayPrice) * 100).toFixed(2)) : null;
   const diffColor = priceDiff == null ? 'var(--yz-dim)' : priceDiff > 0 ? '#DC2626' : priceDiff < 0 ? '#16A34A' : '#9CA3AF';
   const diffArrow = priceDiff == null ? '' : priceDiff > 0 ? '▲' : priceDiff < 0 ? '▼' : '—';
-  // 今日均價染色（對比昨日）
   const todayPriceColor = priceDiff == null ? 'var(--yz-txt)' : priceDiff > 0 ? '#DC2626' : priceDiff < 0 ? '#16A34A' : 'var(--yz-txt)';
 
   const hasVolumeData = (history || []).some(r => r.volume != null);
@@ -773,7 +942,7 @@ function DetailContent({ productName, market, detail }) {
 
       {/* 1b. 日期切換器 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-        {[['7', '7 天'], ['30', '30 天'], ['90', '90 天']].map(([val, label]) => (
+        {[['7', '7 天'], ['14', '14 天'], ['30', '30 天']].map(([val, label]) => (
           <button key={val} onClick={() => setPeriod(val)} style={{
             padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
             cursor: 'pointer', border: '1.5px solid',
@@ -807,7 +976,7 @@ function DetailContent({ productName, market, detail }) {
         )}
       </div>
 
-      {/* 2. 四格 metric 卡（今日均價改含漲跌資訊列）*/}
+      {/* 2. 四格 metric 卡 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 22 }}>
         {/* 今日均價卡 */}
         <div className="yz-card" style={{ padding: '16px 18px' }}>
@@ -834,49 +1003,109 @@ function DetailContent({ productName, market, detail }) {
             ))}
           </div>
         </div>
-        <MetricMACard label="7 日均線" value={ma7Val} days={7} />
+        <MetricMACard label="7 日均線"  value={ma7Val}  days={7} />
+        <MetricMACard label="14 日均線" value={ma14Val} days={14} />
         <MetricMACard label="30 日均線" value={ma30Val} days={30} />
-        <MetricMACard label="90 日均線" value={ma90Val} days={90} />
       </div>
 
       {/* 3. 走勢圖卡 */}
-      <div className="yz-card" style={{ padding: '18px 22px', marginBottom: 12 }}>
+      <div className="yz-card" style={{ padding: '22px 22px', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <h4 style={{ fontSize: 14, fontWeight: 700 }}>{productName} · 走勢圖</h4>
-          <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>
-            {period === 'custom' && customFrom && customTo ? `${customFrom} ~ ${customTo}` : `近 ${period} 交易日`}
-          </span>
+          <h4 style={{ fontSize: 18, fontWeight: 700 }}>
+            {productName} · {chartMode === 'line' ? '折線圖' : '技術圖'}
+          </h4>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 11, color: 'var(--yz-mut)', marginRight: 8 }}>
+              {period === 'custom' && customFrom && customTo ? `${customFrom} ~ ${customTo}` : `近 ${period} 交易日`}
+            </span>
+            {/* 折線圖 / 技術圖 切換 */}
+            {['line', 'bar'].map(mode => (
+              <button key={mode} onClick={() => setChartMode(mode)} style={{
+                padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', border: '1.5px solid',
+                background: chartMode === mode ? 'var(--yz-g)' : 'transparent',
+                color: chartMode === mode ? '#fff' : 'var(--yz-mut)',
+                borderColor: chartMode === mode ? 'var(--yz-g)' : 'var(--yz-bdr)',
+              }}>{mode === 'line' ? '折線圖' : '技術圖'}</button>
+            ))}
+          </div>
         </div>
 
-        {/* MA toggle 按鈕 */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-          {Object.entries(MA_CONFIG).map(([key, cfg]) => (
-            <button
-              key={key}
-              onClick={() => {
-                setMaVisible(prev => ({ ...prev, [key]: !prev[key] }));
-                if (priceChartInst.current) {
-                  const dsIdx = key === 'ma7' ? 3 : key === 'ma30' ? 4 : 5;
-                  const meta = priceChartInst.current.getDatasetMeta(dsIdx);
-                  meta.hidden = maVisible[key];
-                  priceChartInst.current.update();
+        {/* 圖層 toggle — 分三組 */}
+        {(() => {
+          function toggleLayer(key, label) {
+            const newVal = !maVisible[key];
+            setMaVisible(prev => ({ ...prev, [key]: newVal }));
+            if (priceChartInst.current) {
+              const chart = priceChartInst.current;
+              const dsIdx = chart.data.datasets.findIndex(ds => ds.label === label);
+              if (dsIdx !== -1) {
+                chart.getDatasetMeta(dsIdx).hidden = !newVal;
+                if (key === 'upper') {
+                  const loIdx = chart.data.datasets.findIndex(ds => ds.label === '下價');
+                  if (loIdx !== -1) chart.getDatasetMeta(loIdx).hidden = !newVal;
                 }
-              }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                cursor: 'pointer', border: '1.5px solid',
-                background: maVisible[key] ? `${cfg.color}18` : 'transparent',
-                color: maVisible[key] ? cfg.color : 'var(--yz-mut)',
-                borderColor: maVisible[key] ? cfg.color : 'var(--yz-bdr)',
-                transition: 'all .15s',
-              }}
-            >
-              <span style={{ display: 'inline-block', width: 14, height: 2, background: maVisible[key] ? cfg.color : 'var(--yz-bdr)', borderRadius: 1 }} />
-              {cfg.label}
-            </button>
-          ))}
-        </div>
+                if (key === 'volume' && chart.options.scales.yVol) {
+                  chart.options.scales.yVol.display = newVal && hasVolume;
+                }
+                chart.update();
+              }
+            }
+          }
+
+          const btnStyle = (active, color) => ({
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+            cursor: 'pointer', border: '1.5px solid',
+            background: active ? `${color}18` : 'transparent',
+            color: active ? color : 'var(--yz-mut)',
+            borderColor: active ? color : 'var(--yz-bdr)',
+            transition: 'all .15s',
+          });
+
+          const lineIcon = (active, color) => (
+            <span style={{ display: 'inline-block', width: 14, height: 2,
+              background: active ? color : 'var(--yz-bdr)', borderRadius: 1 }} />
+          );
+
+          const sep = (
+            <span style={{ width: 1, height: 16, background: 'var(--yz-bdr)',
+              alignSelf: 'center', flexShrink: 0 }} />
+          );
+
+          return (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* 群組一：價格帶 */}
+              <button onClick={() => toggleLayer('upper', '上價')} style={btnStyle(maVisible.upper, '#1D9E75')}>
+                {lineIcon(maVisible.upper, '#1D9E75')} 上/下價
+              </button>
+              <button onClick={() => toggleLayer('avg', '均價')} style={btnStyle(maVisible.avg, '#1D9E75')}>
+                {lineIcon(maVisible.avg, '#1D9E75')} 均價
+              </button>
+
+              {sep}
+
+              {/* 群組二：MA 線 */}
+              {Object.entries(MA_CONFIG).map(([key, cfg]) => (
+                <button key={key} onClick={() => toggleLayer(key, cfg.label)} style={btnStyle(maVisible[key], cfg.color)}>
+                  {lineIcon(maVisible[key], cfg.color)} {cfg.label}
+                </button>
+              ))}
+
+              {sep}
+
+              {/* 群組三：成交量 */}
+              {hasVolumeData && (
+                <button onClick={() => toggleLayer('volume', '成交量')} style={btnStyle(maVisible.volume, '#9CA3AF')}>
+                  <span style={{ display: 'inline-block', width: 10, height: 10,
+                    background: maVisible.volume ? 'rgba(156,163,175,0.6)' : 'var(--yz-bdr)',
+                    borderRadius: 2, flexShrink: 0 }} />
+                  成交量
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {history === null && (
           <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--yz-dim)', fontSize: 12 }}>載入中…</div>
@@ -891,21 +1120,12 @@ function DetailContent({ productName, market, detail }) {
         )}
       </div>
 
-      {/* 4. 成交量卡（獨立卡片） */}
-      {hasVolumeData && history !== null && history.length >= 2 && (
-        <div className="yz-card" style={{ padding: '14px 22px', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--yz-dim)' }}>成交量</span>
-            <span style={{ fontSize: 10, color: 'var(--yz-mut)' }}>單位：kg</span>
-          </div>
-          <div style={{ height: 90 }}>
-            <canvas ref={volChartRef} />
-          </div>
-        </div>
-      )}
 
-      {/* 5. 行情解析卡 */}
-      <PriceInsightCard detail={detail} bollinger={bollinger} todayPrice={todayPrice} />
+      {/* 5. 行情位置儀表盤 */}
+      <PriceInsightCard detail={detail} todayPrice={todayPrice} />
+
+      {/* 5b. 行情解析文字 */}
+      <PriceReasonCard detail={detail} />
 
       {/* 6. AI 方向預測卡 */}
       <DirectionCard productName={productName} market={market} />

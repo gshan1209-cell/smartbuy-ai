@@ -13,7 +13,8 @@
       "name": "backend",
       "runtimeExecutable": "C:\\ProgramData\\anaconda3\\python.exe",
       "runtimeArgs": ["-m", "uvicorn", "backend.main:app", "--reload", "--port", "8000"],
-      "port": 8000
+      "port": 8000,
+      "autoPort": false
     }
   ]
 }

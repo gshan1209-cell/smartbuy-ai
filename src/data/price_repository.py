@@ -296,4 +296,37 @@ def get_latest_trans_date() -> tuple[str | None, str]:
 def get_db_engine():
     """回傳共用 SQLAlchemy engine，供其他模組直接執行 SQL。"""
     return _get_engine()
-    return None, "本機 CSV"
+
+
+def get_latest_crop_features(crop_name: str, market_name: str = "") -> dict | None:
+    """
+    從 agri_price_features_daily 取指定品項最新一筆特徵。
+    回傳 dict 含：price_vs_ma_7, price_std_7, price_ma_7, price_ma_14, price_ma_30
+    若查無資料回傳 None。
+    """
+    engine = get_db_engine()
+    if engine is None:
+        return None
+    try:
+        with engine.connect() as conn:
+            sql = text("""
+                SELECT price_vs_ma_7, price_std_7, price_ma_7, price_ma_14, price_ma_30
+                FROM public.agri_price_features_daily
+                WHERE crop_name = :crop_name
+                  AND is_feature_complete = TRUE
+                  AND (:market_name = '' OR market_name = :market_name)
+                ORDER BY trade_date DESC
+                LIMIT 1
+            """)
+            row = conn.execute(sql, {"crop_name": crop_name, "market_name": market_name}).fetchone()
+        if row is None:
+            return None
+        return {
+            "price_vs_ma_7": row.price_vs_ma_7,
+            "price_std_7":   row.price_std_7,
+            "price_ma_7":    row.price_ma_7,
+            "price_ma_14":   row.price_ma_14,
+            "price_ma_30":   row.price_ma_30,
+        }
+    except Exception:
+        return None

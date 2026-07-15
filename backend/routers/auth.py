@@ -1,247 +1,120 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
 
-from backend.db import get_session
-from backend.auth_utils import hash_password, verify_password, create_access_token
-from backend.deps import get_current_user
+from src.data.member_repository import (
+    register_member,
+    login_member,
+    update_member_profile,
+    get_member_by_id,
+)
+from src.data.auth_utils import create_access_token, decode_access_token
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/api/auth")
+
+_bearer_scheme = HTTPBearer(auto_error=False)
 
 
-class RegisterBody(BaseModel):
-    email: EmailStr
+def _get_current_member_id(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+) -> int:
+    """
+    FastAPI 依賴注入：從 Authorization: Bearer <token> 解出會員 ID。
+    Token 無效或未提供時回傳 401。
+    """
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="請先登入。")
+    payload = decode_access_token(credentials.credentials)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Token 無效或已過期，請重新登入。")
+    return payload["member_id"]
+
+
+class RegisterRequest(BaseModel):
+    """會員申請表單欄位（不含 plan）。"""
+    email: str
+    password: str
     name: str
+
+
+class LoginRequest(BaseModel):
+    """會員登入表單欄位。"""
+    email: str
     password: str
 
 
-class LoginBody(BaseModel):
-    email: EmailStr
-    password: str
+class UpdateProfileRequest(BaseModel):
+    """更新會員資料（name 選填）。"""
+    name: str | None = None
 
 
-class UpdateProfileBody(BaseModel):
-    name: str
-
-
-class UpdatePreferencesBody(BaseModel):
-    priceAlert: Optional[bool] = None
-    weatherAlert: Optional[bool] = None
-    mutualAidReply: Optional[bool] = None
-    fontSize: Optional[str] = None
-    layout: Optional[str] = None
-    theme: Optional[str] = None
-
-
-def _user_response(token: str, user_id: str, email: str, name: str, plan: str = "免費會員") -> dict:
-    return {
-        "token": token,
-        "user": {"id": user_id, "email": email, "name": name, "plan": plan},
-    }
-
-
-def _model_payload(model: BaseModel) -> dict:
-    if hasattr(model, "model_dump"):
-        return model.model_dump(exclude_unset=True)
-    return model.dict(exclude_unset=True)
-
-
-def _preferences_response(row) -> dict:
-    return {
-        "priceAlert": row.price_alert,
-        "weatherAlert": row.weather_alert,
-        "mutualAidReply": row.mutual_aid_reply,
-        "fontSize": row.font_size,
-        "layout": row.layout_mode,
-        "theme": row.theme,
-    }
-
-
-@router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(body: RegisterBody, db: Session = Depends(get_session)):
-    existing = db.execute(
-        text("SELECT id FROM members WHERE email = :email"),
-        {"email": body.email},
-    ).fetchone()
-    if existing:
-        raise HTTPException(status_code=409, detail="此 Email 已被註冊")
-
-    result = db.execute(
-        text(
-            "INSERT INTO members (email, name, password_hash) "
-            "VALUES (:email, :name, :pw) RETURNING id, plan"
-        ),
-        {"email": body.email, "name": body.name, "pw": hash_password(body.password)},
-    )
-    row = result.fetchone()
-
-    db.execute(
-        text("INSERT INTO user_preferences (member_id) VALUES (:mid)"),
-        {"mid": row.id},
-    )
-    db.commit()
-
-    token = create_access_token(str(row.id))
-    return _user_response(token, str(row.id), body.email, body.name, row.plan)
+@router.post("/register", status_code=201)
+def auth_register(payload: RegisterRequest):
+    """
+    會員申請（註冊）。
+    - 不需要傳入 plan；系統預設「免費會員」。
+    - 密碼由後端 bcrypt 雜湊後存入。
+    """
+    try:
+        result = register_member(
+            email=payload.email,
+            password=payload.password,
+            name=payload.name,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except RuntimeError as exc:
+        if "email_already_exists" in str(exc):
+            raise HTTPException(
+                status_code=400,
+                detail="此電子郵件已被使用，請直接登入或使用其他信箱。",
+            )
+        raise HTTPException(status_code=500, detail="資料庫錯誤，請稍後再試。")
+    return {"success": True, **result}
 
 
 @router.post("/login")
-def login(body: LoginBody, db: Session = Depends(get_session)):
-    row = db.execute(
-        text("SELECT id, name, plan, password_hash FROM members WHERE email = :email"),
-        {"email": body.email},
-    ).fetchone()
+def auth_login(payload: LoginRequest):
+    """
+    會員登入。
+    成功時回傳 JWT Token 與會員公開資訊（不含密碼雜湊）。
+    """
+    member = login_member(email=payload.email, password=payload.password)
+    if member is None:
+        raise HTTPException(status_code=401, detail="電子郵件或密碼錯誤，請重新輸入。")
+    token = create_access_token(member_id=member["id"], email=member["email"])
+    return {"success": True, "token": token, "member": member}
 
-    if row is None or not verify_password(body.password, row.password_hash):
-        raise HTTPException(status_code=401, detail="Email 或密碼錯誤")
 
-    token = create_access_token(str(row.id))
-    return _user_response(token, str(row.id), body.email, row.name, row.plan)
+@router.patch("/profile")
+def auth_update_profile(
+    payload: UpdateProfileRequest,
+    member_id: int = Depends(_get_current_member_id),
+):
+    """
+    更新目前登入會員的顯示名稱。
+    - 需在 Header 帶入 Authorization: Bearer <token>。
+    - email 與 plan 不可透過此端點修改。
+    """
+    try:
+        updated = update_member_profile(
+            member_id=member_id,
+            name=payload.name,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {"success": True, "member": updated}
 
 
 @router.get("/me")
-def me(current_user: dict = Depends(get_current_user)):
-    return current_user
-
-
-@router.put("/me")
-def update_me(
-    body: UpdateProfileBody,
-    current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_session),
-):
-    if not body.name.strip():
-        raise HTTPException(status_code=422, detail="名稱不能為空")
-
-    db.execute(
-        text("UPDATE members SET name = :name WHERE id = :id"),
-        {"name": body.name.strip(), "id": current_user["id"]},
-    )
-    db.commit()
-    return {**current_user, "name": body.name.strip()}
-
-
-@router.get("/preferences")
-def get_preferences(
-    current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_session),
-):
-    row = db.execute(
-        text(
-            """
-            SELECT
-                price_alert,
-                weather_alert,
-                mutual_aid_reply,
-                font_size,
-                layout_mode,
-                theme
-            FROM user_preferences
-            WHERE member_id = :id
-            LIMIT 1
-            """
-        ),
-        {"id": current_user["id"]},
-    ).fetchone()
-
-    if row is None:
-        row = db.execute(
-            text(
-                """
-                INSERT INTO user_preferences (member_id)
-                VALUES (:id)
-                RETURNING
-                    price_alert,
-                    weather_alert,
-                    mutual_aid_reply,
-                    font_size,
-                    layout_mode,
-                    theme
-                """
-            ),
-            {"id": current_user["id"]},
-        ).fetchone()
-        db.commit()
-
-    return _preferences_response(row)
-
-
-@router.put("/preferences")
-def update_preferences(
-    body: UpdatePreferencesBody,
-    current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_session),
-):
-    payload = _model_payload(body)
-    if "fontSize" in payload and payload["fontSize"] not in {"sm", "md", "lg"}:
-        raise HTTPException(status_code=422, detail="fontSize must be one of: sm, md, lg")
-    if "layout" in payload and payload["layout"] not in {"simple", "detailed"}:
-        raise HTTPException(status_code=422, detail="layout must be one of: simple, detailed")
-    if "theme" in payload and payload["theme"] not in {"light", "dark"}:
-        raise HTTPException(status_code=422, detail="theme must be one of: light, dark")
-
-    db.execute(
-        text(
-            """
-            INSERT INTO user_preferences (member_id)
-            SELECT :id
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM user_preferences
-                WHERE member_id = :id
-            )
-            """
-        ),
-        {"id": current_user["id"]},
-    )
-
-    assignments = []
-    params = {"id": current_user["id"]}
-    field_map = {
-        "priceAlert": "price_alert",
-        "weatherAlert": "weather_alert",
-        "mutualAidReply": "mutual_aid_reply",
-        "fontSize": "font_size",
-        "layout": "layout_mode",
-        "theme": "theme",
-    }
-
-    for api_field, db_field in field_map.items():
-        if api_field in payload:
-            assignments.append(f"{db_field} = :{api_field}")
-            params[api_field] = payload[api_field]
-
-    if assignments:
-        db.execute(
-            text(
-                f"""
-                UPDATE user_preferences
-                SET {', '.join(assignments)}
-                WHERE member_id = :id
-                """
-            ),
-            params,
-        )
-
-    row = db.execute(
-        text(
-            """
-            SELECT
-                price_alert,
-                weather_alert,
-                mutual_aid_reply,
-                font_size,
-                layout_mode,
-                theme
-            FROM user_preferences
-            WHERE member_id = :id
-            LIMIT 1
-            """
-        ),
-        {"id": current_user["id"]},
-    ).fetchone()
-    db.commit()
-
-    return _preferences_response(row)
+def auth_me(member_id: int = Depends(_get_current_member_id)):
+    """
+    取得目前登入會員的公開資訊。
+    - 需在 Header 帶入 Authorization: Bearer <token>。
+    """
+    member = get_member_by_id(member_id)
+    if member is None:
+        raise HTTPException(status_code=404, detail="找不到會員資料。")
+    return member
