@@ -492,15 +492,42 @@ export default function PriceSearch() {
     let list = filterStatus ? items.filter(i => i.status === filterStatus) : items;
     list = list.filter(i => i.today_price == null || (i.today_price >= priceRange[0] && i.today_price <= priceRange[1]));
     if (query.trim()) list = list.filter(i => i.product_name.includes(query.trim()));
-    if (sortBy === 'diff_desc') {
+    const [col, dir] = sortBy.includes(':') ? sortBy.split(':') : [sortBy, 'desc'];
+    const asc = dir === 'asc';
+    if (col === 'price') {
+      list = [...list].sort((a, b) => asc ? (a.today_price ?? -1) - (b.today_price ?? -1) : (b.today_price ?? -1) - (a.today_price ?? -1));
+    } else if (col === 'upper') {
+      list = [...list].sort((a, b) => asc ? (a.upper_price ?? -1) - (b.upper_price ?? -1) : (b.upper_price ?? -1) - (a.upper_price ?? -1));
+    } else if (col === 'lower') {
+      list = [...list].sort((a, b) => asc ? (a.lower_price ?? -1) - (b.lower_price ?? -1) : (b.lower_price ?? -1) - (a.lower_price ?? -1));
+    } else if (col === 'volume') {
+      list = [...list].sort((a, b) => asc ? (a.volume ?? -1) - (b.volume ?? -1) : (b.volume ?? -1) - (a.volume ?? -1));
+    } else if (col === 'diff' || col === 'diff_desc') {
       list = [...list].sort((a, b) => (diffPct(b) ?? -999) - (diffPct(a) ?? -999));
-    } else if (sortBy === 'diff_asc') {
+    } else if (col === 'diff_asc') {
       list = [...list].sort((a, b) => (diffPct(a) ?? 999) - (diffPct(b) ?? 999));
+    } else if (col === 'diff7') {
+      list = [...list].sort((a, b) => asc ? (diffPct(a) ?? -999) - (diffPct(b) ?? -999) : (diffPct(b) ?? -999) - (diffPct(a) ?? -999));
     } else {
       list = [...list].sort((a, b) => (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9));
     }
     return list;
   })();
+
+  function handleColSort(colKey) {
+    const [curCol, curDir] = sortBy.includes(':') ? sortBy.split(':') : [sortBy, 'desc'];
+    if (curCol === colKey) {
+      updateParam('sort', `${colKey}:${curDir === 'desc' ? 'asc' : 'desc'}`);
+    } else {
+      updateParam('sort', `${colKey}:desc`);
+    }
+  }
+
+  function colSortIcon(colKey) {
+    const [curCol, curDir] = sortBy.includes(':') ? sortBy.split(':') : [sortBy, ''];
+    if (curCol !== colKey) return <span style={{ opacity: 0.25, fontSize: 9 }}>↕</span>;
+    return <span style={{ fontSize: 9, color: 'var(--yz-g)' }}>{curDir === 'asc' ? '↑' : '↓'}</span>;
+  }
 
   const isFiltering = query.trim() !== '';
   const visibleItems = isFiltering || showAll || filterStatus
@@ -547,12 +574,6 @@ export default function PriceSearch() {
               >{label}</button>
             ))}
           </div>
-          <select value={sortBy} onChange={e => updateParam('sort', e.target.value === 'default' ? '' : e.target.value)}
-            style={{ padding: '5px 8px', borderRadius: 6, fontSize: 11, border: '1px solid var(--yz-bdr)', color: 'var(--yz-mut)', background: '#F7F4EF', cursor: 'pointer', fontFamily: 'inherit' }}>
-            <option value="default">排序：預設</option>
-            <option value="diff_desc">漲幅最高優先</option>
-            <option value="diff_asc">跌幅最大優先</option>
-          </select>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--yz-mut)' }}>
             <span>價格</span>
             <input type="range" min={0} max={500} step={5} value={priceRange[0]}
@@ -592,8 +613,29 @@ export default function PriceSearch() {
               borderBottom: '2px solid var(--yz-bdr)',
               background: 'var(--yz-gl)',
             }}>
-              {['品項名稱', '今日均價', '上價', '下價', '交易量', '7 日漲跌', '市場'].map(h => (
-                <span key={h} style={{ fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.06em', textTransform: 'uppercase' }}>{h}</span>
+              {[
+                { label: '品項名稱', col: null },
+                { label: '今日均價', col: 'price' },
+                { label: '上價',     col: 'upper' },
+                { label: '下價',     col: 'lower' },
+                { label: '交易量',   col: 'volume' },
+                { label: '7 日漲跌', col: 'diff7' },
+                { label: '市場',     col: null },
+              ].map(({ label, col }) => (
+                <span
+                  key={label}
+                  onClick={col ? () => handleColSort(col) : undefined}
+                  style={{
+                    fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)',
+                    letterSpacing: '.06em', textTransform: 'uppercase',
+                    cursor: col ? 'pointer' : 'default',
+                    userSelect: 'none',
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                  }}
+                >
+                  {label}
+                  {col && colSortIcon(col)}
+                </span>
               ))}
             </div>
           )}
