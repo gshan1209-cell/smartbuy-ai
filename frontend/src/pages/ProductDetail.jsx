@@ -1015,18 +1015,20 @@ function DetailContent({ productName, market, detail }) {
             setMaVisible(prev => ({ ...prev, [key]: newVal }));
             if (priceChartInst.current) {
               const chart = priceChartInst.current;
-              const dsIdx = chart.data.datasets.findIndex(ds => ds.label === label);
-              if (dsIdx !== -1) {
-                chart.getDatasetMeta(dsIdx).hidden = !newVal;
-                if (key === 'upper') {
-                  const loIdx = chart.data.datasets.findIndex(ds => ds.label === '下價');
-                  if (loIdx !== -1) chart.getDatasetMeta(loIdx).hidden = !newVal;
-                }
-                if (key === 'volume' && chart.options.scales.yVol) {
-                  chart.options.scales.yVol.display = newVal && hasVolumeData;
-                }
-                chart.update();
+              if (key === 'upper') {
+                // 折線圖：上價 + 下價；技術圖：成交區間
+                ['上價', '下價', '成交區間'].forEach(lbl => {
+                  const idx = chart.data.datasets.findIndex(ds => ds.label === lbl);
+                  if (idx !== -1) chart.getDatasetMeta(idx).hidden = !newVal;
+                });
+              } else {
+                const dsIdx = chart.data.datasets.findIndex(ds => ds.label === label);
+                if (dsIdx !== -1) chart.getDatasetMeta(dsIdx).hidden = !newVal;
               }
+              if (key === 'volume' && chart.options.scales.yVol) {
+                chart.options.scales.yVol.display = newVal && hasVolumeData;
+              }
+              chart.update();
             }
           }
 
