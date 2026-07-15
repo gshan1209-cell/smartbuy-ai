@@ -12,12 +12,6 @@ const STATUS_BADGE = {
   '資料不足': 'yz-bdg-gr',
 };
 
-const STATUS_ARROW = {
-  '便宜': { arrow: '↓', color: '#16A34A' },
-  '偏貴': { arrow: '↑', color: '#DC2626' },
-  '正常': { arrow: '→', color: '#888' },
-  '資料不足': { arrow: '·', color: '#9B9A90' },
-};
 
 const DIRECTION_META = {
   up:   { label: '預測方向：漲', color: '#DC2626', bg: '#FEF2F2', badge: '#FCA5A5', arrow: '↑' },
@@ -32,26 +26,6 @@ const MA_CONFIG = {
   ma30: { label: 'MA30', color: '#A855F7', dash: [6, 3] },
 };
 
-// ── Sparkline（sidebar 用 SVG 迷你折線）────────────────────────────────────
-
-function Sparkline({ data, color = '#1D9E75', width = 48, height = 20 }) {
-  if (!data || data.length < 2) return <span style={{ width, display: 'inline-block' }} />;
-  const vals = data.filter(v => v != null);
-  if (vals.length < 2) return <span style={{ width, display: 'inline-block' }} />;
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const range = max - min || 1;
-  const pts = vals.map((v, i) => {
-    const x = (i / (vals.length - 1)) * (width - 2) + 1;
-    const y = height - 2 - ((v - min) / range) * (height - 4);
-    return `${x},${y}`;
-  }).join(' ');
-  return (
-    <svg width={width} height={height} style={{ display: 'block', flexShrink: 0 }}>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 // ── 行情位置儀表盤 ────────────────────────────────────────────────────────────
 
@@ -283,52 +257,10 @@ export default function ProductDetail() {
 
   const productName = decodeURIComponent(paramName || '');
 
-  const [sidebarItems, setSidebarItems] = useState([]);
-  const [sidebarLoading, setSidebarLoading] = useState(true);
-  const [sidebarQuery, setSidebarQuery] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  // sparkline 資料 map: product_name -> price[]
-  const [sparklineMap, setSparklineMap] = useState({});
-
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(true);
 
-  // 左側品項列表
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (market) params.set('market', market);
-    if (filterStatus) params.set('filter', filterStatus);
-    get(`/api/products?${params.toString()}`)
-      .then(data => {
-        let list = data;
-        const STATUS_RANK = { '便宜': 0, '正常': 1, '偏貴': 2, '資料不足': 3 };
-        const diffPct = item => item.today_price != null && item.recent_average
-          ? Math.round((item.today_price - item.recent_average) / item.recent_average * 100) : null;
-        if (sortBy === 'diff_desc') list = [...list].sort((a, b) => (diffPct(b) ?? -999) - (diffPct(a) ?? -999));
-        else if (sortBy === 'diff_asc') list = [...list].sort((a, b) => (diffPct(a) ?? 999) - (diffPct(b) ?? 999));
-        else list = [...list].sort((a, b) => (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9));
-        setSidebarItems(list);
-      })
-      .catch(() => setSidebarItems([]))
-      .finally(() => setSidebarLoading(false));
-  }, [market, filterStatus, sortBy]);
-
-  // 批次載入 sidebar sparkline（每個品項打一次 history API，取近 7 筆）
-  useEffect(() => {
-    if (!sidebarItems.length) return;
-    const visibleItems = sidebarItems.slice(0, 40);
-    visibleItems.forEach(item => {
-      const mktParam = market ? `&market=${encodeURIComponent(market)}` : '';
-      get(`/api/products/${encodeURIComponent(item.product_name)}/history?days=14${mktParam}`)
-        .then(d => {
-          const prices = (d.history || []).map(r => r.price).filter(v => v != null);
-          setSparklineMap(prev => ({ ...prev, [item.product_name]: prices }));
-        })
-        .catch(() => {});
-    });
-  }, [sidebarItems, market]); // eslint-disable-line
-
-  // 右側詳情
+  // 詳情
   useEffect(() => {
     if (!productName) return;
     setDetail(null);
@@ -340,15 +272,10 @@ export default function ProductDetail() {
       .finally(() => setDetailLoading(false));
   }, [productName, market]);
 
-  function navigateToProduct(name) {
-    navigate(`/product/${encodeURIComponent(name)}?${searchParams.toString()}`);
-  }
-
   const backUrl = `/search?${searchParams.toString()}`;
 
   return (
     <div className="yz-page" style={{ padding: '0 0 56px' }}>
-      {/* 回到列表 */}
       <div style={{ padding: '14px 32px 0', borderBottom: '1px solid var(--yz-bdr)', background: '#fff' }}>
         <button
           onClick={() => navigate(backUrl)}
@@ -358,94 +285,12 @@ export default function ProductDetail() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', maxWidth: 1280, margin: '0 auto', padding: '0 32px' }}>
-        {/* 左側品項切換欄 */}
-        <div style={{
-          width: sidebarOpen ? 240 : 0,
-          flexShrink: 0,
-          borderRight: sidebarOpen ? '1px solid var(--yz-bdr)' : 'none',
-          height: 'calc(100vh - 110px)',
-          overflowY: sidebarOpen ? 'auto' : 'hidden',
-          overflowX: 'hidden',
-          position: 'sticky',
-          top: 0,
-          paddingTop: sidebarOpen ? 14 : 0,
-          transition: 'width .2s ease',
-        }}>
-          {sidebarOpen && (
-            <>
-              <div style={{ padding: '0 10px 10px', borderBottom: '1px solid var(--yz-bdr)' }}>
-                <input
-                  className="yz-input"
-                  placeholder="搜尋品項..."
-                  value={sidebarQuery}
-                  onChange={e => setSidebarQuery(e.target.value)}
-                  style={{ fontSize: 12, width: '100%' }}
-                />
-              </div>
-              {sidebarLoading && <p style={{ padding: '8px 14px', fontSize: 12, color: 'var(--yz-dim)' }}>載入中…</p>}
-              {(sidebarQuery.trim()
-                ? sidebarItems.filter(i => i.product_name.includes(sidebarQuery.trim()))
-                : sidebarItems
-              ).map(item => {
-                const active = item.product_name === productName;
-                const { arrow, color } = STATUS_ARROW[item.status] || STATUS_ARROW['資料不足'];
-                const sparkPrices = sparklineMap[item.product_name];
-                const sparkColor = item.status === '便宜' ? '#16A34A' : item.status === '偏貴' ? '#DC2626' : '#9CA3AF';
-                return (
-                  <div
-                    key={item.product_name}
-                    onClick={() => navigateToProduct(item.product_name)}
-                    style={{
-                      padding: '9px 14px', cursor: 'pointer',
-                      borderLeft: active ? '3px solid var(--yz-g)' : '3px solid transparent',
-                      background: active ? 'var(--yz-gl)' : 'transparent',
-                      borderBottom: '1px solid #F0ECE5',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, color: active ? 'var(--yz-gd)' : 'var(--yz-txt)' }}>
-                        {item.product_name}
-                      </span>
-                      <span style={{ fontSize: 10, fontWeight: 600, color }}>{arrow} {item.status}</span>
-                    </div>
-                    {/* 價格 + sparkline */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 12, color: 'var(--yz-dim)' }}>
-                        {item.today_price != null ? `${item.today_price} 元/kg` : '暫無報價'}
-                      </span>
-                      {sparkPrices && sparkPrices.length >= 2 && (
-                        <Sparkline data={sparkPrices} color={sparkColor} width={48} height={18} />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
-
-        {/* 右側詳情內容 */}
-        <div style={{ flex: 1, padding: '20px 0 0 28px', overflowY: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-            <button
-              onClick={() => setSidebarOpen(v => !v)}
-              title={sidebarOpen ? '收合品項欄' : '展開品項欄'}
-              style={{
-                background: 'none', border: '1px solid var(--yz-bdr)',
-                borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
-                fontSize: 13, color: 'var(--yz-mut)', marginRight: 8, flexShrink: 0,
-              }}
-            >
-              {sidebarOpen ? '◀' : '▶'}
-            </button>
-          </div>
-          {detailLoading && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>載入中…</p>}
-          {!detailLoading && !detail && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>無法取得詳細資料</p>}
-          {!detailLoading && detail && (
-            <DetailContent productName={productName} market={market} detail={detail} />
-          )}
-        </div>
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: '20px 32px 0' }}>
+        {detailLoading && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>載入中…</p>}
+        {!detailLoading && !detail && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>無法取得詳細資料</p>}
+        {!detailLoading && detail && (
+          <DetailContent productName={productName} market={market} detail={detail} />
+        )}
       </div>
     </div>
   );
