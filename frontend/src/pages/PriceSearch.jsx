@@ -55,7 +55,7 @@ function MarketSelector({ markets, market, onChange }) {
           minWidth: 220,
         }}
       >
-        <span style={{ flex: 1, textAlign: 'left' }}>{market || '選擇批發市場'}</span>
+        <span style={{ flex: 1, textAlign: 'left' }}>{market || '選擇市場'}</span>
         <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>{open ? '▴' : '▾'}</span>
       </button>
       {open && (
@@ -464,18 +464,11 @@ export default function PriceSearch() {
     });
   }, [setSearchParams]);
 
-  // 初始化：載入市場清單，若 URL 無市場則設第一個
+  // 初始化：載入市場清單
   useEffect(() => {
     get('/api/markets').then(d => {
       const list = d.markets || [];
       setMarkets(list);
-      if (!searchParams.get('market') && list.length) {
-        setSearchParams(prev => {
-          const p = new URLSearchParams(prev);
-          p.set('market', list[0]);
-          return p;
-        }, { replace: true });
-      }
     }).catch(() => setMarkets([]));
   }, []); // eslint-disable-line
 
@@ -594,12 +587,12 @@ export default function PriceSearch() {
           {!loading && visibleItems.length > 0 && (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr',
+              gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr 1fr',
               padding: '8px 16px',
               borderBottom: '2px solid var(--yz-bdr)',
               background: 'var(--yz-gl)',
             }}>
-              {['品項名稱', '今日均價', '上價', '下價', '交易量', '7 日漲跌'].map(h => (
+              {['品項名稱', '今日均價', '上價', '下價', '交易量', '7 日漲跌', '市場'].map(h => (
                 <span key={h} style={{ fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.06em', textTransform: 'uppercase' }}>{h}</span>
               ))}
             </div>
@@ -615,7 +608,7 @@ export default function PriceSearch() {
                 onClick={() => handleItemClick(item.product_name)}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr',
+                  gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr 1fr',
                   padding: '11px 16px', cursor: 'pointer', alignItems: 'center',
                   borderBottom: idx < visibleItems.length - 1 ? '1px solid #F0ECE5' : 'none',
                   transition: 'background .12s',
@@ -641,6 +634,9 @@ export default function PriceSearch() {
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: dc }}>
                   {d != null ? `${dArrow} ${d > 0 ? '+' : ''}${d}%` : '—'}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>
+                  {market || '全台'}
                 </span>
               </div>
             );

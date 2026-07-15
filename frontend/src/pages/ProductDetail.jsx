@@ -780,7 +780,10 @@ function DetailContent({ productName, market, detail }) {
               borderWidth: 1,
               borderRadius: 1,
               borderSkipped: false,
+              barPercentage: 1.0,
+              categoryPercentage: 0.8,
               yAxisID: 'y',
+              order: 1,
               hidden: !maVisible.upper,
             },
             // index 1: 均價點（crosshair plugin 讀這個）
@@ -831,6 +834,8 @@ function DetailContent({ productName, market, detail }) {
               borderColor: 'rgba(156,163,175,0.6)',
               borderWidth: 1,
               borderRadius: 1,
+              barPercentage: 1.0,
+              categoryPercentage: 0.8,
               yAxisID: 'yVol',
               hidden: !maVisible.volume || !hasVolume,
               order: 10,
@@ -838,6 +843,7 @@ function DetailContent({ productName, market, detail }) {
           ],
         },
         options: {
+          grouped: false,
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
           plugins: {
@@ -976,37 +982,162 @@ function DetailContent({ productName, market, detail }) {
         )}
       </div>
 
-      {/* 2. 四格 metric 卡 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 22 }}>
-        {/* 今日均價卡 */}
-        <div className="yz-card" style={{ padding: '16px 18px' }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--yz-mut)', marginBottom: 7 }}>今日均價</p>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
-            <span style={{ fontSize: 26, fontWeight: 900, color: todayPriceColor }}>{todayPrice ?? '—'}</span>
-            {todayPrice != null && <span style={{ fontSize: 12, color: 'var(--yz-mut)' }}>元/kg</span>}
-          </div>
-          {priceDiff != null && (
-            <div style={{ fontSize: 12, fontWeight: 700, color: diffColor, marginBottom: 8 }}>
-              {diffArrow} {priceDiff > 0 ? '+' : ''}{priceDiff} ({pricePct > 0 ? '+' : ''}{pricePct}%)
-            </div>
-          )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderTop: '1px solid var(--yz-bdr)', paddingTop: 8 }}>
-            {[
-              ['上價', pd.upper_price != null ? `${pd.upper_price} 元` : null],
-              ['下價', pd.lower_price != null ? `${pd.lower_price} 元` : null],
-              ['交易量', pd.volume != null ? `${pd.volume.toLocaleString()} kg` : null],
-            ].map(([label, val]) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                <span style={{ color: 'var(--yz-mut)' }}>{label}</span>
-                <span style={{ fontWeight: 600, color: 'var(--yz-txt)' }}>{val ?? '—'}</span>
+      {/* 2. 三格 metric 卡 */}
+      {(() => {
+        const zScore     = detail?.z_score       ?? null;
+        const priceVsMa7 = detail?.price_vs_ma_7 ?? null;
+        const dotPct = zScore != null ? Math.min(Math.max(((zScore + 3) / 6) * 100, 2), 98) : 50;
+        const { label: zLabel, color: zColor } = getZScoreLabel(zScore);
+        const vsMa7Pct = priceVsMa7 != null
+          ? `${priceVsMa7 >= 0 ? '+' : ''}${(priceVsMa7 * 100).toFixed(1)}%`
+          : null;
+
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: 12, marginBottom: 22 }}>
+            {/* 今日均價卡 */}
+            <div className="yz-card" style={{ padding: '16px 18px' }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--yz-mut)', marginBottom: 7 }}>今日均價</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
+                <span style={{ fontSize: 26, fontWeight: 900, color: todayPriceColor }}>{todayPrice ?? '—'}</span>
+                {todayPrice != null && <span style={{ fontSize: 12, color: 'var(--yz-mut)' }}>元/kg</span>}
               </div>
-            ))}
+              {priceDiff != null && (
+                <div style={{ fontSize: 12, fontWeight: 700, color: diffColor, marginBottom: 8 }}>
+                  {diffArrow} {priceDiff > 0 ? '+' : ''}{priceDiff} ({pricePct > 0 ? '+' : ''}{pricePct}%)
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderTop: '1px solid var(--yz-bdr)', paddingTop: 8 }}>
+                {[
+                  ['上價', pd.upper_price != null ? `${pd.upper_price} 元` : null],
+                  ['下價', pd.lower_price != null ? `${pd.lower_price} 元` : null],
+                  ['交易量', pd.volume != null ? `${pd.volume.toLocaleString()} kg` : null],
+                ].map(([lbl, val]) => (
+                  <div key={lbl} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                    <span style={{ color: 'var(--yz-mut)' }}>{lbl}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--yz-txt)' }}>{val ?? '—'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 均線 + 行情位置 合併卡 */}
+            <div className="yz-card" style={{ padding: '16px 20px' }}>
+              {/* MA 三格 */}
+              <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                {[['7 日均線', ma7Val, 7], ['14 日均線', ma14Val, 14], ['30 日均線', ma30Val, 30]].map(([lbl, val, days]) => (
+                  <div key={lbl} style={{ flex: 1 }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--yz-mut)', marginBottom: 7 }}>{lbl}</p>
+                    {val != null ? (
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                        <span style={{ fontSize: 26, fontWeight: 900 }}>{val.toFixed(1)}</span>
+                        <span style={{ fontSize: 12, color: 'var(--yz-mut)' }}>元/kg</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <span style={{ fontSize: 22, fontWeight: 900, color: 'var(--yz-dim)' }}>—</span>
+                        <p style={{ fontSize: 10, color: 'var(--yz-mut)', marginTop: 4, lineHeight: 1.5 }}>
+                          需至少 {days} 筆資料
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* 行情位置色帶 */}
+              <div style={{ borderTop: '1px solid var(--yz-bdr)', paddingTop: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.08em', textTransform: 'uppercase', margin: 0 }}>
+                    行情位置
+                  </p>
+                  <p style={{ fontSize: 10, color: 'var(--yz-mut)', margin: 0 }}>
+                    今日價格落在近 30 個交易日的哪個區間
+                  </p>
+                </div>
+
+                {/* 色帶 + 指標點 */}
+                <div style={{ position: 'relative', marginBottom: 4, paddingBottom: 22 }}>
+                  <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden' }}>
+                    <div style={{ flex: 1, background: 'rgba(22,163,74,0.35)' }} />
+                    <div style={{ flex: 1, background: 'rgba(22,163,74,0.18)' }} />
+                    <div style={{ flex: 1, background: 'rgba(156,163,175,0.25)' }} />
+                    <div style={{ flex: 1, background: 'rgba(217,119,6,0.20)' }} />
+                    <div style={{ flex: 1, background: 'rgba(220,38,38,0.30)' }} />
+                  </div>
+
+                  {/* 今日指標點 */}
+                  <div style={{
+                    position: 'absolute', top: -4, left: `${dotPct}%`,
+                    transform: 'translateX(-50%)',
+                    width: 20, height: 20, borderRadius: '30%',
+                    background: zColor, border: '2px solid #fff',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.20)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ fontSize: 9, fontWeight: 900, color: '#fff', lineHeight: 1 }}>今</span>
+                  </div>
+
+                  {/* 今日標籤（指標點下方） */}
+                  <div style={{
+                    position: 'absolute', top: 20, left: `${dotPct}%`,
+                    transform: 'translateX(-50%)',
+                    fontSize: 9, fontWeight: 700, color: zColor, whiteSpace: 'nowrap',
+                  }}>
+                    {todayPrice != null ? `${todayPrice} 元` : '今日'}
+                  </div>
+                </div>
+
+                {/* 區間說明標籤列 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 2fr 2fr', fontSize: 9, marginBottom: 10 }}>
+                  <div style={{ color: '#16A34A' }}>
+                    <div style={{ fontWeight: 700 }}>很便宜</div>
+                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>9 成日便宜</div>
+                  </div>
+                  <div style={{ color: '#16A34A' }}>
+                    <div style={{ fontWeight: 700 }}>便宜</div>
+                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>低於均價</div>
+                  </div>
+                  <div style={{ color: '#9CA3AF', textAlign: 'center' }}>
+                    <div style={{ fontWeight: 700 }}>正常</div>
+                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>接近均價</div>
+                  </div>
+                  <div style={{ color: '#D97706', textAlign: 'right' }}>
+                    <div style={{ fontWeight: 700 }}>偏貴</div>
+                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>高於均價</div>
+                  </div>
+                  <div style={{ color: '#DC2626', textAlign: 'right' }}>
+                    <div style={{ fontWeight: 700 }}>很貴</div>
+                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>9 成日貴</div>
+                  </div>
+                </div>
+
+                {/* 結論文字框 */}
+                <div style={{
+                  background: zColor === '#16A34A' ? 'rgba(22,163,74,0.08)' : zColor === '#DC2626' ? 'rgba(220,38,38,0.08)' : 'rgba(156,163,175,0.10)',
+                  border: `1px solid ${zColor}33`,
+                  borderRadius: 8, padding: '8px 12px',
+                  display: 'flex', alignItems: 'flex-start', gap: 10,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: zColor, margin: '0 0 2px' }}>{zLabel}</p>
+                    {todayPrice != null && ma7Val != null && (
+                      <p style={{ fontSize: 12, color: 'var(--yz-mut)', margin: 0 }}>
+                        今日 <strong style={{ color: 'var(--yz-txt)' }}>{todayPrice} 元</strong>
+                        {vsMa7Pct && <span style={{ color: zColor, fontWeight: 600 }}> {vsMa7Pct}</span>}
+                        {' '}vs MA7 均價 <strong style={{ color: 'var(--yz-txt)' }}>{ma7Val.toFixed(1)} 元</strong>
+                      </p>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--yz-mut)', flexShrink: 0, textAlign: 'right', lineHeight: 1.6 }}>
+                    <div>以近 30 日</div>
+                    <div>Z-Score 計算</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <MetricMACard label="7 日均線"  value={ma7Val}  days={7} />
-        <MetricMACard label="14 日均線" value={ma14Val} days={14} />
-        <MetricMACard label="30 日均線" value={ma30Val} days={30} />
-      </div>
+        );
+      })()}
 
       {/* 3. 走勢圖卡 */}
       <div className="yz-card" style={{ padding: '22px 22px', marginBottom: 12 }}>
@@ -1046,7 +1177,7 @@ function DetailContent({ productName, market, detail }) {
                   if (loIdx !== -1) chart.getDatasetMeta(loIdx).hidden = !newVal;
                 }
                 if (key === 'volume' && chart.options.scales.yVol) {
-                  chart.options.scales.yVol.display = newVal && hasVolume;
+                  chart.options.scales.yVol.display = newVal && hasVolumeData;
                 }
                 chart.update();
               }
@@ -1120,9 +1251,6 @@ function DetailContent({ productName, market, detail }) {
         )}
       </div>
 
-
-      {/* 5. 行情位置儀表盤 */}
-      <PriceInsightCard detail={detail} todayPrice={todayPrice} />
 
       {/* 5b. 行情解析文字 */}
       <PriceReasonCard detail={detail} />
