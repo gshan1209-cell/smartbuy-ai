@@ -987,23 +987,17 @@ function DetailContent({ productName, market, detail }) {
         const zScore     = detail?.z_score       ?? null;
         const priceVsMa7 = detail?.price_vs_ma_7 ?? null;
 
-        // 位置：優先用 price_vs_ma_7（與 badge 一致），±40% 對應全範圍，超過直接夾住
-        const dotPct = priceVsMa7 != null
-          ? Math.min(Math.max(50 + (priceVsMa7 / 0.40) * 50, 2), 98)
-          : zScore != null
-            ? Math.min(Math.max(((zScore + 3) / 6) * 100, 2), 98)
-            : 50;
-
-        // 顏色與標籤跟著 priceStatus 走，確保與 badge 一致
+        // dot 位置直接由 priceStatus 決定，確保永遠落在對應區間
         const STATUS_GAUGE = {
-          '便宜':   { color: '#16A34A', label: '低於近期均價，目前算便宜' },
-          '正常':   { color: '#9CA3AF', label: '接近近期均價，價格正常' },
-          '偏貴':   { color: '#DC2626', label: '高於近期均價，目前偏貴' },
-          '資料不足': { color: '#9CA3AF', label: '資料不足，無法判斷' },
+          '便宜':    { dotPct: 20, color: '#16A34A', label: '低於近期均價，目前算便宜' },
+          '正常':    { dotPct: 50, color: '#9CA3AF', label: '接近近期均價，價格正常' },
+          '偏貴':    { dotPct: 80, color: '#DC2626', label: '高於近期均價，目前偏貴' },
+          '資料不足': { dotPct: 50, color: '#9CA3AF', label: '資料不足，無法判斷' },
         };
         const gaugeInfo = STATUS_GAUGE[priceStatus] ?? STATUS_GAUGE['資料不足'];
-        const zColor = gaugeInfo.color;
-        const zLabel = gaugeInfo.label;
+        const dotPct  = gaugeInfo.dotPct;
+        const zColor  = gaugeInfo.color;
+        const zLabel  = gaugeInfo.label;
 
         const vsMa7Pct = priceVsMa7 != null
           ? `${priceVsMa7 >= 0 ? '+' : ''}${(priceVsMa7 * 100).toFixed(1)}%`
@@ -1075,11 +1069,9 @@ function DetailContent({ productName, market, detail }) {
                 {/* 色帶 + 指標點 */}
                 <div style={{ position: 'relative', marginBottom: 4, paddingBottom: 22 }}>
                   <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden' }}>
-                    <div style={{ flex: 1, background: 'rgba(22,163,74,0.35)' }} />
-                    <div style={{ flex: 1, background: 'rgba(22,163,74,0.18)' }} />
-                    <div style={{ flex: 1, background: 'rgba(156,163,175,0.25)' }} />
-                    <div style={{ flex: 1, background: 'rgba(217,119,6,0.20)' }} />
-                    <div style={{ flex: 1, background: 'rgba(220,38,38,0.30)' }} />
+                    <div style={{ flex: 1, background: 'rgba(22,163,74,0.30)' }} />
+                    <div style={{ flex: 1, background: 'rgba(156,163,175,0.22)' }} />
+                    <div style={{ flex: 1, background: 'rgba(220,38,38,0.28)' }} />
                   </div>
 
                   {/* 今日指標點 */}
@@ -1105,26 +1097,18 @@ function DetailContent({ productName, market, detail }) {
                 </div>
 
                 {/* 區間說明標籤列 */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 2fr 2fr', fontSize: 9, marginBottom: 10 }}>
-                  <div style={{ color: '#16A34A' }}>
-                    <div style={{ fontWeight: 700 }}>很便宜</div>
-                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>9 成日便宜</div>
-                  </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', fontSize: 9, marginBottom: 10 }}>
                   <div style={{ color: '#16A34A' }}>
                     <div style={{ fontWeight: 700 }}>便宜</div>
-                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>低於均價</div>
+                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>低於近期均價</div>
                   </div>
                   <div style={{ color: '#9CA3AF', textAlign: 'center' }}>
                     <div style={{ fontWeight: 700 }}>正常</div>
-                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>接近均價</div>
-                  </div>
-                  <div style={{ color: '#D97706', textAlign: 'right' }}>
-                    <div style={{ fontWeight: 700 }}>偏貴</div>
-                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>高於均價</div>
+                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>接近近期均價</div>
                   </div>
                   <div style={{ color: '#DC2626', textAlign: 'right' }}>
-                    <div style={{ fontWeight: 700 }}>很貴</div>
-                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>9 成日貴</div>
+                    <div style={{ fontWeight: 700 }}>偏貴</div>
+                    <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>高於近期均價</div>
                   </div>
                 </div>
 
