@@ -28,6 +28,21 @@ SELECT
 FROM public.agri_price_features_daily;
 
 SELECT
+    column_name,
+    data_type,
+    udt_name
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'agri_price_features_daily'
+  AND column_name IN (
+      'price_ma_30',
+      'price_std_30',
+      'volume_ma_30',
+      'volume_std_30'
+  )
+ORDER BY column_name;
+
+SELECT
     trade_date,
     market_id,
     crop_id,
@@ -38,12 +53,12 @@ HAVING COUNT(*) > 1
 ORDER BY row_count DESC, trade_date DESC
 LIMIT 100;
 
--- 3. Pick a pair with at least 20 valid rows for boundary and numeric checks.
+-- 3. Pick a pair with at least 30 valid rows for boundary and numeric checks.
 WITH selected_pair AS (
     SELECT market_id, crop_id
     FROM public.agri_price_features_daily
     GROUP BY market_id, crop_id
-    HAVING COUNT(*) >= 20
+    HAVING COUNT(*) >= 30
     ORDER BY COUNT(*) DESC, market_id, crop_id
     LIMIT 1
 )
@@ -59,8 +74,12 @@ SELECT
     feature_rows.price_lag_14,
     feature_rows.price_ma_7,
     feature_rows.price_ma_14,
+    feature_rows.price_ma_30,
     feature_rows.price_std_7,
     feature_rows.price_std_14,
+    feature_rows.price_std_30,
+    feature_rows.volume_ma_30,
+    feature_rows.volume_std_30,
     feature_rows.is_feature_complete,
     feature_rows.day_of_week,
     feature_rows.month
@@ -68,15 +87,37 @@ FROM public.agri_price_features_daily feature_rows
 JOIN selected_pair
   ON selected_pair.market_id = feature_rows.market_id
  AND selected_pair.crop_id = feature_rows.crop_id
-WHERE feature_rows.history_sequence_no IN (1, 2, 7, 8, 14, 15)
+WHERE feature_rows.history_sequence_no IN (1, 2, 7, 8, 14, 15, 29, 30)
 ORDER BY feature_rows.history_sequence_no;
+
+SELECT
+    COUNT(*) FILTER (
+        WHERE history_sequence_no BETWEEN 1 AND 29
+          AND (
+              price_ma_30 IS NOT NULL
+              OR price_std_30 IS NOT NULL
+              OR volume_ma_30 IS NOT NULL
+              OR volume_std_30 IS NOT NULL
+          )
+    ) AS rows_1_to_29_with_30_features,
+    COUNT(*) FILTER (
+        WHERE history_sequence_no = 30
+          AND (
+              price_ma_30 IS NULL
+              OR price_std_30 IS NULL
+              OR volume_ma_30 IS NULL
+              OR volume_std_30 IS NULL
+          )
+    ) AS row_30_missing_30_features,
+    COUNT(*) FILTER (WHERE history_sequence_no = 30) AS row_30_count
+FROM public.agri_price_features_daily;
 
 -- 4. Recompute selected columns from source with the same SQL semantics and compare with stored features.
 WITH selected_pair AS (
     SELECT market_id, crop_id
     FROM public.agri_price_features_daily
     GROUP BY market_id, crop_id
-    HAVING COUNT(*) >= 20
+    HAVING COUNT(*) >= 30
     ORDER BY COUNT(*) DESC, market_id, crop_id
     LIMIT 1
 ),
@@ -116,6 +157,10 @@ recomputed AS (
             THEN AVG(avg_price) OVER window_14
         END AS price_ma_14_expected,
         CASE
+            WHEN COUNT(avg_price) OVER window_30 = 30
+            THEN AVG(avg_price) OVER window_30
+        END AS price_ma_30_expected,
+        CASE
             WHEN COUNT(volume) OVER window_7 = 7
             THEN AVG(volume) OVER window_7
         END AS volume_ma_7_expected,
@@ -124,13 +169,25 @@ recomputed AS (
             THEN AVG(volume) OVER window_14
         END AS volume_ma_14_expected,
         CASE
+            WHEN COUNT(volume) OVER window_30 = 30
+            THEN AVG(volume) OVER window_30
+        END AS volume_ma_30_expected,
+        CASE
             WHEN COUNT(avg_price) OVER window_7 = 7
             THEN STDDEV_POP(avg_price) OVER window_7
         END AS price_std_7_expected,
         CASE
             WHEN COUNT(avg_price) OVER window_14 = 14
             THEN STDDEV_POP(avg_price) OVER window_14
-        END AS price_std_14_expected
+        END AS price_std_14_expected,
+        CASE
+            WHEN COUNT(avg_price) OVER window_30 = 30
+            THEN STDDEV_POP(avg_price) OVER window_30
+        END AS price_std_30_expected,
+        CASE
+            WHEN COUNT(volume) OVER window_30 = 30
+            THEN STDDEV_POP(volume) OVER window_30
+        END AS volume_std_30_expected
     FROM valid_source
     WINDOW
         pair_window AS (
@@ -146,6 +203,11 @@ recomputed AS (
             PARTITION BY market_id, crop_id
             ORDER BY trade_date
             ROWS BETWEEN 13 PRECEDING AND CURRENT ROW
+        ),
+        window_30 AS (
+            PARTITION BY market_id, crop_id
+            ORDER BY trade_date
+            ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
         )
 ),
 expected AS (
@@ -184,10 +246,14 @@ SELECT
            OR ABS(feature_rows.volume_change_7 - expected.volume_change_7_expected) > 1e-9
            OR ABS(feature_rows.price_ma_7 - expected.price_ma_7_expected) > 1e-9
            OR ABS(feature_rows.price_ma_14 - expected.price_ma_14_expected) > 1e-9
+           OR ABS(feature_rows.price_ma_30 - expected.price_ma_30_expected) > 1e-9
            OR ABS(feature_rows.volume_ma_7 - expected.volume_ma_7_expected) > 1e-9
            OR ABS(feature_rows.volume_ma_14 - expected.volume_ma_14_expected) > 1e-9
+           OR ABS(feature_rows.volume_ma_30 - expected.volume_ma_30_expected) > 1e-9
            OR ABS(feature_rows.price_std_7 - expected.price_std_7_expected) > 1e-9
            OR ABS(feature_rows.price_std_14 - expected.price_std_14_expected) > 1e-9
+           OR ABS(feature_rows.price_std_30 - expected.price_std_30_expected) > 1e-9
+           OR ABS(feature_rows.volume_std_30 - expected.volume_std_30_expected) > 1e-9
            OR ABS(feature_rows.price_vs_ma_7 - expected.price_vs_ma_7_expected) > 1e-9
            OR ABS(feature_rows.volume_vs_ma_7 - expected.volume_vs_ma_7_expected) > 1e-9
            OR feature_rows.day_of_week <> expected.day_of_week_expected
@@ -198,6 +264,54 @@ JOIN expected
   ON expected.trade_date = feature_rows.trade_date
  AND expected.market_id = feature_rows.market_id
  AND expected.crop_id = feature_rows.crop_id;
+
+-- 4b. Manual 30-row average check for one selected 30th-row feature.
+WITH selected_feature AS (
+    SELECT market_id, crop_id, trade_date
+    FROM public.agri_price_features_daily
+    WHERE history_sequence_no = 30
+      AND price_ma_30 IS NOT NULL
+      AND volume_ma_30 IS NOT NULL
+    ORDER BY market_id, crop_id, trade_date
+    LIMIT 1
+),
+last_30_source AS (
+    SELECT
+        source_rows.avg_price::double precision AS avg_price,
+        source_rows.volume::double precision AS volume
+    FROM selected_feature
+    JOIN public.agri_price_daily source_rows
+      ON source_rows.market_code = selected_feature.market_id
+     AND source_rows.crop_code = selected_feature.crop_id
+     AND source_rows.trans_date <= selected_feature.trade_date
+    WHERE source_rows.trans_date IS NOT NULL
+      AND source_rows.market_code IS NOT NULL
+      AND source_rows.crop_code IS NOT NULL
+      AND source_rows.avg_price > 0
+      AND source_rows.volume > 0
+    ORDER BY source_rows.trans_date DESC
+    LIMIT 30
+)
+SELECT
+    selected_feature.market_id,
+    selected_feature.crop_id,
+    selected_feature.trade_date,
+    feature_rows.price_ma_30,
+    AVG(last_30_source.avg_price) AS manual_price_ma_30,
+    feature_rows.volume_ma_30,
+    AVG(last_30_source.volume) AS manual_volume_ma_30
+FROM selected_feature
+JOIN public.agri_price_features_daily feature_rows
+  ON feature_rows.market_id = selected_feature.market_id
+ AND feature_rows.crop_id = selected_feature.crop_id
+ AND feature_rows.trade_date = selected_feature.trade_date
+CROSS JOIN last_30_source
+GROUP BY
+    selected_feature.market_id,
+    selected_feature.crop_id,
+    selected_feature.trade_date,
+    feature_rows.price_ma_30,
+    feature_rows.volume_ma_30;
 
 -- 5. Confirm excluded training/cycle columns are absent from table and latest API view.
 SELECT table_name, column_name

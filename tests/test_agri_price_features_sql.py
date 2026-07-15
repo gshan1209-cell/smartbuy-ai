@@ -60,7 +60,7 @@ def test_feature_sql_defines_incremental_refresh_contract():
     assert "WITH changed_rows AS" in incremental_sql
     assert "future_refresh_rows AS" in incremental_sql
     assert "source_rows.trans_date > changed.trade_date" in incremental_sql
-    assert "LIMIT 14" in incremental_sql
+    assert "LIMIT 29" in incremental_sql
     assert "FROM valid_refresh_rows refresh_rows" in incremental_sql
     assert "FROM final_feature_rows final_rows" in incremental_sql
     assert "valid_source AS" not in incremental_sql
@@ -100,10 +100,21 @@ def test_feature_sql_matches_notebook_window_semantics():
     assert "LAG(volume, 14)" in sql
     assert "ROWS BETWEEN 6 PRECEDING AND CURRENT ROW" in sql
     assert "ROWS BETWEEN 13 PRECEDING AND CURRENT ROW" in sql
+    assert "ROWS BETWEEN 29 PRECEDING AND CURRENT ROW" in sql
     assert "STDDEV_POP(avg_price)" in sql
+    assert "STDDEV_POP(volume)" in sql
     assert "STDDEV_SAMP" not in sql
     assert "price_count_7 = 7" in sql
     assert "price_count_14 = 14" in sql
+    assert "price_count_30 = 30" in sql
+    assert "volume_count_30 = 30" in sql
+    for column in [
+        "price_ma_30",
+        "price_std_30",
+        "volume_ma_30",
+        "volume_std_30",
+    ]:
+        assert column in sql
     assert "avg_price / NULLIF(price_lag_14, 0) - 1" in sql
     assert "volume / NULLIF(volume_lag_7, 0) - 1" in sql
     assert "EXTRACT(ISODOW FROM trade_date)::smallint - 1" in sql

@@ -40,12 +40,16 @@ CREATE TABLE IF NOT EXISTS public.agri_price_features_daily (
 
     price_ma_7 DOUBLE PRECISION,
     price_ma_14 DOUBLE PRECISION,
+    price_ma_30 DOUBLE PRECISION,
 
     volume_ma_7 DOUBLE PRECISION,
     volume_ma_14 DOUBLE PRECISION,
+    volume_ma_30 DOUBLE PRECISION,
 
     price_std_7 DOUBLE PRECISION,
     price_std_14 DOUBLE PRECISION,
+    price_std_30 DOUBLE PRECISION,
+    volume_std_30 DOUBLE PRECISION,
 
     price_vs_ma_7 DOUBLE PRECISION,
     volume_vs_ma_7 DOUBLE PRECISION,
@@ -60,6 +64,12 @@ CREATE TABLE IF NOT EXISTS public.agri_price_features_daily (
 
     PRIMARY KEY (trade_date, market_id, crop_id)
 );
+
+ALTER TABLE public.agri_price_features_daily
+    ADD COLUMN IF NOT EXISTS price_ma_30 DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS price_std_30 DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS volume_ma_30 DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS volume_std_30 DOUBLE PRECISION;
 
 CREATE INDEX IF NOT EXISTS idx_agri_price_features_daily_market_crop_date_desc
     ON public.agri_price_features_daily (market_id, crop_id, trade_date DESC);
@@ -200,7 +210,7 @@ BEGIN
               AND source_rows.avg_price > 0
               AND source_rows.volume > 0
             ORDER BY source_rows.trans_date ASC
-            LIMIT 14
+            LIMIT 29
         ) future_rows
     ),
     valid_refresh_rows AS (
@@ -251,10 +261,14 @@ BEGIN
 
             CASE WHEN history.price_count_7 = 7 THEN history.price_ma_7_raw END AS price_ma_7,
             CASE WHEN history.price_count_14 = 14 THEN history.price_ma_14_raw END AS price_ma_14,
+            CASE WHEN history.price_count_30 = 30 THEN history.price_ma_30_raw END AS price_ma_30,
             CASE WHEN history.volume_count_7 = 7 THEN history.volume_ma_7_raw END AS volume_ma_7,
             CASE WHEN history.volume_count_14 = 14 THEN history.volume_ma_14_raw END AS volume_ma_14,
+            CASE WHEN history.volume_count_30 = 30 THEN history.volume_ma_30_raw END AS volume_ma_30,
             CASE WHEN history.price_count_7 = 7 THEN history.price_std_7_raw END AS price_std_7,
             CASE WHEN history.price_count_14 = 14 THEN history.price_std_14_raw END AS price_std_14,
+            CASE WHEN history.price_count_30 = 30 THEN history.price_std_30_raw END AS price_std_30,
+            CASE WHEN history.volume_count_30 = 30 THEN history.volume_std_30_raw END AS volume_std_30,
 
             CASE
                 WHEN history.price_count_7 = 7 AND history.price_ma_7_raw > 0
@@ -296,15 +310,21 @@ BEGIN
 
                 COUNT(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 6) AS price_count_7,
                 COUNT(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS price_count_14,
+                COUNT(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 29) AS price_count_30,
                 COUNT(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 6) AS volume_count_7,
                 COUNT(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS volume_count_14,
+                COUNT(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 29) AS volume_count_30,
 
                 AVG(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 6) AS price_ma_7_raw,
                 AVG(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS price_ma_14_raw,
+                AVG(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 29) AS price_ma_30_raw,
                 AVG(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 6) AS volume_ma_7_raw,
                 AVG(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS volume_ma_14_raw,
+                AVG(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 29) AS volume_ma_30_raw,
                 STDDEV_POP(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 6) AS price_std_7_raw,
-                STDDEV_POP(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS price_std_14_raw
+                STDDEV_POP(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 13) AS price_std_14_raw,
+                STDDEV_POP(history_rows.avg_price) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 29) AS price_std_30_raw,
+                STDDEV_POP(history_rows.volume) FILTER (WHERE history_rows.row_offset BETWEEN 0 AND 29) AS volume_std_30_raw
             FROM (
                 SELECT
                     0::integer AS row_offset,
@@ -330,7 +350,7 @@ BEGIN
                       AND source_rows.avg_price > 0
                       AND source_rows.volume > 0
                     ORDER BY source_rows.trans_date DESC
-                    LIMIT 14
+                    LIMIT 29
                 ) previous_rows
             ) history_rows
         ) history ON TRUE
@@ -397,10 +417,14 @@ BEGIN
             volume_change_7,
             price_ma_7,
             price_ma_14,
+            price_ma_30,
             volume_ma_7,
             volume_ma_14,
+            volume_ma_30,
             price_std_7,
             price_std_14,
+            price_std_30,
+            volume_std_30,
             price_vs_ma_7,
             volume_vs_ma_7,
             day_of_week,
@@ -434,10 +458,14 @@ BEGIN
             final_rows.volume_change_7,
             final_rows.price_ma_7,
             final_rows.price_ma_14,
+            final_rows.price_ma_30,
             final_rows.volume_ma_7,
             final_rows.volume_ma_14,
+            final_rows.volume_ma_30,
             final_rows.price_std_7,
             final_rows.price_std_14,
+            final_rows.price_std_30,
+            final_rows.volume_std_30,
             final_rows.price_vs_ma_7,
             final_rows.volume_vs_ma_7,
             final_rows.day_of_week,
@@ -469,10 +497,14 @@ BEGIN
             volume_change_7 = EXCLUDED.volume_change_7,
             price_ma_7 = EXCLUDED.price_ma_7,
             price_ma_14 = EXCLUDED.price_ma_14,
+            price_ma_30 = EXCLUDED.price_ma_30,
             volume_ma_7 = EXCLUDED.volume_ma_7,
             volume_ma_14 = EXCLUDED.volume_ma_14,
+            volume_ma_30 = EXCLUDED.volume_ma_30,
             price_std_7 = EXCLUDED.price_std_7,
             price_std_14 = EXCLUDED.price_std_14,
+            price_std_30 = EXCLUDED.price_std_30,
+            volume_std_30 = EXCLUDED.volume_std_30,
             price_vs_ma_7 = EXCLUDED.price_vs_ma_7,
             volume_vs_ma_7 = EXCLUDED.volume_vs_ma_7,
             day_of_week = EXCLUDED.day_of_week,
@@ -604,17 +636,23 @@ BEGIN
 
             COUNT(avg_price) OVER window_7 AS price_count_7,
             COUNT(avg_price) OVER window_14 AS price_count_14,
+            COUNT(avg_price) OVER window_30 AS price_count_30,
             COUNT(volume) OVER window_7 AS volume_count_7,
             COUNT(volume) OVER window_14 AS volume_count_14,
+            COUNT(volume) OVER window_30 AS volume_count_30,
 
             AVG(avg_price) OVER window_7 AS price_ma_7_raw,
             AVG(avg_price) OVER window_14 AS price_ma_14_raw,
+            AVG(avg_price) OVER window_30 AS price_ma_30_raw,
 
             AVG(volume) OVER window_7 AS volume_ma_7_raw,
             AVG(volume) OVER window_14 AS volume_ma_14_raw,
+            AVG(volume) OVER window_30 AS volume_ma_30_raw,
 
             STDDEV_POP(avg_price) OVER window_7 AS price_std_7_raw,
-            STDDEV_POP(avg_price) OVER window_14 AS price_std_14_raw
+            STDDEV_POP(avg_price) OVER window_14 AS price_std_14_raw,
+            STDDEV_POP(avg_price) OVER window_30 AS price_std_30_raw,
+            STDDEV_POP(volume) OVER window_30 AS volume_std_30_raw
         FROM lag_features
         WINDOW
             window_7 AS (
@@ -626,6 +664,11 @@ BEGIN
                 PARTITION BY market_id, crop_id
                 ORDER BY trade_date
                 ROWS BETWEEN 13 PRECEDING AND CURRENT ROW
+            ),
+            window_30 AS (
+                PARTITION BY market_id, crop_id
+                ORDER BY trade_date
+                ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
             )
     ),
     rolling_complete AS (
@@ -634,12 +677,16 @@ BEGIN
 
             CASE WHEN price_count_7 = 7 THEN price_ma_7_raw END AS price_ma_7,
             CASE WHEN price_count_14 = 14 THEN price_ma_14_raw END AS price_ma_14,
+            CASE WHEN price_count_30 = 30 THEN price_ma_30_raw END AS price_ma_30,
 
             CASE WHEN volume_count_7 = 7 THEN volume_ma_7_raw END AS volume_ma_7,
             CASE WHEN volume_count_14 = 14 THEN volume_ma_14_raw END AS volume_ma_14,
+            CASE WHEN volume_count_30 = 30 THEN volume_ma_30_raw END AS volume_ma_30,
 
             CASE WHEN price_count_7 = 7 THEN price_std_7_raw END AS price_std_7,
-            CASE WHEN price_count_14 = 14 THEN price_std_14_raw END AS price_std_14
+            CASE WHEN price_count_14 = 14 THEN price_std_14_raw END AS price_std_14,
+            CASE WHEN price_count_30 = 30 THEN price_std_30_raw END AS price_std_30,
+            CASE WHEN volume_count_30 = 30 THEN volume_std_30_raw END AS volume_std_30
         FROM rolling_raw
     ),
     derived_features AS (
@@ -699,11 +746,15 @@ BEGIN
 
             price_ma_7,
             price_ma_14,
+            price_ma_30,
             volume_ma_7,
             volume_ma_14,
+            volume_ma_30,
 
             price_std_7,
             price_std_14,
+            price_std_30,
+            volume_std_30,
 
             price_vs_ma_7,
             volume_vs_ma_7,
@@ -771,10 +822,14 @@ BEGIN
             volume_change_7,
             price_ma_7,
             price_ma_14,
+            price_ma_30,
             volume_ma_7,
             volume_ma_14,
+            volume_ma_30,
             price_std_7,
             price_std_14,
+            price_std_30,
+            volume_std_30,
             price_vs_ma_7,
             volume_vs_ma_7,
             day_of_week,
@@ -808,10 +863,14 @@ BEGIN
             final_rows.volume_change_7,
             final_rows.price_ma_7,
             final_rows.price_ma_14,
+            final_rows.price_ma_30,
             final_rows.volume_ma_7,
             final_rows.volume_ma_14,
+            final_rows.volume_ma_30,
             final_rows.price_std_7,
             final_rows.price_std_14,
+            final_rows.price_std_30,
+            final_rows.volume_std_30,
             final_rows.price_vs_ma_7,
             final_rows.volume_vs_ma_7,
             final_rows.day_of_week,
@@ -843,10 +902,14 @@ BEGIN
             volume_change_7 = EXCLUDED.volume_change_7,
             price_ma_7 = EXCLUDED.price_ma_7,
             price_ma_14 = EXCLUDED.price_ma_14,
+            price_ma_30 = EXCLUDED.price_ma_30,
             volume_ma_7 = EXCLUDED.volume_ma_7,
             volume_ma_14 = EXCLUDED.volume_ma_14,
+            volume_ma_30 = EXCLUDED.volume_ma_30,
             price_std_7 = EXCLUDED.price_std_7,
             price_std_14 = EXCLUDED.price_std_14,
+            price_std_30 = EXCLUDED.price_std_30,
+            volume_std_30 = EXCLUDED.volume_std_30,
             price_vs_ma_7 = EXCLUDED.price_vs_ma_7,
             volume_vs_ma_7 = EXCLUDED.volume_vs_ma_7,
             day_of_week = EXCLUDED.day_of_week,
@@ -879,6 +942,8 @@ BEGIN
 END;
 $$;
 
+DROP VIEW IF EXISTS public.api_agri_price_features_latest;
+
 CREATE OR REPLACE VIEW public.api_agri_price_features_latest AS
 SELECT
     trade_date,
@@ -904,10 +969,14 @@ SELECT
     volume_change_7,
     price_ma_7,
     price_ma_14,
+    price_ma_30,
     volume_ma_7,
     volume_ma_14,
+    volume_ma_30,
     price_std_7,
     price_std_14,
+    price_std_30,
+    volume_std_30,
     price_vs_ma_7,
     volume_vs_ma_7,
     day_of_week,
@@ -926,6 +995,8 @@ FROM (
     FROM public.agri_price_features_daily feature_rows
 ) ranked
 WHERE latest_rank = 1;
+
+DROP FUNCTION IF EXISTS public.get_agri_price_feature_history(TEXT, TEXT, DATE, DATE, INTEGER);
 
 CREATE OR REPLACE FUNCTION public.get_agri_price_feature_history(
     p_market_id TEXT,
@@ -958,10 +1029,14 @@ RETURNS TABLE (
     volume_change_7 DOUBLE PRECISION,
     price_ma_7 DOUBLE PRECISION,
     price_ma_14 DOUBLE PRECISION,
+    price_ma_30 DOUBLE PRECISION,
     volume_ma_7 DOUBLE PRECISION,
     volume_ma_14 DOUBLE PRECISION,
+    volume_ma_30 DOUBLE PRECISION,
     price_std_7 DOUBLE PRECISION,
     price_std_14 DOUBLE PRECISION,
+    price_std_30 DOUBLE PRECISION,
+    volume_std_30 DOUBLE PRECISION,
     price_vs_ma_7 DOUBLE PRECISION,
     volume_vs_ma_7 DOUBLE PRECISION,
     day_of_week SMALLINT,
@@ -1013,10 +1088,14 @@ BEGIN
         feature_rows.volume_change_7,
         feature_rows.price_ma_7,
         feature_rows.price_ma_14,
+        feature_rows.price_ma_30,
         feature_rows.volume_ma_7,
         feature_rows.volume_ma_14,
+        feature_rows.volume_ma_30,
         feature_rows.price_std_7,
         feature_rows.price_std_14,
+        feature_rows.price_std_30,
+        feature_rows.volume_std_30,
         feature_rows.price_vs_ma_7,
         feature_rows.volume_vs_ma_7,
         feature_rows.day_of_week,
