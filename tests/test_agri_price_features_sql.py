@@ -121,6 +121,33 @@ def test_feature_sql_matches_notebook_window_semantics():
     assert "EXTRACT(MONTH FROM trade_date)::smallint" in sql
 
 
+def test_feature_sql_adds_api_z_scores_without_table_columns():
+    sql = _sql()
+    table_ddl = sql.split("CREATE INDEX IF NOT EXISTS idx_agri_price_features_daily_market_crop_date_desc")[0]
+
+    for column in [
+        "price_z_30",
+        "price_anomaly_level",
+        "price_anomaly_direction",
+        "volume_log_z_30",
+        "volume_anomaly_level",
+        "volume_anomaly_direction",
+    ]:
+        assert column in sql
+        assert column not in table_ddl
+
+    assert "LAG(feature_rows.price_ma_30, 1) OVER pair_history_window AS previous_price_ma_30" in sql
+    assert "LAG(feature_rows.price_std_30, 1) OVER pair_history_window AS previous_price_std_30" in sql
+    assert "ROWS BETWEEN 30 PRECEDING AND 1 PRECEDING" in sql
+    assert "LN(feature_rows.volume)" in sql
+    assert "STDDEV_POP(" in sql
+    assert "previous_volume_log_count_30 <> 30" in sql
+    assert "'insufficient_history'" in sql
+    assert "'extreme_anomaly'" in sql
+    assert "WHEN api_scored.price_z_30 >= 2" in sql
+    assert "WHEN api_scored.price_z_30 <= -2" in sql
+
+
 def test_feature_sql_defines_api_permissions_without_write_grants():
     sql = _sql()
 

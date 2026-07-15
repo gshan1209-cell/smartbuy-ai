@@ -945,55 +945,178 @@ $$;
 DROP VIEW IF EXISTS public.api_agri_price_features_latest;
 
 CREATE OR REPLACE VIEW public.api_agri_price_features_latest AS
-SELECT
-    trade_date,
-    market_id,
-    market_name,
-    crop_id,
-    crop_name,
-    avg_price,
-    volume,
-    price_lag_1,
-    price_lag_3,
-    price_lag_7,
-    price_lag_14,
-    volume_lag_1,
-    volume_lag_3,
-    volume_lag_7,
-    volume_lag_14,
-    price_return_1,
-    price_return_3,
-    price_return_7,
-    price_return_14,
-    volume_change_1,
-    volume_change_7,
-    price_ma_7,
-    price_ma_14,
-    price_ma_30,
-    volume_ma_7,
-    volume_ma_14,
-    volume_ma_30,
-    price_std_7,
-    price_std_14,
-    price_std_30,
-    volume_std_30,
-    price_vs_ma_7,
-    volume_vs_ma_7,
-    day_of_week,
-    month,
-    history_sequence_no,
-    is_feature_complete,
-    feature_version,
-    feature_computed_at
-FROM (
+WITH api_history AS (
     SELECT
         feature_rows.*,
         ROW_NUMBER() OVER (
-            PARTITION BY market_id, crop_id
-            ORDER BY trade_date DESC
-        ) AS latest_rank
+            PARTITION BY feature_rows.market_id, feature_rows.crop_id
+            ORDER BY feature_rows.trade_date DESC
+        ) AS latest_rank,
+        LAG(feature_rows.price_ma_30, 1) OVER pair_history_window AS previous_price_ma_30,
+        LAG(feature_rows.price_std_30, 1) OVER pair_history_window AS previous_price_std_30,
+        COUNT(*) FILTER (
+            WHERE feature_rows.volume > 0
+        ) OVER volume_log_history_window AS previous_volume_log_count_30,
+        AVG(
+            CASE
+                WHEN feature_rows.volume > 0 THEN LN(feature_rows.volume)
+            END
+        ) OVER volume_log_history_window AS previous_volume_log_ma_30,
+        STDDEV_POP(
+            CASE
+                WHEN feature_rows.volume > 0 THEN LN(feature_rows.volume)
+            END
+        ) OVER volume_log_history_window AS previous_volume_log_std_30
     FROM public.agri_price_features_daily feature_rows
-) ranked
+    WINDOW
+        pair_history_window AS (
+            PARTITION BY feature_rows.market_id, feature_rows.crop_id
+            ORDER BY feature_rows.trade_date
+        ),
+        volume_log_history_window AS (
+            PARTITION BY feature_rows.market_id, feature_rows.crop_id
+            ORDER BY feature_rows.trade_date
+            ROWS BETWEEN 30 PRECEDING AND 1 PRECEDING
+        )
+),
+api_scored AS (
+    SELECT
+        api_history.*,
+        CASE
+            WHEN api_history.previous_price_ma_30 IS NULL
+              OR api_history.previous_price_std_30 IS NULL
+            THEN NULL
+            WHEN api_history.previous_price_std_30 = 0
+              AND api_history.avg_price = api_history.previous_price_ma_30
+            THEN 0::double precision
+            WHEN api_history.previous_price_std_30 = 0
+            THEN NULL
+            ELSE (api_history.avg_price - api_history.previous_price_ma_30) / api_history.previous_price_std_30
+        END AS price_z_30,
+        CASE
+            WHEN api_history.previous_volume_log_count_30 <> 30
+              OR api_history.previous_volume_log_ma_30 IS NULL
+              OR api_history.previous_volume_log_std_30 IS NULL
+              OR api_history.volume <= 0
+            THEN NULL
+            WHEN api_history.previous_volume_log_std_30 = 0
+              AND LN(api_history.volume) = api_history.previous_volume_log_ma_30
+            THEN 0::double precision
+            WHEN api_history.previous_volume_log_std_30 = 0
+            THEN NULL
+            ELSE (LN(api_history.volume) - api_history.previous_volume_log_ma_30) / api_history.previous_volume_log_std_30
+        END AS volume_log_z_30
+    FROM api_history
+)
+SELECT
+    api_scored.trade_date,
+    api_scored.market_id,
+    api_scored.market_name,
+    api_scored.crop_id,
+    api_scored.crop_name,
+    api_scored.avg_price,
+    api_scored.volume,
+    api_scored.price_lag_1,
+    api_scored.price_lag_3,
+    api_scored.price_lag_7,
+    api_scored.price_lag_14,
+    api_scored.volume_lag_1,
+    api_scored.volume_lag_3,
+    api_scored.volume_lag_7,
+    api_scored.volume_lag_14,
+    api_scored.price_return_1,
+    api_scored.price_return_3,
+    api_scored.price_return_7,
+    api_scored.price_return_14,
+    api_scored.volume_change_1,
+    api_scored.volume_change_7,
+    api_scored.price_ma_7,
+    api_scored.price_ma_14,
+    api_scored.price_ma_30,
+    api_scored.volume_ma_7,
+    api_scored.volume_ma_14,
+    api_scored.volume_ma_30,
+    api_scored.price_std_7,
+    api_scored.price_std_14,
+    api_scored.price_std_30,
+    api_scored.volume_std_30,
+    api_scored.price_vs_ma_7,
+    api_scored.volume_vs_ma_7,
+    api_scored.day_of_week,
+    api_scored.month,
+    api_scored.history_sequence_no,
+    api_scored.is_feature_complete,
+    api_scored.feature_version,
+    api_scored.feature_computed_at,
+    api_scored.price_z_30,
+    CASE
+        WHEN api_scored.previous_price_ma_30 IS NULL
+          OR api_scored.previous_price_std_30 IS NULL
+        THEN 'insufficient_history'
+        WHEN api_scored.previous_price_std_30 = 0
+          AND api_scored.avg_price <> api_scored.previous_price_ma_30
+        THEN 'extreme_anomaly'
+        WHEN api_scored.price_z_30 IS NULL
+        THEN 'insufficient_history'
+        WHEN ABS(api_scored.price_z_30) < 2
+        THEN 'normal'
+        WHEN ABS(api_scored.price_z_30) < 3
+        THEN 'anomaly'
+        ELSE 'extreme_anomaly'
+    END AS price_anomaly_level,
+    CASE
+        WHEN api_scored.previous_price_ma_30 IS NULL
+          OR api_scored.previous_price_std_30 IS NULL
+        THEN 'none'
+        WHEN api_scored.previous_price_std_30 = 0
+          AND api_scored.avg_price > api_scored.previous_price_ma_30
+        THEN 'high'
+        WHEN api_scored.previous_price_std_30 = 0
+          AND api_scored.avg_price < api_scored.previous_price_ma_30
+        THEN 'low'
+        WHEN api_scored.price_z_30 >= 2
+        THEN 'high'
+        WHEN api_scored.price_z_30 <= -2
+        THEN 'low'
+        ELSE 'none'
+    END AS price_anomaly_direction,
+    api_scored.volume_log_z_30,
+    CASE
+        WHEN api_scored.previous_volume_log_count_30 <> 30
+          OR api_scored.previous_volume_log_ma_30 IS NULL
+          OR api_scored.previous_volume_log_std_30 IS NULL
+          OR api_scored.volume <= 0
+        THEN 'insufficient_history'
+        WHEN api_scored.previous_volume_log_std_30 = 0
+          AND LN(api_scored.volume) <> api_scored.previous_volume_log_ma_30
+        THEN 'extreme_anomaly'
+        WHEN api_scored.volume_log_z_30 IS NULL
+        THEN 'insufficient_history'
+        WHEN ABS(api_scored.volume_log_z_30) < 2
+        THEN 'normal'
+        WHEN ABS(api_scored.volume_log_z_30) < 3
+        THEN 'anomaly'
+        ELSE 'extreme_anomaly'
+    END AS volume_anomaly_level,
+    CASE
+        WHEN api_scored.previous_volume_log_count_30 <> 30
+          OR api_scored.previous_volume_log_ma_30 IS NULL
+          OR api_scored.previous_volume_log_std_30 IS NULL
+          OR api_scored.volume <= 0
+        THEN 'none'
+        WHEN api_scored.previous_volume_log_std_30 = 0
+          AND LN(api_scored.volume) > api_scored.previous_volume_log_ma_30
+        THEN 'high'
+        WHEN api_scored.previous_volume_log_std_30 = 0
+          AND LN(api_scored.volume) < api_scored.previous_volume_log_ma_30
+        THEN 'low'
+        WHEN api_scored.volume_log_z_30 >= 2
+        THEN 'high'
+        WHEN api_scored.volume_log_z_30 <= -2
+        THEN 'low'
+        ELSE 'none'
+    END AS volume_anomaly_direction
+FROM api_scored
 WHERE latest_rank = 1;
 
 DROP FUNCTION IF EXISTS public.get_agri_price_feature_history(TEXT, TEXT, DATE, DATE, INTEGER);
@@ -1044,7 +1167,13 @@ RETURNS TABLE (
     history_sequence_no INTEGER,
     is_feature_complete BOOLEAN,
     feature_version TEXT,
-    feature_computed_at TIMESTAMPTZ
+    feature_computed_at TIMESTAMPTZ,
+    price_z_30 DOUBLE PRECISION,
+    price_anomaly_level TEXT,
+    price_anomaly_direction TEXT,
+    volume_log_z_30 DOUBLE PRECISION,
+    volume_anomaly_level TEXT,
+    volume_anomaly_direction TEXT
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -1064,52 +1193,180 @@ BEGIN
     v_limit := LEAST(GREATEST(COALESCE(p_limit, 180), 1), 365);
 
     RETURN QUERY
+    WITH api_history AS (
+        SELECT
+            feature_rows.*,
+            LAG(feature_rows.price_ma_30, 1) OVER pair_history_window AS previous_price_ma_30,
+            LAG(feature_rows.price_std_30, 1) OVER pair_history_window AS previous_price_std_30,
+            COUNT(*) FILTER (
+                WHERE feature_rows.volume > 0
+            ) OVER volume_log_history_window AS previous_volume_log_count_30,
+            AVG(
+                CASE
+                    WHEN feature_rows.volume > 0 THEN LN(feature_rows.volume)
+                END
+            ) OVER volume_log_history_window AS previous_volume_log_ma_30,
+            STDDEV_POP(
+                CASE
+                    WHEN feature_rows.volume > 0 THEN LN(feature_rows.volume)
+                END
+            ) OVER volume_log_history_window AS previous_volume_log_std_30
+        FROM public.agri_price_features_daily feature_rows
+        WHERE feature_rows.market_id = p_market_id
+          AND feature_rows.crop_id = p_crop_id
+        WINDOW
+            pair_history_window AS (
+                PARTITION BY feature_rows.market_id, feature_rows.crop_id
+                ORDER BY feature_rows.trade_date
+            ),
+            volume_log_history_window AS (
+                PARTITION BY feature_rows.market_id, feature_rows.crop_id
+                ORDER BY feature_rows.trade_date
+                ROWS BETWEEN 30 PRECEDING AND 1 PRECEDING
+            )
+    ),
+    api_scored AS (
+        SELECT
+            api_history.*,
+            CASE
+                WHEN api_history.previous_price_ma_30 IS NULL
+                  OR api_history.previous_price_std_30 IS NULL
+                THEN NULL
+                WHEN api_history.previous_price_std_30 = 0
+                  AND api_history.avg_price = api_history.previous_price_ma_30
+                THEN 0::double precision
+                WHEN api_history.previous_price_std_30 = 0
+                THEN NULL
+                ELSE (api_history.avg_price - api_history.previous_price_ma_30) / api_history.previous_price_std_30
+            END AS price_z_30,
+            CASE
+                WHEN api_history.previous_volume_log_count_30 <> 30
+                  OR api_history.previous_volume_log_ma_30 IS NULL
+                  OR api_history.previous_volume_log_std_30 IS NULL
+                  OR api_history.volume <= 0
+                THEN NULL
+                WHEN api_history.previous_volume_log_std_30 = 0
+                  AND LN(api_history.volume) = api_history.previous_volume_log_ma_30
+                THEN 0::double precision
+                WHEN api_history.previous_volume_log_std_30 = 0
+                THEN NULL
+                ELSE (LN(api_history.volume) - api_history.previous_volume_log_ma_30) / api_history.previous_volume_log_std_30
+            END AS volume_log_z_30
+        FROM api_history
+    )
     SELECT
-        feature_rows.trade_date,
-        feature_rows.market_id,
-        feature_rows.market_name,
-        feature_rows.crop_id,
-        feature_rows.crop_name,
-        feature_rows.avg_price,
-        feature_rows.volume,
-        feature_rows.price_lag_1,
-        feature_rows.price_lag_3,
-        feature_rows.price_lag_7,
-        feature_rows.price_lag_14,
-        feature_rows.volume_lag_1,
-        feature_rows.volume_lag_3,
-        feature_rows.volume_lag_7,
-        feature_rows.volume_lag_14,
-        feature_rows.price_return_1,
-        feature_rows.price_return_3,
-        feature_rows.price_return_7,
-        feature_rows.price_return_14,
-        feature_rows.volume_change_1,
-        feature_rows.volume_change_7,
-        feature_rows.price_ma_7,
-        feature_rows.price_ma_14,
-        feature_rows.price_ma_30,
-        feature_rows.volume_ma_7,
-        feature_rows.volume_ma_14,
-        feature_rows.volume_ma_30,
-        feature_rows.price_std_7,
-        feature_rows.price_std_14,
-        feature_rows.price_std_30,
-        feature_rows.volume_std_30,
-        feature_rows.price_vs_ma_7,
-        feature_rows.volume_vs_ma_7,
-        feature_rows.day_of_week,
-        feature_rows.month,
-        feature_rows.history_sequence_no,
-        feature_rows.is_feature_complete,
-        feature_rows.feature_version,
-        feature_rows.feature_computed_at
-    FROM public.agri_price_features_daily feature_rows
-    WHERE feature_rows.market_id = p_market_id
-      AND feature_rows.crop_id = p_crop_id
-      AND (p_start_date IS NULL OR feature_rows.trade_date >= p_start_date)
-      AND (p_end_date IS NULL OR feature_rows.trade_date <= p_end_date)
-    ORDER BY feature_rows.trade_date ASC
+        api_scored.trade_date,
+        api_scored.market_id,
+        api_scored.market_name,
+        api_scored.crop_id,
+        api_scored.crop_name,
+        api_scored.avg_price,
+        api_scored.volume,
+        api_scored.price_lag_1,
+        api_scored.price_lag_3,
+        api_scored.price_lag_7,
+        api_scored.price_lag_14,
+        api_scored.volume_lag_1,
+        api_scored.volume_lag_3,
+        api_scored.volume_lag_7,
+        api_scored.volume_lag_14,
+        api_scored.price_return_1,
+        api_scored.price_return_3,
+        api_scored.price_return_7,
+        api_scored.price_return_14,
+        api_scored.volume_change_1,
+        api_scored.volume_change_7,
+        api_scored.price_ma_7,
+        api_scored.price_ma_14,
+        api_scored.price_ma_30,
+        api_scored.volume_ma_7,
+        api_scored.volume_ma_14,
+        api_scored.volume_ma_30,
+        api_scored.price_std_7,
+        api_scored.price_std_14,
+        api_scored.price_std_30,
+        api_scored.volume_std_30,
+        api_scored.price_vs_ma_7,
+        api_scored.volume_vs_ma_7,
+        api_scored.day_of_week,
+        api_scored.month,
+        api_scored.history_sequence_no,
+        api_scored.is_feature_complete,
+        api_scored.feature_version,
+        api_scored.feature_computed_at,
+        api_scored.price_z_30,
+        CASE
+            WHEN api_scored.previous_price_ma_30 IS NULL
+              OR api_scored.previous_price_std_30 IS NULL
+            THEN 'insufficient_history'
+            WHEN api_scored.previous_price_std_30 = 0
+              AND api_scored.avg_price <> api_scored.previous_price_ma_30
+            THEN 'extreme_anomaly'
+            WHEN api_scored.price_z_30 IS NULL
+            THEN 'insufficient_history'
+            WHEN ABS(api_scored.price_z_30) < 2
+            THEN 'normal'
+            WHEN ABS(api_scored.price_z_30) < 3
+            THEN 'anomaly'
+            ELSE 'extreme_anomaly'
+        END AS price_anomaly_level,
+        CASE
+            WHEN api_scored.previous_price_ma_30 IS NULL
+              OR api_scored.previous_price_std_30 IS NULL
+            THEN 'none'
+            WHEN api_scored.previous_price_std_30 = 0
+              AND api_scored.avg_price > api_scored.previous_price_ma_30
+            THEN 'high'
+            WHEN api_scored.previous_price_std_30 = 0
+              AND api_scored.avg_price < api_scored.previous_price_ma_30
+            THEN 'low'
+            WHEN api_scored.price_z_30 >= 2
+            THEN 'high'
+            WHEN api_scored.price_z_30 <= -2
+            THEN 'low'
+            ELSE 'none'
+        END AS price_anomaly_direction,
+        api_scored.volume_log_z_30,
+        CASE
+            WHEN api_scored.previous_volume_log_count_30 <> 30
+              OR api_scored.previous_volume_log_ma_30 IS NULL
+              OR api_scored.previous_volume_log_std_30 IS NULL
+              OR api_scored.volume <= 0
+            THEN 'insufficient_history'
+            WHEN api_scored.previous_volume_log_std_30 = 0
+              AND LN(api_scored.volume) <> api_scored.previous_volume_log_ma_30
+            THEN 'extreme_anomaly'
+            WHEN api_scored.volume_log_z_30 IS NULL
+            THEN 'insufficient_history'
+            WHEN ABS(api_scored.volume_log_z_30) < 2
+            THEN 'normal'
+            WHEN ABS(api_scored.volume_log_z_30) < 3
+            THEN 'anomaly'
+            ELSE 'extreme_anomaly'
+        END AS volume_anomaly_level,
+        CASE
+            WHEN api_scored.previous_volume_log_count_30 <> 30
+              OR api_scored.previous_volume_log_ma_30 IS NULL
+              OR api_scored.previous_volume_log_std_30 IS NULL
+              OR api_scored.volume <= 0
+            THEN 'none'
+            WHEN api_scored.previous_volume_log_std_30 = 0
+              AND LN(api_scored.volume) > api_scored.previous_volume_log_ma_30
+            THEN 'high'
+            WHEN api_scored.previous_volume_log_std_30 = 0
+              AND LN(api_scored.volume) < api_scored.previous_volume_log_ma_30
+            THEN 'low'
+            WHEN api_scored.volume_log_z_30 >= 2
+            THEN 'high'
+            WHEN api_scored.volume_log_z_30 <= -2
+            THEN 'low'
+            ELSE 'none'
+        END AS volume_anomaly_direction
+    FROM api_scored
+    WHERE TRUE
+      AND (p_start_date IS NULL OR api_scored.trade_date >= p_start_date)
+      AND (p_end_date IS NULL OR api_scored.trade_date <= p_end_date)
+    ORDER BY api_scored.trade_date ASC
     LIMIT v_limit;
 END;
 $$;
