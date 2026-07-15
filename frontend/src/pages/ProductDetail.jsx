@@ -986,8 +986,25 @@ function DetailContent({ productName, market, detail }) {
       {(() => {
         const zScore     = detail?.z_score       ?? null;
         const priceVsMa7 = detail?.price_vs_ma_7 ?? null;
-        const dotPct = zScore != null ? Math.min(Math.max(((zScore + 3) / 6) * 100, 2), 98) : 50;
-        const { label: zLabel, color: zColor } = getZScoreLabel(zScore);
+
+        // 位置：優先用 price_vs_ma_7（與 badge 一致），±40% 對應全範圍，超過直接夾住
+        const dotPct = priceVsMa7 != null
+          ? Math.min(Math.max(50 + (priceVsMa7 / 0.40) * 50, 2), 98)
+          : zScore != null
+            ? Math.min(Math.max(((zScore + 3) / 6) * 100, 2), 98)
+            : 50;
+
+        // 顏色與標籤跟著 priceStatus 走，確保與 badge 一致
+        const STATUS_GAUGE = {
+          '便宜':   { color: '#16A34A', label: '低於近期均價，目前算便宜' },
+          '正常':   { color: '#9CA3AF', label: '接近近期均價，價格正常' },
+          '偏貴':   { color: '#DC2626', label: '高於近期均價，目前偏貴' },
+          '資料不足': { color: '#9CA3AF', label: '資料不足，無法判斷' },
+        };
+        const gaugeInfo = STATUS_GAUGE[priceStatus] ?? STATUS_GAUGE['資料不足'];
+        const zColor = gaugeInfo.color;
+        const zLabel = gaugeInfo.label;
+
         const vsMa7Pct = priceVsMa7 != null
           ? `${priceVsMa7 >= 0 ? '+' : ''}${(priceVsMa7 * 100).toFixed(1)}%`
           : null;
