@@ -17,3 +17,4 @@ data/history_parquet/**/*.parquet
 frontend/node_modules/
 frontend/dist/
 frontend/.env.local
+.vite/
