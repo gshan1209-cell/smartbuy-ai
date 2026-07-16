@@ -408,7 +408,7 @@ def test_select_daily_yahoo_keywords_keeps_top_50_fixed():
     assert selection["keywords"][:50] == ranked[:50]
 
 
-def test_select_daily_yahoo_keywords_batches_remaining_crops_by_50():
+def test_select_daily_yahoo_keywords_batches_remaining_crops_by_100():
     ranked = _crop_names(180)
     selection = script.select_daily_yahoo_keywords(
         ranked,
@@ -416,11 +416,11 @@ def test_select_daily_yahoo_keywords_batches_remaining_crops_by_50():
     )
 
     assert selection["remaining_crop_count"] == 130
-    assert selection["rotation_batch_count"] == 3
-    assert len(selection["rotating_keywords"]) in {30, 50}
+    assert selection["rotation_batch_count"] == 2
+    assert len(selection["rotating_keywords"]) in {30, 100}
     batch_index = selection["rotation_batch_index"]
-    start = 50 + batch_index * 50
-    assert selection["rotating_keywords"] == ranked[start : start + 50]
+    start = 50 + batch_index * 100
+    assert selection["rotating_keywords"] == ranked[start : start + 100]
 
 
 def test_select_daily_yahoo_keywords_same_date_is_stable_and_next_date_advances():
@@ -453,12 +453,12 @@ def test_select_daily_yahoo_keywords_wraps_after_last_batch():
 
 def test_select_daily_yahoo_keywords_last_batch_does_not_backfill():
     ranked = _crop_names(180)
-    last_batch_date = date.fromordinal(2)
+    last_batch_date = date.fromordinal(1)
 
     selection = script.select_daily_yahoo_keywords(ranked, rotation_date=last_batch_date)
 
-    assert selection["rotation_batch_count"] == 3
-    assert selection["rotation_batch_index"] == 2
+    assert selection["rotation_batch_count"] == 2
+    assert selection["rotation_batch_index"] == 1
     assert selection["rotating_keywords"] == ranked[150:180]
     assert len(selection["keywords"]) == 80
 
@@ -479,8 +479,8 @@ def test_select_daily_yahoo_keywords_no_rotation_when_total_is_at_most_50(count)
     assert selection["keywords"] == ranked
 
 
-def test_select_daily_yahoo_keywords_51_to_100_includes_all_remaining():
-    ranked = _crop_names(75)
+def test_select_daily_yahoo_keywords_51_to_150_includes_all_remaining():
+    ranked = _crop_names(150)
 
     selection = script.select_daily_yahoo_keywords(
         ranked,
@@ -489,11 +489,11 @@ def test_select_daily_yahoo_keywords_51_to_100_includes_all_remaining():
 
     assert selection["fixed_keywords"] == ranked[:50]
     assert selection["rotating_keywords"] == ranked[50:]
-    assert len(selection["keywords"]) == 75
+    assert len(selection["keywords"]) == 150
     assert selection["rotation_batch_count"] == 1
 
 
-def test_select_daily_yahoo_keywords_caps_daily_selection_at_100():
+def test_select_daily_yahoo_keywords_caps_daily_selection_at_150():
     ranked = _crop_names(250)
 
     selection = script.select_daily_yahoo_keywords(
@@ -502,8 +502,34 @@ def test_select_daily_yahoo_keywords_caps_daily_selection_at_100():
     )
 
     assert len(selection["fixed_keywords"]) == 50
-    assert len(selection["rotating_keywords"]) == 50
-    assert len(selection["keywords"]) == 100
+    assert len(selection["rotating_keywords"]) == 100
+    assert len(selection["keywords"]) == 150
+
+
+def test_select_daily_yahoo_keywords_692_crops_uses_six_full_batches_and_one_short_batch():
+    ranked = _crop_names(692)
+
+    selections = [
+        script.select_daily_yahoo_keywords(
+            ranked,
+            rotation_date=date.fromordinal(7 + batch_index),
+        )
+        for batch_index in range(7)
+    ]
+
+    assert selections[0]["total_crop_count"] == 692
+    assert selections[0]["remaining_crop_count"] == 642
+    assert selections[0]["rotation_batch_count"] == 7
+    for selection in selections[:6]:
+        assert len(selection["fixed_keywords"]) == 50
+        assert len(selection["rotating_keywords"]) == 100
+        assert len(selection["keywords"]) == 150
+
+    last_selection = selections[6]
+    assert len(last_selection["fixed_keywords"]) == 50
+    assert len(last_selection["rotating_keywords"]) == 42
+    assert len(last_selection["keywords"]) == 92
+    assert last_selection["rotating_keywords"] == ranked[650:692]
 
 
 def test_select_daily_yahoo_keywords_removes_blanks_and_duplicates():
@@ -522,8 +548,8 @@ def test_select_daily_yahoo_keywords_removes_blanks_and_duplicates():
 def test_run_pipeline_selects_rotated_keywords_and_passes_them_to_yahoo(monkeypatch, capsys):
     engine = FakeEngine()
     engine.state["prices"] = [
-        {"trans_date": "2026-07-15", "crop_name": f"作物{i:03d}", "volume": 200 - i}
-        for i in range(1, 121)
+        {"trans_date": "2026-07-15", "crop_name": f"作物{i:03d}", "volume": 300 - i}
+        for i in range(1, 201)
     ]
     captured = {}
     monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@example/db")
@@ -555,22 +581,22 @@ def test_run_pipeline_selects_rotated_keywords_and_passes_them_to_yahoo(monkeypa
     result = script.run_pipeline(limit_per_source=7)
 
     expected_selection = select_daily_yahoo_keywords(
-        [f"作物{i:03d}" for i in range(1, 121)],
+        [f"作物{i:03d}" for i in range(1, 201)],
         rotation_date=date(2026, 7, 15),
     )
     assert captured == {
         "limit_per_source": 7,
         "yahoo_keywords": expected_selection["keywords"],
     }
-    assert len(captured["yahoo_keywords"]) == 100
+    assert len(captured["yahoo_keywords"]) == 150
     assert result["status"] == "partial_success"
     output = capsys.readouterr().out
     assert "Yahoo keyword selection:" in output
     assert "latest_trade_date=2026-07-15" in output
-    assert "total_crop_count=120" in output
+    assert "total_crop_count=200" in output
     assert "fixed_count=50" in output
-    assert "rotating_count=50" in output
-    assert "selected_count=100" in output
+    assert "rotating_count=100" in output
+    assert "selected_count=150" in output
     assert "rotation_batch=" in output
 
 

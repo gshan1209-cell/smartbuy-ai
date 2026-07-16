@@ -27,7 +27,7 @@ JOB_NAME = "update_agri_news_daily"
 VALID_PARSE_STATUSES = {"success", "partial", "failed"}
 REQUIRED_CRAWL_SOURCES = {"moa", "afa", "ptt_fruits", "agriharvest", "yahoo"}
 YAHOO_FIXED_KEYWORD_COUNT = 50
-YAHOO_ROTATING_KEYWORD_COUNT = 50
+YAHOO_ROTATING_KEYWORD_COUNT = 100
 MATERIAL_FIELDS = [
     "source_name",
     "source_article_id",
