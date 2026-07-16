@@ -28,14 +28,14 @@ function saveDisplayPrefs(next) {
 function splitPrefs(data) {
   return {
     prefs: {
-      priceAlert: data.priceAlert,
-      weatherAlert: data.weatherAlert,
-      mutualAidReply: data.mutualAidReply,
+      priceAlert:     data.priceAlert     ?? DEFAULT_PREFS.priceAlert,
+      weatherAlert:   data.weatherAlert   ?? DEFAULT_PREFS.weatherAlert,
+      mutualAidReply: data.mutualAidReply ?? DEFAULT_PREFS.mutualAidReply,
     },
     display: {
-      fontSize: data.fontSize,
-      layout: data.layout,
-      theme: data.theme,
+      fontSize: data.fontSize ?? DEFAULT_DISPLAY.fontSize,
+      layout:   data.layout   ?? DEFAULT_DISPLAY.layout,
+      theme:    data.theme    ?? DEFAULT_DISPLAY.theme,
     },
   };
 }
@@ -74,7 +74,7 @@ function OptionGroup({ options, value, onChange }) {
         <button
           key={val}
           type="button"
-          onClick={() => onChange(val)}
+          onClick={() => val !== value && onChange(val)}
           style={{
             padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
             cursor: 'pointer', border: '1.5px solid',
@@ -115,11 +115,10 @@ function FaqAccordion() {
 export default function Settings() {
   const { user, updateProfile, logout } = useAuth();
   const [name, setName] = useState(user?.name || '');
-  const [saved, setSaved] = useState(false);
+  const [feedback, setFeedback] = useState(null);
   const [prefs, setPrefs] = useState(loadPrefs);
   const [displayPrefs, setDisplayPrefs] = useState(loadDisplayPrefs);
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -156,18 +155,17 @@ export default function Settings() {
   async function handleSaveName(e) {
     e.preventDefault();
     if (!name.trim()) return;
-    setError('');
     try {
       await updateProfile({ name: name.trim() });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setFeedback({ type: 'success', msg: '✓ 已儲存' });
+      setTimeout(() => setFeedback(null), 2000);
     } catch (err) {
-      setError(err.message);
+      setFeedback({ type: 'error', msg: err.message });
+      setTimeout(() => setFeedback(null), 3000);
     }
   }
 
   function togglePref(key) {
-    setError('');
     const prevPrefs = prefs;
     const nextPrefs = { ...prefs, [key]: !prefs[key] };
     setPrefs(nextPrefs);
@@ -176,13 +174,13 @@ export default function Settings() {
       .catch(err => {
         setPrefs(prevPrefs);
         localStorage.setItem(LS_KEY, JSON.stringify(prevPrefs));
-        setError(err.message);
+        setFeedback({ type: 'error', msg: err.message });
+        setTimeout(() => setFeedback(null), 3000);
       });
   }
 
   function updateDisplay(key, val) {
     if (val === displayPrefs[key]) return;
-    setError('');
     const prevDisplay = displayPrefs;
     const nextDisplay = { ...displayPrefs, [key]: val };
     setDisplayPrefs(nextDisplay);
@@ -191,7 +189,8 @@ export default function Settings() {
       .catch(err => {
         setDisplayPrefs(prevDisplay);
         saveDisplayPrefs(prevDisplay);
-        setError(err.message);
+        setFeedback({ type: 'error', msg: err.message });
+        setTimeout(() => setFeedback(null), 3000);
       });
   }
 
@@ -200,10 +199,15 @@ export default function Settings() {
     if (navigator.share) {
       navigator.share({ title: 'SmartBuy AI 便宜買', url });
     } else {
-      navigator.clipboard.writeText(url).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      });
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch(() => {
+          setFeedback({ type: 'error', msg: '無法自動複製，請手動複製網址' });
+          setTimeout(() => setFeedback(null), 3000);
+        });
     }
   }
 
@@ -216,14 +220,20 @@ export default function Settings() {
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>設定</h1>
         <p style={{ fontSize: 13, color: 'var(--yz-mut)', marginBottom: 24 }}>帳號、顯示偏好與推播設定</p>
-        {error && <p style={{ fontSize: 13, color: 'var(--yz-red, #e53e3e)', marginBottom: 16 }}>{error}</p>}
+        {feedback && (
+          <p style={{
+            fontSize: 13,
+            color: feedback.type === 'success' ? 'var(--yz-g)' : 'var(--yz-red, #e53e3e)',
+            marginBottom: 16,
+          }}>{feedback.msg}</p>
+        )}
 
         {/* 帳號資料 */}
         <div className="yz-card" style={sectionStyle}>
           <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>帳號資料</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--yz-gl)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: 'var(--yz-gd)' }}>
-              {user.name[0]}
+              {(user.name?.[0] ?? '?').toUpperCase()}
             </div>
             <div>
               <p style={{ fontSize: 14, fontWeight: 600 }}>{user.name}</p>
@@ -237,7 +247,7 @@ export default function Settings() {
               <input id="yz-settings-name" className="yz-input" value={name} onChange={e => setName(e.target.value)} />
               <button className="yz-btn yz-btn-g" type="submit" style={{ flexShrink: 0 }}>儲存</button>
             </div>
-            {saved && <p style={{ fontSize: 12, color: 'var(--yz-g)', marginTop: -8, marginBottom: 14 }}>✓ 已儲存</p>}
+
           </form>
 
           <label style={labelStyle}>Email</label>
