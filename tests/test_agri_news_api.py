@@ -5,6 +5,7 @@ import sys
 import types
 
 from fastapi.testclient import TestClient
+from fastapi import APIRouter
 
 from src.data import agri_news_repository
 
@@ -13,7 +14,58 @@ fake_db = types.ModuleType("backend.db")
 fake_db.get_session = lambda: None
 sys.modules.setdefault("backend.db", fake_db)
 
+fake_price_status = types.ModuleType("src.anomaly.price_status")
+fake_price_status.get_all_price_statuses = lambda prices=None: []
+sys.modules.setdefault("src.anomaly.price_status", fake_price_status)
+
+fake_purchase_advisor = types.ModuleType("src.recommendation.purchase_advisor")
+fake_purchase_advisor.get_bargain_recommendations = lambda prices=None: []
+fake_purchase_advisor.get_purchase_advice = lambda name: {"product_name": name}
+sys.modules.setdefault("src.recommendation.purchase_advisor", fake_purchase_advisor)
+
+fake_price_repository = types.ModuleType("src.data.price_repository")
+fake_price_repository.load_price_history = lambda days=30: []
+fake_price_repository.load_latest_prices = lambda: types.SimpleNamespace(
+    __getitem__=lambda self, key: self,
+    unique=lambda: [],
+    tolist=lambda: [],
+)
+sys.modules.setdefault("src.data.price_repository", fake_price_repository)
+
+fake_cache = types.ModuleType("backend.cache")
+fake_cache.price_cache = {}
+fake_cache.compute_market_intel = lambda: {}
+fake_cache.build_product_weather_risks = lambda: []
+sys.modules.setdefault("backend.cache", fake_cache)
+
+fake_solar_terms = types.ModuleType("src.calendar.solar_terms")
+fake_solar_terms.get_current_solar_term = lambda: {}
+sys.modules.setdefault("src.calendar.solar_terms", fake_solar_terms)
+
+fake_typhoon_alert = types.ModuleType("src.weather.typhoon_alert")
+fake_typhoon_alert.get_typhoon_alert = lambda: {}
+sys.modules.setdefault("src.weather.typhoon_alert", fake_typhoon_alert)
+
+fake_origin_weather_risk = types.ModuleType("src.weather.origin_weather_risk")
+fake_origin_weather_risk.get_origin_weather_risk = lambda name: {"risk_level": "資料不足"}
+sys.modules.setdefault("src.weather.origin_weather_risk", fake_origin_weather_risk)
+
+fake_weather_impact = types.ModuleType("src.weather.weather_impact")
+fake_weather_impact.get_weather_summary = lambda: {}
+sys.modules.setdefault("src.weather.weather_impact", fake_weather_impact)
+
+for router_module_name in [
+    "backend.routers.auth",
+    "backend.routers.market",
+    "backend.routers.product",
+    "backend.routers.prediction",
+]:
+    fake_router_module = types.ModuleType(router_module_name)
+    fake_router_module.router = APIRouter()
+    sys.modules.setdefault(router_module_name, fake_router_module)
+
 import backend.main as main
+import backend.routers.misc as misc
 
 
 NEWS_ROW = {
@@ -34,7 +86,7 @@ NEWS_ROW = {
 
 
 def test_news_api_returns_200_and_news_array(monkeypatch):
-    monkeypatch.setattr(main, "query_agri_news", lambda **kwargs: [NEWS_ROW])
+    monkeypatch.setattr(misc, "query_agri_news", lambda **kwargs: [NEWS_ROW])
     client = TestClient(main.app)
 
     response = client.get("/api/news")
@@ -45,7 +97,7 @@ def test_news_api_returns_200_and_news_array(monkeypatch):
 
 
 def test_news_api_returns_only_public_fields(monkeypatch):
-    monkeypatch.setattr(main, "query_agri_news", lambda **kwargs: [NEWS_ROW])
+    monkeypatch.setattr(misc, "query_agri_news", lambda **kwargs: [NEWS_ROW])
     client = TestClient(main.app)
 
     response = client.get("/api/news")
@@ -74,7 +126,7 @@ def test_news_api_passes_filters_to_repository(monkeypatch):
         captured.update(kwargs)
         return []
 
-    monkeypatch.setattr(main, "query_agri_news", fake_query_agri_news)
+    monkeypatch.setattr(misc, "query_agri_news", fake_query_agri_news)
     client = TestClient(main.app)
 
     response = client.get(
@@ -91,12 +143,37 @@ def test_news_api_passes_filters_to_repository(monkeypatch):
     }
 
 
-def test_news_api_rejects_invalid_source():
+def test_news_api_accepts_dynamic_sources(monkeypatch):
+    captured = []
+
+    def fake_query_agri_news(**kwargs):
+        captured.append(kwargs["source_name"])
+        return []
+
+    monkeypatch.setattr(misc, "query_agri_news", fake_query_agri_news)
     client = TestClient(main.app)
 
-    response = client.get("/api/news", params={"source": "其他來源"})
+    for source in ["自由時報", "農傳媒", "PTT Fruits"]:
+        response = client.get("/api/news", params={"source": source})
+        assert response.status_code == 200
 
-    assert response.status_code == 422
+    assert captured == ["自由時報", "農傳媒", "PTT Fruits"]
+
+
+def test_news_api_treats_blank_source_as_unspecified(monkeypatch):
+    captured = {}
+
+    def fake_query_agri_news(**kwargs):
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(misc, "query_agri_news", fake_query_agri_news)
+    client = TestClient(main.app)
+
+    response = client.get("/api/news", params={"source": "   "})
+
+    assert response.status_code == 200
+    assert captured["source_name"] is None
 
 
 def test_news_api_rejects_invalid_limit():
@@ -115,7 +192,7 @@ def test_news_api_rejects_negative_offset():
 
 
 def test_news_api_returns_empty_array_when_no_rows(monkeypatch):
-    monkeypatch.setattr(main, "query_agri_news", lambda **kwargs: [])
+    monkeypatch.setattr(misc, "query_agri_news", lambda **kwargs: [])
     client = TestClient(main.app)
 
     response = client.get("/api/news")
@@ -128,7 +205,7 @@ def test_news_api_returns_fixed_503_without_internal_error(monkeypatch):
     def fake_query_agri_news(**kwargs):
         raise RuntimeError("postgresql://user:secret@example/db exploded")
 
-    monkeypatch.setattr(main, "query_agri_news", fake_query_agri_news)
+    monkeypatch.setattr(misc, "query_agri_news", fake_query_agri_news)
     client = TestClient(main.app)
 
     response = client.get("/api/news")

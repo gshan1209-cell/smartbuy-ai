@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.agri_news_articles (
     last_fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT agri_news_articles_source_name_check
-        CHECK (source_name IN ('農業部', '農糧署')),
+        CHECK (BTRIM(source_name) <> ''),
     CONSTRAINT agri_news_articles_parse_status_check
         CHECK (parse_status IN ('success', 'partial', 'failed')),
     CONSTRAINT agri_news_articles_content_hash_check

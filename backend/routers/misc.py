@@ -1,6 +1,4 @@
 from __future__ import annotations
-from typing import Literal
-
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 
@@ -40,14 +38,15 @@ def home():
 
 @router.get("/api/news")
 def get_agri_news(
-    source: Literal["農業部", "農糧署"] | None = Query(default=None),
+    source: str | None = Query(default=None, max_length=100),
     q: str | None = Query(default=None, max_length=100),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ):
     try:
+        source_name = source.strip() if source and source.strip() else None
         rows = query_agri_news(
-            source_name=source,
+            source_name=source_name,
             keyword=q,
             limit=limit,
             offset=offset,

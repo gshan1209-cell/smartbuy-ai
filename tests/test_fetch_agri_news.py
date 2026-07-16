@@ -66,6 +66,124 @@ AFA_DETAIL_HTML = """
 """
 
 
+PTT_LIST_HTML = """
+<html><body>
+  <div class="r-ent">
+    <div class="title">
+      <a href="/bbs/Fruits/M.1784033014.A.94C.html">[廣宣] 黃肉，白玉 一條龍榴槤蜜</a>
+    </div>
+  </div>
+  <div class="r-list-sep"></div>
+  <div class="r-ent">
+    <div class="title"><a href="/bbs/Fruits/M.STICKY.AAAA.html">置底公告</a></div>
+  </div>
+</body></html>
+"""
+
+
+PTT_DETAIL_HTML = """
+<html><body>
+  <div id="main-content">
+    <div class="article-metaline">
+      <span class="article-meta-tag">作者</span>
+      <span class="article-meta-value">seller (水果小農)</span>
+    </div>
+    <div class="article-metaline">
+      <span class="article-meta-tag">看板</span>
+      <span class="article-meta-value">Fruits</span>
+    </div>
+    <div class="article-metaline">
+      <span class="article-meta-tag">標題</span>
+      <span class="article-meta-value">[廣宣] 黃肉，白玉 一條龍榴槤蜜</span>
+    </div>
+    <div class="article-metaline">
+      <span class="article-meta-tag">時間</span>
+      <span class="article-meta-value">Tue Jul 14 12:03:34 2026</span>
+    </div>
+    這是第一段 PTT 正文。
+    這是第二段 PTT 正文。
+    <div class="push"><span class="push-content">: 推文不應進正文</span></div>
+    <span class="f2">※ 發信站: 批踢踢實業坊(ptt.cc), 來自: 127.0.0.1</span>
+  </div>
+</body></html>
+"""
+
+
+AGRIHARVEST_LIST_HTML = """
+<html><body>
+  <article>
+    <a class="post-title" href="https://www.agriharvest.tw/archives/137488/">
+      農傳媒測試新聞
+    </a>
+    <li class="post-date">20260715</li>
+  </article>
+</body></html>
+"""
+
+
+AGRIHARVEST_DETAIL_HTML = """
+<html><body>
+  <article>
+    <h1 class="entry-title">農傳媒測試新聞</h1>
+    <time datetime="2026-07-15T08:00:00+08:00"></time>
+    <div class="entry-content">
+      <p>第一段農傳媒正文。</p>
+      <div class="share">分享按鈕</div>
+      <div class="related">延伸閱讀：不要進正文</div>
+      <p>第二段農傳媒正文。</p>
+      <div class="tags">標籤：農業</div>
+    </div>
+  </article>
+</body></html>
+"""
+
+
+YAHOO_SEARCH_HTML = """
+<html><body>
+  <li class="stream-card">
+    <h3>
+      <a href="/%E8%8A%92%E6%9E%9C-news-111.html">[自由時報] 芒果價格上揚</a>
+    </h3>
+    <div class="text-px12">自由時報 ・ 2026年7月15日</div>
+  </li>
+  <li class="stream-card">
+    <h3>
+      <a href="/duplicate-news-222.html">[三立新聞網 setn.com] 產地採收順利</a>
+    </h3>
+    <div class="text-px12">三立新聞網 setn.com ・ 2026年7月14日</div>
+  </li>
+</body></html>
+"""
+
+
+YAHOO_SEARCH_DUPLICATE_HTML = """
+<html><body>
+  <li class="stream-card">
+    <h3>
+      <a href="/duplicate-news-222.html">[三立新聞網 setn.com] 產地採收順利</a>
+    </h3>
+    <div class="text-px12">三立新聞網 setn.com ・ 2026年7月14日</div>
+  </li>
+</body></html>
+"""
+
+
+YAHOO_DETAIL_HTML = """
+<html><body>
+  <article>
+    <h1>芒果價格上揚</h1>
+    <time datetime="2026-07-15T10:30:00+08:00"></time>
+    <div class="caas-body">
+      <p>第一段 Yahoo 正文。</p>
+      <div class="caas-share-buttons">分享</div>
+      <p>第二段 Yahoo 正文。</p>
+      <div class="caas-readmore">延伸閱讀</div>
+    </div>
+  </article>
+</body></html>
+"""
+
+
 def test_fetch_moa_news_list_parses_title_date_id_and_absolute_url(monkeypatch):
     monkeypatch.setattr(news, "_get_html", lambda url: MOA_LIST_HTML)
 
@@ -92,6 +210,126 @@ def test_fetch_afa_news_list_parses_title_date_id_and_absolute_url(monkeypatch):
     assert items[0]["source_url"] == (
         "https://www.afa.gov.tw/cht/index.php?article_id=33828&code=list&flag=detail&ids=307"
     )
+
+
+def test_fetch_ptt_fruits_news_list_parses_latest_non_sticky_article(monkeypatch):
+    monkeypatch.setattr(news, "_get_html", lambda url, **kwargs: PTT_LIST_HTML)
+
+    items = news.fetch_ptt_fruits_news_list(limit=1)
+
+    assert items[0]["source_name"] == "PTT Fruits"
+    assert items[0]["crawl_source"] == "ptt_fruits"
+    assert items[0]["source_article_id"] == "M.1784033014.A.94C"
+    assert items[0]["title"] == "[廣宣] 黃肉，白玉 一條龍榴槤蜜"
+    assert items[0]["source_url"] == "https://www.ptt.cc/bbs/Fruits/M.1784033014.A.94C.html"
+
+
+def test_fetch_ptt_fruits_article_content_removes_metadata_pushes_and_ip(monkeypatch):
+    monkeypatch.setattr(news, "_get_html", lambda url, **kwargs: PTT_DETAIL_HTML)
+
+    article = news.fetch_ptt_fruits_article_content(
+        "https://www.ptt.cc/bbs/Fruits/M.1784033014.A.94C.html"
+    )
+
+    assert article["parse_status"] == "success"
+    assert article["published_date"] == "2026-07-14"
+    assert article["content_text"] == "這是第一段 PTT 正文。\n這是第二段 PTT 正文。"
+    assert "作者" not in article["content_text"]
+    assert "推文" not in article["content_text"]
+    assert "127.0.0.1" not in article["content_text"]
+    assert article["content_hash"] == hashlib.sha256(
+        article["content_text"].encode("utf-8")
+    ).hexdigest()
+
+
+def test_fetch_agriharvest_news_list_parses_title_date_and_url(monkeypatch):
+    monkeypatch.setattr(news, "_get_html", lambda url: AGRIHARVEST_LIST_HTML)
+
+    items = news.fetch_agriharvest_news_list(limit=1)
+
+    assert items[0]["source_name"] == "農傳媒"
+    assert items[0]["crawl_source"] == "agriharvest"
+    assert items[0]["source_article_id"] == "137488"
+    assert items[0]["title"] == "農傳媒測試新聞"
+    assert items[0]["published_date"] == "2026-07-15"
+
+
+def test_fetch_agriharvest_article_content_extracts_clean_body(monkeypatch):
+    monkeypatch.setattr(news, "_get_html", lambda url: AGRIHARVEST_DETAIL_HTML)
+
+    article = news.fetch_agriharvest_article_content(
+        "https://www.agriharvest.tw/archives/137488/"
+    )
+
+    assert article["parse_status"] == "success"
+    assert article["content_text"] == "第一段農傳媒正文。\n第二段農傳媒正文。"
+    assert "延伸閱讀" not in article["content_text"]
+    assert "分享" not in article["content_text"]
+    assert article["content_hash"] == hashlib.sha256(
+        article["content_text"].encode("utf-8")
+    ).hexdigest()
+
+
+def test_yahoo_search_url_uses_given_keyword_and_url_encoding():
+    url = news.build_yahoo_search_url("愛文 芒果")
+
+    assert "高麗菜" not in url
+    assert url.endswith("?p=%E6%84%9B%E6%96%87%20%E8%8A%92%E6%9E%9C")
+
+
+def test_fetch_yahoo_news_list_dedupes_splits_source_and_title(monkeypatch):
+    requested_urls = []
+
+    def fake_get_html(url):
+        requested_urls.append(url)
+        if "%E8%8A%92%E6%9E%9C" in url:
+            return YAHOO_SEARCH_HTML
+        return YAHOO_SEARCH_DUPLICATE_HTML
+
+    monkeypatch.setattr(news, "_get_html", fake_get_html)
+    monkeypatch.setattr(news, "YAHOO_SEARCH_DELAY_SECONDS", 0)
+
+    items = news.fetch_yahoo_news_list(["芒果", "香蕉"], limit=10)
+
+    assert all("高麗菜" not in url for url in requested_urls)
+    assert len(items) == 2
+    assert items[0]["source_name"] == "自由時報"
+    assert items[0]["title"] == "芒果價格上揚"
+    assert not items[0]["title"].startswith("[")
+    assert items[1]["source_name"] == "三立新聞網 setn.com"
+
+
+def test_fetch_yahoo_news_list_final_limit_is_ten(monkeypatch):
+    cards = "\n".join(
+        f"""
+        <li class="stream-card">
+          <h3><a href="/article-{index}-123{index}.html">[自由時報] 標題 {index}</a></h3>
+          <div class="text-px12">自由時報 ・ 2026年7月{index + 1:02d}日</div>
+        </li>
+        """
+        for index in range(12)
+    )
+    monkeypatch.setattr(news, "_get_html", lambda url: f"<html><body>{cards}</body></html>")
+
+    items = news.fetch_yahoo_news_list(["芒果"], limit=50)
+
+    assert len(items) == 10
+
+
+def test_fetch_yahoo_article_content_extracts_clean_body(monkeypatch):
+    monkeypatch.setattr(news, "_get_html", lambda url: YAHOO_DETAIL_HTML)
+
+    article = news.fetch_yahoo_article_content(
+        "https://tw.news.yahoo.com/%E8%8A%92%E6%9E%9C-news-111.html"
+    )
+
+    assert article["parse_status"] == "success"
+    assert article["content_text"] == "第一段 Yahoo 正文。\n第二段 Yahoo 正文。"
+    assert "分享" not in article["content_text"]
+    assert "延伸閱讀" not in article["content_text"]
+    assert article["content_hash"] == hashlib.sha256(
+        article["content_text"].encode("utf-8")
+    ).hexdigest()
 
 
 def test_roc_date_converts_to_western_date():
@@ -177,6 +415,9 @@ def test_fetch_agri_news_merges_sources_and_keeps_going_after_article_failure(mo
     )
     monkeypatch.setattr(news, "fetch_moa_news_list", lambda limit: [moa_base])
     monkeypatch.setattr(news, "fetch_afa_news_list", lambda limit: [afa_base])
+    monkeypatch.setattr(news, "fetch_ptt_fruits_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_agriharvest_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: [])
     monkeypatch.setattr(
         news,
         "fetch_moa_article_content",
@@ -199,7 +440,7 @@ def test_fetch_agri_news_merges_sources_and_keeps_going_after_article_failure(mo
         },
     )
 
-    items = news.fetch_agri_news(limit_per_source=1)
+    items = news.fetch_agri_news(limit_per_source=1, yahoo_keywords=["芒果"])
 
     assert len(items) == 2
     assert items[0]["title"] == "農業部測試新聞"
@@ -212,6 +453,47 @@ def test_fetch_agri_news_merges_sources_and_keeps_going_after_article_failure(mo
 def test_fetch_agri_news_raises_when_both_lists_empty(monkeypatch):
     monkeypatch.setattr(news, "fetch_moa_news_list", lambda limit: [])
     monkeypatch.setattr(news, "fetch_afa_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_ptt_fruits_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_agriharvest_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: [])
 
     with pytest.raises(RuntimeError, match="Unable to fetch any agriculture news list data"):
-        news.fetch_agri_news(limit_per_source=1)
+        news.fetch_agri_news(limit_per_source=1, yahoo_keywords=["芒果"])
+
+
+def test_fetch_agri_news_yahoo_fetches_at_most_ten_detail_pages(monkeypatch):
+    yahoo_items = [
+        news._empty_article(
+            source_name="自由時報",
+            title=f"新聞 {index}",
+            source_url=f"https://tw.news.yahoo.com/article-{index}-123{index}.html",
+            crawl_source="yahoo",
+        )
+        for index in range(12)
+    ]
+    fetched_urls = []
+
+    monkeypatch.setattr(news, "fetch_moa_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_afa_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_ptt_fruits_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_agriharvest_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: yahoo_items[:limit])
+
+    def fake_fetch_detail(url):
+        fetched_urls.append(url)
+        return news._article_from_content(
+            source_name="Yahoo新聞",
+            source_url=url,
+            source_article_id=None,
+            title="",
+            published_date="2026-07-15",
+            content_text="Yahoo 正文",
+            crawl_source="yahoo",
+        )
+
+    monkeypatch.setattr(news, "fetch_yahoo_article_content", fake_fetch_detail)
+
+    items = news.fetch_agri_news(limit_per_source=50, yahoo_keywords=["芒果"])
+
+    assert len(items) == 10
+    assert len(fetched_urls) == 10

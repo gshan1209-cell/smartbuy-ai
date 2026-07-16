@@ -1,16 +1,19 @@
 """
-Fetch Ministry of Agriculture and Agriculture and Food Agency news articles.
+Fetch agriculture news articles from government, PTT, Agriharvest, and Yahoo.
 
-Crawler concepts are based on the public mdbenshow-art/NEWS project, then
-rewritten for SmartBuy AI with article-detail parsing and normalized records.
+Crawler concepts for the extra sources were reviewed from the public
+mdbenshow-art/NEWS project, then rewritten for SmartBuy AI with detail-page
+parsing, normalized records, and database-ready article bodies.
 """
 
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime, timedelta, timezone
 import re
+import time
 from typing import Any
-from urllib.parse import parse_qs, parse_qsl, urlencode, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qs, parse_qsl, quote, urlencode, urljoin, urlparse, urlunparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -18,11 +21,22 @@ from bs4 import BeautifulSoup
 
 MOA_LIST_URL = "https://www.moa.gov.tw/theme_list.php?theme=news&sub_theme=agri"
 AFA_LIST_URL = "https://www.afa.gov.tw/cht/index.php?code=list&ids=307"
+PTT_FRUITS_LIST_URL = "https://www.ptt.cc/bbs/Fruits/index.html"
+AGRIHARVEST_LIST_URL = "https://www.agriharvest.tw/archives/category/%E6%96%B0%E8%81%9E/"
+YAHOO_SEARCH_URL = "https://tw.news.yahoo.com/search"
 MOA_BASE_URL = "https://www.moa.gov.tw/"
 AFA_BASE_URL = "https://www.afa.gov.tw/cht/"
+PTT_BASE_URL = "https://www.ptt.cc"
+AGRIHARVEST_BASE_URL = "https://www.agriharvest.tw/"
+YAHOO_BASE_URL = "https://tw.news.yahoo.com/"
 
 REQUEST_TIMEOUT = (10, 30)
-USER_AGENT = "SmartBuy-AI-MVP/0.1 (+https://github.com/gshan1209-cell/smartbuy-ai)"
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
+YAHOO_SEARCH_DELAY_SECONDS = 0.25
+TAIPEI_TZ = timezone(timedelta(hours=8))
 
 
 def _normalize_source_url(url: str) -> str:
@@ -70,9 +84,78 @@ def _roc_date_to_iso(value: Any) -> str | None:
         year += 1911
 
     try:
+        datetime(year, month, day)
         return f"{year:04d}-{month:02d}-{day:02d}"
     except ValueError:
         return None
+
+
+def _compact_date_to_iso(value: Any) -> str | None:
+    text = str(value or "").strip()
+    match = re.search(r"(?<!\d)(\d{4})(\d{2})(\d{2})(?!\d)", text)
+    if not match:
+        return _roc_date_to_iso(text)
+
+    year = int(match.group(1))
+    month = int(match.group(2))
+    day = int(match.group(3))
+    try:
+        datetime(year, month, day)
+        return f"{year:04d}-{month:02d}-{day:02d}"
+    except ValueError:
+        return None
+
+
+def _ptt_date_to_iso(value: Any) -> str | None:
+    text = re.sub(r"\s+", " ", str(value or "").strip())
+    if not text:
+        return None
+
+    for fmt in ("%a %b %d %H:%M:%S %Y", "%a %b %e %H:%M:%S %Y"):
+        try:
+            return datetime.strptime(text, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
+
+
+def _yahoo_date_to_iso(value: Any) -> str | None:
+    text = str(value or "").strip()
+    now = datetime.now(TAIPEI_TZ)
+
+    if not text:
+        return None
+
+    relative_patterns = [
+        (r"(\d+)\s*分鐘前", "minutes"),
+        (r"(\d+)\s*小時前", "hours"),
+        (r"(\d+)\s*天前", "days"),
+    ]
+    for pattern, unit in relative_patterns:
+        match = re.search(pattern, text)
+        if match:
+            delta = timedelta(**{unit: int(match.group(1))})
+            return (now - delta).date().isoformat()
+
+    if "剛剛" in text or "秒前" in text:
+        return now.date().isoformat()
+    if "昨天" in text or "昨日" in text:
+        return (now - timedelta(days=1)).date().isoformat()
+
+    match = re.search(r"(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日", text)
+    if match:
+        return _roc_date_to_iso("-".join(match.groups()))
+
+    match = re.search(r"(\d{1,2})\s*月\s*(\d{1,2})\s*日", text)
+    if match:
+        month = int(match.group(1))
+        day = int(match.group(2))
+        try:
+            return datetime(now.year, month, day).date().isoformat()
+        except ValueError:
+            return None
+
+    return _roc_date_to_iso(text)
 
 
 def _source_article_id_from_url(url: str, key: str) -> str | None:
@@ -89,9 +172,10 @@ def _empty_article(
     published_date: str | None = None,
     parse_status: str = "partial",
     parse_error: str | None = None,
+    crawl_source: str | None = None,
 ) -> dict[str, Any]:
     normalized_url = _normalize_source_url(source_url)
-    return {
+    article = {
         "article_key": _article_key(normalized_url),
         "source_name": source_name,
         "source_article_id": source_article_id,
@@ -103,12 +187,18 @@ def _empty_article(
         "parse_status": parse_status,
         "parse_error": parse_error,
     }
+    if crawl_source:
+        article["crawl_source"] = crawl_source
+    return article
 
 
-def _get_html(url: str) -> str:
+def _get_html(url: str, headers: dict[str, str] | None = None) -> str:
+    request_headers = {"User-Agent": USER_AGENT}
+    if headers:
+        request_headers.update(headers)
     response = requests.get(
         url,
-        headers={"User-Agent": USER_AGENT},
+        headers=request_headers,
         timeout=REQUEST_TIMEOUT,
     )
     response.raise_for_status()
@@ -120,13 +210,19 @@ def _get_html(url: str) -> str:
 def _clean_text(node: Any) -> str | None:
     for unwanted in node.select(
         "script, style, noscript, nav, header, footer, .breadcrumb, .share, "
-        ".social, .tool, .function, .accesskey, .pagination"
+        ".social, .tool, .function, .accesskey, .pagination, .author, .tags, "
+        ".tag, .related, .recommend, .advertisement, .ads, .ad, .entry-footer, "
+        ".post-navigation, .sharedaddy, .addtoany_share_save_container, "
+        ".caas-share-buttons, .caas-readmore, .caas-figure, .caas-attr, "
+        ".caas-tags, .caas-related"
     ):
         unwanted.decompose()
 
     lines: list[str] = []
     for raw_line in node.get_text("\n", strip=True).splitlines():
         line = re.sub(r"\s+", " ", raw_line).strip()
+        if re.search(r"^(延伸閱讀|相關文章|更多新聞|看更多|廣告|分享)$", line):
+            continue
         if line:
             lines.append(line)
 
@@ -142,6 +238,7 @@ def _article_from_content(
     title: str,
     published_date: str | None,
     content_text: str | None,
+    crawl_source: str | None = None,
 ) -> dict[str, Any]:
     article = _empty_article(
         source_name=source_name,
@@ -151,6 +248,7 @@ def _article_from_content(
         published_date=published_date,
         parse_status="success" if content_text else "partial",
         parse_error=None if content_text else "article content selector returned no text",
+        crawl_source=crawl_source,
     )
     article["content_text"] = content_text
     article["content_hash"] = _content_hash(content_text)
@@ -194,6 +292,7 @@ def fetch_moa_news_list(limit: int = 10) -> list[dict[str, Any]]:
                     published_date=_roc_date_to_iso(cells[1].get_text(" ", strip=True)),
                     source_url=source_url,
                     parse_status="partial",
+                    crawl_source="moa",
                 )
             )
 
@@ -243,6 +342,7 @@ def fetch_afa_news_list(limit: int = 10) -> list[dict[str, Any]]:
                         published_date=published_date,
                         source_url=source_url,
                         parse_status="partial",
+                        crawl_source="afa",
                     )
                 )
                 page_added += 1
@@ -275,6 +375,7 @@ def fetch_moa_article_content(url: str) -> dict[str, Any]:
             title=title,
             published_date=published_date,
             content_text=content_text,
+            crawl_source="moa",
         )
     except Exception as exc:
         return _empty_article(
@@ -283,6 +384,7 @@ def fetch_moa_article_content(url: str) -> dict[str, Any]:
             source_article_id=_source_article_id_from_url(url, "id"),
             parse_status="failed",
             parse_error=str(exc),
+            crawl_source="moa",
         )
 
 
@@ -309,6 +411,7 @@ def fetch_afa_article_content(url: str) -> dict[str, Any]:
             title=title,
             published_date=published_date,
             content_text=content_text,
+            crawl_source="afa",
         )
     except Exception as exc:
         return _empty_article(
@@ -317,6 +420,352 @@ def fetch_afa_article_content(url: str) -> dict[str, Any]:
             source_article_id=_source_article_id_from_url(url, "article_id"),
             parse_status="failed",
             parse_error=str(exc),
+            crawl_source="afa",
+        )
+
+
+def _ptt_article_id_from_url(url: str) -> str | None:
+    match = re.search(r"/bbs/Fruits/(M\.\d+\.A\.[A-Za-z0-9]+)\.html", url)
+    return match.group(1) if match else None
+
+
+def fetch_ptt_fruits_news_list(limit: int = 10) -> list[dict[str, Any]]:
+    try:
+        html = _get_html(PTT_FRUITS_LIST_URL, headers={"Cookie": "over18=1"})
+    except Exception:
+        return []
+
+    soup = BeautifulSoup(html, "html.parser")
+    separator = soup.find("div", class_="r-list-sep")
+    rows = (
+        separator.find_previous_siblings("div", class_="r-ent")
+        if separator
+        else list(reversed(soup.select("div.r-ent")))
+    )
+
+    news_items: list[dict[str, Any]] = []
+    for row in rows:
+        if len(news_items) >= limit:
+            break
+
+        title_node = row.select_one("div.title a[href]")
+        if not title_node:
+            continue
+
+        title = title_node.get_text(" ", strip=True)
+        source_url = urljoin(PTT_BASE_URL, title_node["href"].strip())
+        if title and source_url:
+            news_items.append(
+                _empty_article(
+                    source_name="PTT Fruits",
+                    source_article_id=_ptt_article_id_from_url(source_url),
+                    title=title,
+                    published_date=None,
+                    source_url=source_url,
+                    parse_status="partial",
+                    crawl_source="ptt_fruits",
+                )
+            )
+
+    return news_items
+
+
+def _clean_ptt_content(soup: BeautifulSoup) -> str | None:
+    main = soup.select_one("#main-content")
+    if not main:
+        return None
+
+    for unwanted in main.select(
+        ".article-metaline, .article-metaline-right, .push, .f2, script, style"
+    ):
+        unwanted.decompose()
+
+    lines: list[str] = []
+    in_signature = False
+    for raw_line in main.get_text("\n", strip=False).splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line == "--":
+            in_signature = True
+            continue
+        if in_signature:
+            continue
+        if line.startswith(("作者", "看板", "標題", "時間")):
+            continue
+        if line.startswith("※"):
+            continue
+        if re.search(r"\b\d{1,3}(?:\.\d{1,3}){3}\b", line):
+            continue
+        lines.append(re.sub(r"\s+", " ", line))
+
+    text = "\n".join(lines).strip()
+    return text or None
+
+
+def fetch_ptt_fruits_article_content(url: str) -> dict[str, Any]:
+    try:
+        html = _get_html(url, headers={"Cookie": "over18=1"})
+        soup = BeautifulSoup(html, "html.parser")
+        meta: dict[str, str] = {}
+        for line in soup.select("div.article-metaline"):
+            tag = line.select_one(".article-meta-tag")
+            value = line.select_one(".article-meta-value")
+            if tag and value:
+                meta[tag.get_text(" ", strip=True)] = value.get_text(" ", strip=True)
+
+        title = meta.get("標題", "")
+        published_date = _ptt_date_to_iso(meta.get("時間"))
+        content_text = _clean_ptt_content(soup)
+        if not content_text:
+            raise ValueError("PTT article body is empty after metadata and push cleanup")
+
+        return _article_from_content(
+            source_name="PTT Fruits",
+            source_url=url,
+            source_article_id=_ptt_article_id_from_url(url),
+            title=title,
+            published_date=published_date,
+            content_text=content_text,
+            crawl_source="ptt_fruits",
+        )
+    except Exception as exc:
+        return _empty_article(
+            source_name="PTT Fruits",
+            source_url=url,
+            source_article_id=_ptt_article_id_from_url(url),
+            parse_status="failed",
+            parse_error=str(exc),
+            crawl_source="ptt_fruits",
+        )
+
+
+def _agriharvest_article_id_from_url(url: str) -> str | None:
+    match = re.search(r"/archives/(\d+)", url)
+    return match.group(1) if match else None
+
+
+def fetch_agriharvest_news_list(limit: int = 10) -> list[dict[str, Any]]:
+    try:
+        html = _get_html(AGRIHARVEST_LIST_URL)
+    except Exception:
+        return []
+
+    soup = BeautifulSoup(html, "html.parser")
+    links = soup.select("a.post-title[href], h2.entry-title a[href], h3.entry-title a[href]")
+    news_items: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+
+    for link in links:
+        if len(news_items) >= limit:
+            break
+
+        title = link.get_text(" ", strip=True)
+        source_url = _normalize_source_url(urljoin(AGRIHARVEST_BASE_URL, link["href"].strip()))
+        if not title or source_url in seen_urls:
+            continue
+
+        container = link.find_parent(["article", "div", "li"]) or link.parent
+        date_text = ""
+        if container:
+            date_node = container.select_one("li.post-date, time, .post-date, .date")
+            if date_node:
+                date_text = date_node.get("datetime") or date_node.get_text(" ", strip=True)
+
+        seen_urls.add(source_url)
+        news_items.append(
+            _empty_article(
+                source_name="農傳媒",
+                source_article_id=_agriharvest_article_id_from_url(source_url),
+                title=title,
+                published_date=_compact_date_to_iso(date_text),
+                source_url=source_url,
+                parse_status="partial",
+                crawl_source="agriharvest",
+            )
+        )
+
+    return news_items
+
+
+def fetch_agriharvest_article_content(url: str) -> dict[str, Any]:
+    try:
+        html = _get_html(url)
+        soup = BeautifulSoup(html, "html.parser")
+        content_node = (
+            soup.select_one("div.entry-content")
+            or soup.select_one(".article-content")
+            or soup.select_one("article .post-content")
+            or soup.select_one("article .content")
+            or soup.select_one("article")
+        )
+        if not content_node:
+            raise ValueError("Agriharvest article content selector not found: div.entry-content")
+
+        title_node = soup.select_one("h1.entry-title") or soup.find("h1")
+        title = title_node.get_text(" ", strip=True) if title_node else ""
+        date_node = (
+            soup.select_one("time[datetime]")
+            or soup.select_one("meta[property='article:published_time']")
+            or soup.select_one(".post-date")
+        )
+        date_text = ""
+        if date_node:
+            date_text = date_node.get("datetime") or date_node.get("content") or date_node.get_text(" ", strip=True)
+        content_text = _clean_text(content_node)
+
+        return _article_from_content(
+            source_name="農傳媒",
+            source_url=url,
+            source_article_id=_agriharvest_article_id_from_url(url),
+            title=title,
+            published_date=_compact_date_to_iso(date_text),
+            content_text=content_text,
+            crawl_source="agriharvest",
+        )
+    except Exception as exc:
+        return _empty_article(
+            source_name="農傳媒",
+            source_url=url,
+            source_article_id=_agriharvest_article_id_from_url(url),
+            parse_status="failed",
+            parse_error=str(exc),
+            crawl_source="agriharvest",
+        )
+
+
+def build_yahoo_search_url(keyword: str) -> str:
+    return f"{YAHOO_SEARCH_URL}?p={quote(keyword.strip(), safe='')}"
+
+
+def _yahoo_article_id_from_url(url: str) -> str | None:
+    match = re.search(r"-(\d+)\.html(?:$|\?)", url)
+    return match.group(1) if match else None
+
+
+def _yahoo_publisher_from_meta(card: Any) -> tuple[str | None, str | None]:
+    meta_node = card.select_one(".text-px12") or card.select_one("[class*='text-px12']")
+    if not meta_node:
+        return None, None
+
+    meta_text = re.sub(r"\s+", " ", meta_node.get_text(" ", strip=True)).strip()
+    if not meta_text:
+        return None, None
+
+    parts = [part.strip() for part in re.split(r"[・|]", meta_text) if part.strip()]
+    if len(parts) >= 2:
+        return parts[0], parts[1]
+    return None, parts[0]
+
+
+def _split_yahoo_title_and_source(raw_title: str, publisher: str | None) -> tuple[str, str]:
+    title = re.sub(r"\s+", " ", raw_title).strip()
+    prefix_match = re.match(r"^\[([^\]]+)\]\s*(.+)$", title)
+    prefix_source = None
+    if prefix_match:
+        prefix_source = prefix_match.group(1).strip()
+        title = prefix_match.group(2).strip()
+
+    source_name = (publisher or prefix_source or "Yahoo新聞").strip()
+    return title, source_name or "Yahoo新聞"
+
+
+def _published_sort_key(article: dict[str, Any]) -> tuple[str, str]:
+    return (article.get("published_date") or "", article.get("title") or "")
+
+
+def fetch_yahoo_news_list(
+    keywords: list[str] | None,
+    *,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    normalized_keywords = []
+    seen_keywords: set[str] = set()
+    for keyword in keywords or []:
+        normalized = str(keyword).strip()
+        if normalized and normalized not in seen_keywords:
+            normalized_keywords.append(normalized)
+            seen_keywords.add(normalized)
+
+    deduped: dict[str, dict[str, Any]] = {}
+    for index, keyword in enumerate(normalized_keywords):
+        if index > 0 and YAHOO_SEARCH_DELAY_SECONDS > 0:
+            time.sleep(YAHOO_SEARCH_DELAY_SECONDS)
+
+        try:
+            html = _get_html(build_yahoo_search_url(keyword))
+        except Exception:
+            continue
+
+        soup = BeautifulSoup(html, "html.parser")
+        cards = soup.select("li.stream-card")
+        for card in cards:
+            link = card.select_one("h3 a[href]") or card.select_one("a[href]")
+            if not link:
+                continue
+
+            raw_title = link.get_text(" ", strip=True)
+            href = link.get("href", "").strip()
+            if not raw_title or not href:
+                continue
+
+            source_url = _normalize_source_url(urljoin(YAHOO_BASE_URL, href))
+            if source_url in deduped:
+                continue
+
+            publisher, date_text = _yahoo_publisher_from_meta(card)
+            title, source_name = _split_yahoo_title_and_source(raw_title, publisher)
+            deduped[source_url] = _empty_article(
+                source_name=source_name,
+                source_article_id=_yahoo_article_id_from_url(source_url),
+                title=title,
+                published_date=_yahoo_date_to_iso(date_text),
+                source_url=source_url,
+                parse_status="partial",
+                crawl_source="yahoo",
+            )
+
+    articles = sorted(deduped.values(), key=_published_sort_key, reverse=True)
+    return articles[: min(limit, 10)]
+
+
+def fetch_yahoo_article_content(url: str) -> dict[str, Any]:
+    try:
+        html = _get_html(url)
+        soup = BeautifulSoup(html, "html.parser")
+        content_node = (
+            soup.select_one("div.caas-body")
+            or soup.select_one("article div[class*='body']")
+            or soup.select_one("article")
+        )
+        if not content_node:
+            raise ValueError("Yahoo article content selector not found: div.caas-body")
+
+        title_node = soup.select_one("h1") or soup.select_one("header h1")
+        title = title_node.get_text(" ", strip=True) if title_node else ""
+        date_node = soup.select_one("time[datetime]") or soup.select_one("meta[property='article:published_time']")
+        date_text = ""
+        if date_node:
+            date_text = date_node.get("datetime") or date_node.get("content") or date_node.get_text(" ", strip=True)
+        content_text = _clean_text(content_node)
+
+        return _article_from_content(
+            source_name="Yahoo新聞",
+            source_url=url,
+            source_article_id=_yahoo_article_id_from_url(url),
+            title=title,
+            published_date=_yahoo_date_to_iso(date_text) or _compact_date_to_iso(date_text),
+            content_text=content_text,
+            crawl_source="yahoo",
+        )
+    except Exception as exc:
+        return _empty_article(
+            source_name="Yahoo新聞",
+            source_url=url,
+            source_article_id=_yahoo_article_id_from_url(url),
+            parse_status="failed",
+            parse_error=str(exc),
+            crawl_source="yahoo",
         )
 
 
@@ -331,23 +780,33 @@ def _merge_article(base: dict[str, Any], detail: dict[str, Any]) -> dict[str, An
 
     merged["source_url"] = _normalize_source_url(merged["source_url"])
     merged["article_key"] = _article_key(merged["source_url"])
+    if base.get("crawl_source") or detail.get("crawl_source"):
+        merged["crawl_source"] = base.get("crawl_source") or detail.get("crawl_source")
     return merged
 
 
-def fetch_agri_news(limit_per_source: int = 10) -> list[dict[str, Any]]:
-    moa_items = fetch_moa_news_list(limit_per_source)
-    afa_items = fetch_afa_news_list(limit_per_source)
+def fetch_agri_news(
+    limit_per_source: int = 10,
+    yahoo_keywords: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    source_jobs = [
+        (fetch_moa_news_list(limit_per_source), fetch_moa_article_content),
+        (fetch_afa_news_list(limit_per_source), fetch_afa_article_content),
+        (fetch_ptt_fruits_news_list(limit_per_source), fetch_ptt_fruits_article_content),
+        (fetch_agriharvest_news_list(limit_per_source), fetch_agriharvest_article_content),
+        (
+            fetch_yahoo_news_list(yahoo_keywords, limit=min(limit_per_source, 10)),
+            fetch_yahoo_article_content,
+        ),
+    ]
 
-    if not moa_items and not afa_items:
+    if not any(items for items, _detail_fetcher in source_jobs):
         raise RuntimeError("Unable to fetch any agriculture news list data.")
 
     articles: list[dict[str, Any]] = []
-    for item in moa_items:
-        detail = fetch_moa_article_content(item["source_url"])
-        articles.append(_merge_article(item, detail))
-
-    for item in afa_items:
-        detail = fetch_afa_article_content(item["source_url"])
-        articles.append(_merge_article(item, detail))
+    for items, detail_fetcher in source_jobs:
+        for item in items:
+            detail = detail_fetcher(item["source_url"])
+            articles.append(_merge_article(item, detail))
 
     return articles

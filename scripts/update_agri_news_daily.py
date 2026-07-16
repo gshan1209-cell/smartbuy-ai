@@ -23,8 +23,8 @@ from src.data.fetch_agri_news import fetch_agri_news  # noqa: E402
 
 
 JOB_NAME = "update_agri_news_daily"
-VALID_SOURCES = {"農業部", "農糧署"}
 VALID_PARSE_STATUSES = {"success", "partial", "failed"}
+REQUIRED_CRAWL_SOURCES = {"moa", "afa", "ptt_fruits", "agriharvest", "yahoo"}
 MATERIAL_FIELDS = [
     "source_name",
     "source_article_id",
@@ -68,9 +68,6 @@ def validate_article(article: dict[str, Any]) -> dict[str, Any]:
 
     source_name = str(article["source_name"]).strip()
     parse_status = str(article["parse_status"]).strip()
-
-    if source_name not in VALID_SOURCES:
-        raise ValueError(f"invalid source_name: {source_name}")
 
     if parse_status not in VALID_PARSE_STATUSES:
         raise ValueError(f"invalid parse_status: {parse_status}")
@@ -257,6 +254,36 @@ TOUCH_ARTICLE_SQL = text(
     """
 )
 
+TOP_CROP_NAMES_SQL = text(
+    """
+    WITH latest_date AS (
+        SELECT MAX(trans_date) AS trans_date
+        FROM public.agri_price_daily
+    )
+    SELECT
+        crop_name,
+        SUM(COALESCE(volume, 0)) AS total_volume
+    FROM public.agri_price_daily
+    JOIN latest_date
+      ON agri_price_daily.trans_date = latest_date.trans_date
+    WHERE crop_name IS NOT NULL
+      AND BTRIM(crop_name) <> ''
+    GROUP BY crop_name
+    ORDER BY total_volume DESC, crop_name ASC
+    LIMIT :limit;
+    """
+)
+
+
+def fetch_latest_top_crop_names(conn: Any, limit: int = 50) -> list[str]:
+    rows = conn.execute(TOP_CROP_NAMES_SQL, {"limit": limit}).mappings().all()
+    crop_names: list[str] = []
+    for row in rows:
+        crop_name = _normalize_text(row.get("crop_name"))
+        if crop_name:
+            crop_names.append(crop_name)
+    return crop_names
+
 
 def upsert_articles(conn: Any, articles: list[dict[str, Any]]) -> dict[str, int]:
     stats = {
@@ -292,9 +319,12 @@ def upsert_articles(conn: Any, articles: list[dict[str, Any]]) -> dict[str, int]
 
 
 def determine_status(articles: list[dict[str, Any]], stats: dict[str, int]) -> str:
-    sources = {article.get("source_name") for article in articles}
-    has_both_sources = VALID_SOURCES.issubset(sources)
-    if has_both_sources and stats["parse_issue_count"] == 0:
+    crawl_sources = {
+        str(article.get("crawl_source")).strip()
+        for article in articles
+        if _normalize_text(article.get("crawl_source"))
+    }
+    if REQUIRED_CRAWL_SOURCES.issubset(crawl_sources) and stats["parse_issue_count"] == 0:
         return "success"
     return "partial_success"
 
@@ -312,7 +342,13 @@ def run_pipeline(limit_per_source: int = 10) -> dict[str, Any]:
     engine = create_engine(database_url, pool_pre_ping=True)
 
     try:
-        articles = fetch_agri_news(limit_per_source=limit_per_source)
+        with engine.begin() as conn:
+            yahoo_keywords = fetch_latest_top_crop_names(conn, limit=50)
+
+        articles = fetch_agri_news(
+            limit_per_source=limit_per_source,
+            yahoo_keywords=yahoo_keywords,
+        )
         if not articles:
             raise RuntimeError("fetch_agri_news returned no articles.")
 
