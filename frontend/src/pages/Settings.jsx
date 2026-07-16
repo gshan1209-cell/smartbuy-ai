@@ -121,6 +121,7 @@ export default function Settings() {
   const [pwForm, setPwForm] = useState({ old: '', new: '', confirm: '' });
   const [pwState, setPwState] = useState('idle');
   const [pwError, setPwError] = useState('');
+  const [showPwForm, setShowPwForm] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -285,44 +286,54 @@ export default function Settings() {
 
           <hr style={{ border: 'none', borderTop: '1px solid var(--yz-bdr)', margin: '16px 0' }} />
 
-          <form onSubmit={handleChangePassword}>
-            <label style={labelStyle}>變更密碼</label>
-            <input
-              className="yz-input"
-              type="password"
-              placeholder="舊密碼"
-              value={pwForm.old}
-              onChange={e => setPwForm(f => ({ ...f, old: e.target.value }))}
-              style={{ marginBottom: 8 }}
-            />
-            <input
-              className="yz-input"
-              type="password"
-              placeholder="新密碼"
-              value={pwForm.new}
-              onChange={e => setPwForm(f => ({ ...f, new: e.target.value }))}
-              style={{ marginBottom: 8 }}
-            />
-            <input
-              className="yz-input"
-              type="password"
-              placeholder="確認新密碼"
-              value={pwForm.confirm}
-              onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
-              style={{ marginBottom: 8 }}
-            />
-            {pwError && (
-              <p style={{ fontSize: 12, color: 'var(--yz-re)', marginBottom: 8 }}>{pwError}</p>
-            )}
-            <button
-              className="yz-btn yz-btn-g"
-              type="submit"
-              disabled={pwState === 'loading' || pwState === 'success'}
-              style={{ marginBottom: 16 }}
-            >
-              {pwState === 'loading' ? '處理中…' : pwState === 'success' ? '✓ 已變更' : '變更密碼'}
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={() => { setShowPwForm(v => !v); setPwError(''); setPwState('idle'); }}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--yz-dim)', marginBottom: showPwForm ? 12 : 16 }}
+          >
+            <span style={{ fontSize: 11, display: 'inline-block', transform: showPwForm ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .2s' }}>▶</span>
+            變更密碼
+          </button>
+
+          {showPwForm && (
+            <form onSubmit={handleChangePassword}>
+              <input
+                className="yz-input"
+                type="password"
+                placeholder="舊密碼"
+                value={pwForm.old}
+                onChange={e => setPwForm(f => ({ ...f, old: e.target.value }))}
+                style={{ marginBottom: 8 }}
+              />
+              <input
+                className="yz-input"
+                type="password"
+                placeholder="新密碼"
+                value={pwForm.new}
+                onChange={e => setPwForm(f => ({ ...f, new: e.target.value }))}
+                style={{ marginBottom: 8 }}
+              />
+              <input
+                className="yz-input"
+                type="password"
+                placeholder="確認新密碼"
+                value={pwForm.confirm}
+                onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
+                style={{ marginBottom: 8 }}
+              />
+              {pwError && (
+                <p style={{ fontSize: 12, color: 'var(--yz-re)', marginBottom: 8 }}>{pwError}</p>
+              )}
+              <button
+                className="yz-btn yz-btn-g"
+                type="submit"
+                disabled={pwState === 'loading' || pwState === 'success'}
+                style={{ marginBottom: 16 }}
+              >
+                {pwState === 'loading' ? '處理中…' : pwState === 'success' ? '✓ 已變更' : '變更密碼'}
+              </button>
+            </form>
+          )}
 
           <button
             type="button"

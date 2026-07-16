@@ -6,9 +6,75 @@ import { loadSavedNews, removeSavedNews } from '../lib/savedNews';
 import { loadBasket, saveBasket } from '../lib/basket';
 import './MyBasket.css';
 
-// 找出收藏文章標題/內文中提到的菜籃品項，供「與你的菜籃相關」標示使用
 function matchedBasketItems(article, basket) {
   return basket.filter(name => article.title.includes(name) || article.summary.includes(name));
+}
+
+function SavedNewsList({ savedNews, basket, onRemove }) {
+  const [expandedId, setExpandedId] = useState(null);
+  return (
+    <div className="mb-grid">
+      {savedNews.map(article => {
+        const expanded = expandedId === article.id;
+        const related = matchedBasketItems(article, basket);
+        return (
+          <div
+            key={article.id}
+            className="card"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setExpandedId(expanded ? null : article.id)}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span className="badge badge-green">{article.tag}</span>
+              <button
+                className="mb-chip-remove"
+                onClick={e => { e.stopPropagation(); onRemove(article.id); }}
+                title="取消收藏"
+              >×</button>
+            </div>
+            <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{article.title}</h3>
+            <p style={{
+              fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6,
+              display: '-webkit-box', WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: expanded ? 'unset' : 3,
+              overflow: expanded ? 'visible' : 'hidden',
+              marginBottom: related.length ? 8 : 0,
+            }}>{article.summary}</p>
+            {related.length > 0 && (
+              <p style={{ fontSize: 12, color: 'var(--orange-dark)', fontWeight: 500, marginBottom: 0 }}>
+                🧺 與你的菜籃相關：{related.join('、')}
+              </p>
+            )}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10,
+            }}>
+              {article.url ? (
+                <a
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    fontSize: 12, color: 'var(--green-dark)', textDecoration: 'none',
+                    padding: '4px 10px', borderRadius: 6,
+                    border: '1px solid var(--border)',
+                    background: 'var(--cream-dark)',
+                    display: 'inline-block',
+                  }}
+                >
+                  閱讀原文 ↗
+                </a>
+              ) : <span />}
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+                {expanded ? '收合 ↑' : '展開 →'}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function MyBasket() {
@@ -110,26 +176,7 @@ export default function MyBasket() {
       {savedNews.length === 0 ? (
         <p className="empty">還沒有收藏的文章，前往<a href="/news" onClick={e => { e.preventDefault(); navigate('/news'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>農產新知</a>看看</p>
       ) : (
-        <div className="mb-grid">
-          {savedNews.map(article => {
-            const related = matchedBasketItems(article, basket);
-            return (
-              <div key={article.id} className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span className="badge badge-green">{article.tag}</span>
-                  <button className="mb-chip-remove" onClick={() => handleRemoveSavedNews(article.id)} title="取消收藏">×</button>
-                </div>
-                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{article.title}</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: related.length ? 8 : 0 }}>{article.summary}</p>
-                {related.length > 0 && (
-                  <p style={{ fontSize: 12, color: 'var(--orange-dark)', fontWeight: 500 }}>
-                    🧺 與你的菜籃相關：{related.join('、')}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <SavedNewsList savedNews={savedNews} basket={basket} onRemove={handleRemoveSavedNews} />
       )}
     </div>
   );

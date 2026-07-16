@@ -83,6 +83,55 @@ def _row_to_dict(row: Any) -> dict[str, Any]:
     return dict(row)
 
 
+def query_news_sources() -> list[str]:
+    try:
+        sql = text("""
+            SELECT DISTINCT source_name
+            FROM public.agri_news_articles
+            WHERE source_name IS NOT NULL
+            ORDER BY source_name ASC
+        """)
+        engine = _get_engine()
+        with engine.connect() as conn:
+            rows = conn.execute(sql).fetchall()
+        return [row[0] for row in rows]
+    except Exception as exc:
+        raise RuntimeError("Unable to query news sources.") from exc
+
+
+def query_agri_news_count(
+    source_name: str | None = None,
+    keyword: str | None = None,
+) -> int:
+    """
+    Return the total count of rows matching the same filters as query_agri_news.
+    """
+    try:
+        sql = """
+            SELECT COUNT(*)
+            FROM public.agri_news_articles
+            WHERE parse_status = 'success'
+              AND content_text IS NOT NULL
+              AND BTRIM(content_text) <> ''
+        """
+        params: dict[str, Any] = {}
+
+        if source_name:
+            sql += " AND source_name = :source_name"
+            params["source_name"] = source_name
+
+        if keyword:
+            sql += " AND (title ILIKE :keyword OR content_text ILIKE :keyword)"
+            params["keyword"] = f"%{keyword}%"
+
+        engine = _get_engine()
+        with engine.connect() as conn:
+            result = conn.execute(text(sql), params)
+            return result.scalar() or 0
+    except Exception as exc:
+        raise RuntimeError("Unable to count agriculture news.") from exc
+
+
 def query_agri_news(
     source_name: str | None = None,
     keyword: str | None = None,
