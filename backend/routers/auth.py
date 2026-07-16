@@ -54,6 +54,7 @@ def auth_register(payload: RegisterRequest):
     會員申請（註冊）。
     - 不需要傳入 plan；系統預設「免費會員」。
     - 密碼由後端 bcrypt 雜湊後存入。
+    - 註冊成功後直接回傳 JWT Token，前端可免去二次登入。
     """
     try:
         result = register_member(
@@ -70,7 +71,9 @@ def auth_register(payload: RegisterRequest):
                 detail="此電子郵件已被使用，請直接登入或使用其他信箱。",
             )
         raise HTTPException(status_code=500, detail="資料庫錯誤，請稍後再試。")
-    return {"success": True, **result}
+    token = create_access_token(member_id=result["member_id"], email=result["email"])
+    member = {"id": result["member_id"], "email": result["email"], "name": result["name"]}
+    return {"success": True, "token": token, "member": member}
 
 
 @router.post("/login")

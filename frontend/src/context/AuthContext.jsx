@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(loadUser);
 
   async function login(email, password) {
-    const res = await fetch(`${BASE}/auth/login`, {
+    const res = await fetch(`${BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || '登入失敗');
     }
-    const { token, user: u } = await res.json();
+    const { token, member: u } = await res.json();
     localStorage.setItem(LS_TOKEN, token);
     localStorage.setItem(LS_USER, JSON.stringify(u));
     setUser(u);
@@ -44,13 +44,13 @@ export function AuthProvider({ children }) {
 
   async function updateProfile(patch) {
     const token = localStorage.getItem(LS_TOKEN);
-    const res = await fetch(`${BASE}/auth/me`, {
-      method: 'PUT',
+    const res = await fetch(`${BASE}/api/auth/profile`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(patch),
     });
     if (!res.ok) throw new Error('更新失敗');
-    const updated = await res.json();
+    const { member: updated } = await res.json();
     localStorage.setItem(LS_USER, JSON.stringify(updated));
     setUser(updated);
   }
