@@ -1,13 +1,64 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PriceCard from '../components/PriceCard';
-import { useApi, get } from '../hooks/useApi';
+import { get } from '../hooks/useApi';
 import { loadSavedNews, removeSavedNews } from '../lib/savedNews';
+import { loadSavedProducts, removeSavedProduct } from '../lib/savedProducts';
 import { loadBasket, saveBasket } from '../lib/basket';
 import './MyBasket.css';
 
 function matchedBasketItems(article, basket) {
   return basket.filter(name => article.title.includes(name) || article.summary.includes(name));
+}
+
+function SavedProductsList({ savedProducts, onRemove }) {
+  const navigate = useNavigate();
+  const [expandedName, setExpandedName] = useState(null);
+  return (
+    <div className="mb-grid">
+      {savedProducts.map(name => {
+        const expanded = expandedName === name;
+        return (
+          <div
+            key={name}
+            className="card"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setExpandedName(expanded ? null : name)}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span className="badge badge-green">品項</span>
+              <button
+                className="mb-chip-remove"
+                onClick={e => { e.stopPropagation(); onRemove(name); }}
+                title="取消收藏"
+              >×</button>
+            </div>
+            <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{name}</h3>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10,
+            }}>
+              <button
+                onClick={e => { e.stopPropagation(); navigate(`/product/${encodeURIComponent(name)}`); }}
+                style={{
+                  fontSize: 12, color: 'var(--green-dark)', textDecoration: 'none',
+                  padding: '4px 10px', borderRadius: 6,
+                  border: '1px solid var(--border)',
+                  background: 'var(--cream-dark)',
+                  cursor: 'pointer',
+                }}
+              >
+                查看品項詳情 ↗
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+                {expanded ? '收合 ↑' : '展開 →'}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function SavedNewsList({ savedNews, basket, onRemove }) {
@@ -25,7 +76,7 @@ function SavedNewsList({ savedNews, basket, onRemove }) {
             onClick={() => setExpandedId(expanded ? null : article.id)}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span className="badge badge-green">{article.tag}</span>
+              <span className="badge badge-green">{article.source || article.tag}</span>
               <button
                 className="mb-chip-remove"
                 onClick={e => { e.stopPropagation(); onRemove(article.id); }}
@@ -79,14 +130,18 @@ function SavedNewsList({ savedNews, basket, onRemove }) {
 
 export default function MyBasket() {
   const navigate = useNavigate();
-  const { data: productList } = useApi('/api/basket/products');
   const [basket,  setBasket]  = useState(loadBasket);
   const [advices, setAdvices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [savedNews, setSavedNews] = useState(loadSavedNews);
+  const [savedProducts, setSavedProducts] = useState(loadSavedProducts);
 
   function handleRemoveSavedNews(id) {
     setSavedNews(removeSavedNews(id));
+  }
+
+  function handleRemoveSavedProduct(name) {
+    setSavedProducts(removeSavedProduct(name));
   }
 
   const fetchAdvice = useCallback(async (items) => {
@@ -102,13 +157,6 @@ export default function MyBasket() {
   useEffect(() => {
     fetchAdvice(basket);
   }, [basket, fetchAdvice]);
-
-  function addItem(name) {
-    if (!name || basket.includes(name)) return;
-    const next = [...basket, name];
-    setBasket(next);
-    saveBasket(next);
-  }
 
   function removeItem(name) {
     const next = basket.filter(n => n !== name);
@@ -126,23 +174,12 @@ export default function MyBasket() {
       <h1 className="page-title">🧺 我的菜籃</h1>
       <p className="mb-desc">加入常買的品項，一鍵查看今日採買建議。清單儲存於本機，不會上傳。</p>
 
-      {/* 加入品項 */}
-      <div className="mb-add-row">
-        <select
-          className="input mb-select"
-          defaultValue=""
-          onChange={e => { addItem(e.target.value); e.target.value = ''; }}
-        >
-          <option value="" disabled>+ 選擇品項加入菜籃</option>
-          {(productList?.products || [])
-            .filter(p => !basket.includes(p))
-            .map(p => <option key={p} value={p}>{p}</option>)
-          }
-        </select>
-        {basket.length > 0 && (
+      {/* 操作列 */}
+      {basket.length > 0 && (
+        <div className="mb-add-row">
           <button className="btn btn-secondary" onClick={clearBasket}>清空菜籃</button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 已選品項 chips */}
       {basket.length > 0 && (
@@ -169,6 +206,14 @@ export default function MyBasket() {
             <PriceCard key={i} item={item} />
           ))}
         </div>
+      )}
+
+      {/* 收藏品項（來自售價動態頁） */}
+      <h2 className="page-title" style={{ fontSize: 20, marginTop: 40 }}>⭐ 收藏品項</h2>
+      {savedProducts.length === 0 ? (
+        <p className="empty">還沒有收藏的品項，前往<a href="/search" onClick={e => { e.preventDefault(); navigate('/search'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>售價動態</a>收藏</p>
+      ) : (
+        <SavedProductsList savedProducts={savedProducts} onRemove={handleRemoveSavedProduct} />
       )}
 
       {/* 收藏文章（來自農產新知頁，獨立於品項清單） */}

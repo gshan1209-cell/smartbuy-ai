@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi, get } from '../hooks/useApi';
 import Chart from 'chart.js/auto';
+import { loadSavedProducts, toggleSavedProduct } from '../lib/savedProducts';
 
 const FEATURED_COUNT = 20;
 const STATUS_RANK = { '便宜': 0, '正常': 1, '偏貴': 2, '資料不足': 3 };
@@ -454,6 +455,7 @@ export default function PriceSearch() {
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 500]);
+  const [savedProductNames, setSavedProductNames] = useState(() => loadSavedProducts());
 
   const updateParam = useCallback((key, value) => {
     setSearchParams(prev => {
@@ -608,7 +610,7 @@ export default function PriceSearch() {
           {!loading && visibleItems.length > 0 && (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr 1fr',
+              gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr 1fr 40px',
               padding: '8px 16px',
               borderBottom: '2px solid var(--yz-bdr)',
               background: 'var(--yz-gl)',
@@ -621,6 +623,7 @@ export default function PriceSearch() {
                 { label: '交易量',   col: 'volume' },
                 { label: '7 日漲跌', col: 'diff7' },
                 { label: '市場',     col: null },
+                { label: '收藏',     col: null },
               ].map(({ label, col }) => (
                 <span
                   key={label}
@@ -644,13 +647,14 @@ export default function PriceSearch() {
             const d = diffPct(item);
             const dc = d == null ? 'var(--yz-dim)' : d > 0 ? '#DC2626' : d < 0 ? '#16A34A' : '#9CA3AF';
             const dArrow = d == null ? '' : d > 0 ? '↑' : d < 0 ? '↓' : '→';
+            const isSaved = savedProductNames.includes(item.product_name);
             return (
               <div
                 key={item.product_name}
                 onClick={() => handleItemClick(item.product_name)}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr 1fr',
+                  gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr 1fr 40px',
                   padding: '11px 16px', cursor: 'pointer', alignItems: 'center',
                   borderBottom: idx < visibleItems.length - 1 ? '1px solid #F0ECE5' : 'none',
                   transition: 'background .12s',
@@ -680,6 +684,20 @@ export default function PriceSearch() {
                 <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>
                   {market || '全台'}
                 </span>
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    setSavedProductNames(toggleSavedProduct(item.product_name));
+                  }}
+                  title={isSaved ? '取消收藏' : '收藏'}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: 16, padding: 0, lineHeight: 1,
+                    color: isSaved ? 'var(--yz-or)' : 'var(--yz-dim)',
+                  }}
+                >
+                  {isSaved ? '★' : '☆'}
+                </button>
               </div>
             );
           })}
