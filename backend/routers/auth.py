@@ -1,7 +1,7 @@
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from src.data.member_repository import (
     register_member,
@@ -10,6 +10,7 @@ from src.data.member_repository import (
     get_member_by_id,
     get_preferences,
     update_preferences,
+    change_password,
 )
 from src.data.auth_utils import create_access_token, decode_access_token
 
@@ -44,6 +45,20 @@ class UpdateProfileRequest(BaseModel):
     name: str | None = None
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+    model_config = {"extra": "forbid"}
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_length(cls, v):
+        if len(v) < 6:
+            raise ValueError("新密碼至少需要 6 個字元")
+        return v
+
+
 class UpdatePreferencesRequest(BaseModel):
     """更新會員推播與顯示偏好（全部欄位選填，只更新有傳入的欄位）。"""
     priceAlert: bool | None = None
@@ -62,7 +77,7 @@ def _set_auth_cookie(response: Response, token: str) -> None:
         value=token,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
         max_age=86400,
         path="/",
     )
@@ -113,7 +128,12 @@ def auth_login(payload: LoginRequest, response: Response):
 
 @router.post("/logout")
 def auth_logout(response: Response):
-    response.delete_cookie("access_token", path="/")
+    response.delete_cookie(
+        "access_token",
+        path="/",
+        secure=True,
+        samesite="none",
+    )
     return {"success": True}
 
 
@@ -174,3 +194,22 @@ def auth_update_preferences(
         return update_preferences(member_id, patch)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.patch("/password")
+def auth_change_password(
+    payload: ChangePasswordRequest,
+    member_id: int = Depends(_get_current_member_id),
+):
+    """更新目前登入會員的密碼（需驗證舊密碼）。"""
+    try:
+        change_password(
+            member_id=member_id,
+            old_password=payload.old_password,
+            new_password=payload.new_password,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except RuntimeError:
+        raise HTTPException(status_code=404, detail="找不到會員資料。")
+    return {"success": True}

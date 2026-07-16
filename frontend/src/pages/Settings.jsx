@@ -118,6 +118,9 @@ export default function Settings() {
   const [prefs, setPrefs] = useState(loadPrefs);
   const [displayPrefs, setDisplayPrefs] = useState(loadDisplayPrefs);
   const [copied, setCopied] = useState(false);
+  const [pwForm, setPwForm] = useState({ old: '', new: '', confirm: '' });
+  const [pwState, setPwState] = useState('idle');
+  const [pwError, setPwError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -193,6 +196,34 @@ export default function Settings() {
       });
   }
 
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    if (pwForm.new !== pwForm.confirm) {
+      setPwError('兩次輸入的新密碼不一致');
+      return;
+    }
+    setPwState('loading');
+    setPwError('');
+    try {
+      const res = await fetch(`${BASE}/api/auth/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ old_password: pwForm.old, new_password: pwForm.new }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || '密碼變更失敗');
+      }
+      setPwState('success');
+      setPwForm({ old: '', new: '', confirm: '' });
+      setTimeout(() => setPwState('idle'), 3000);
+    } catch (err) {
+      setPwError(err.message);
+      setPwState('error');
+    }
+  }
+
   function handleShare() {
     const url = window.location.origin;
     if (navigator.share) {
@@ -251,6 +282,47 @@ export default function Settings() {
 
           <label style={labelStyle}>Email</label>
           <p style={{ fontSize: 14, color: 'var(--yz-dim)', marginBottom: 20 }}>{user.email}</p>
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--yz-bdr)', margin: '16px 0' }} />
+
+          <form onSubmit={handleChangePassword}>
+            <label style={labelStyle}>變更密碼</label>
+            <input
+              className="yz-input"
+              type="password"
+              placeholder="舊密碼"
+              value={pwForm.old}
+              onChange={e => setPwForm(f => ({ ...f, old: e.target.value }))}
+              style={{ marginBottom: 8 }}
+            />
+            <input
+              className="yz-input"
+              type="password"
+              placeholder="新密碼"
+              value={pwForm.new}
+              onChange={e => setPwForm(f => ({ ...f, new: e.target.value }))}
+              style={{ marginBottom: 8 }}
+            />
+            <input
+              className="yz-input"
+              type="password"
+              placeholder="確認新密碼"
+              value={pwForm.confirm}
+              onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
+              style={{ marginBottom: 8 }}
+            />
+            {pwError && (
+              <p style={{ fontSize: 12, color: 'var(--yz-re)', marginBottom: 8 }}>{pwError}</p>
+            )}
+            <button
+              className="yz-btn yz-btn-g"
+              type="submit"
+              disabled={pwState === 'loading' || pwState === 'success'}
+              style={{ marginBottom: 16 }}
+            >
+              {pwState === 'loading' ? '處理中…' : pwState === 'success' ? '✓ 已變更' : '變更密碼'}
+            </button>
+          </form>
 
           <button
             type="button"

@@ -332,6 +332,33 @@ def update_preferences(member_id: int, patch: dict) -> dict:
     return _preferences_response(row)
 
 
+def change_password(member_id: int, old_password: str, new_password: str) -> None:
+    """
+    驗證舊密碼後更新為新密碼。
+    - 舊密碼錯誤 → raise ValueError("舊密碼不正確")
+    - 新密碼與舊密碼相同 → raise ValueError("新密碼不能與舊密碼相同")
+    - member_id 不存在 → raise RuntimeError("member_not_found")
+    """
+    engine = _get_engine()
+    with engine.begin() as conn:
+        row = conn.execute(
+            text("SELECT password_hash FROM members WHERE id = :id LIMIT 1;"),
+            {"id": member_id},
+        ).mappings().first()
+    if row is None:
+        raise RuntimeError("member_not_found")
+    if not _verify_password(old_password, row["password_hash"]):
+        raise ValueError("舊密碼不正確")
+    if _verify_password(new_password, row["password_hash"]):
+        raise ValueError("新密碼不能與舊密碼相同")
+    new_hash = _hash_password(new_password)
+    with engine.begin() as conn:
+        conn.execute(
+            text("UPDATE members SET password_hash = :h WHERE id = :id;"),
+            {"h": new_hash, "id": member_id},
+        )
+
+
 def get_member_by_id(member_id: int) -> Optional[dict]:
     """
     依 ID 查詢單一會員資料（不含密碼雜湊）。
