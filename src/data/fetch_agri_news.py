@@ -36,7 +36,54 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 YAHOO_SEARCH_DELAY_SECONDS = 0.25
+YAHOO_CANDIDATE_LIMIT = 60
+YAHOO_FINAL_LIMIT = 10
 TAIPEI_TZ = timezone(timedelta(hours=8))
+
+STRONG_AGRI_CONTEXT_TERMS = {
+    "農業",
+    "農民",
+    "農產",
+    "農產品",
+    "產地",
+    "產量",
+    "採收",
+    "栽培",
+    "種植",
+    "農場",
+    "農園",
+    "農地",
+    "作物",
+    "農糧署",
+    "農業部",
+    "農會",
+    "產銷",
+    "災損",
+    "農損",
+    "病蟲害",
+    "農藥",
+    "批發市場",
+    "拍賣市場",
+}
+MARKET_CONTEXT_TERMS = {
+    "菜價",
+    "果價",
+    "價格",
+    "供應",
+    "供需",
+    "收購",
+    "庫存",
+    "進口",
+    "出口",
+    "批發",
+    "拍賣",
+    "市場交易",
+    "盛產",
+    "歉收",
+    "減產",
+    "漲價",
+    "跌價",
+}
 
 
 def _normalize_source_url(url: str) -> str:
@@ -173,6 +220,8 @@ def _empty_article(
     parse_status: str = "partial",
     parse_error: str | None = None,
     crawl_source: str | None = None,
+    matched_crop_names: list[str] | None = None,
+    rejection_reason: str | None = None,
 ) -> dict[str, Any]:
     normalized_url = _normalize_source_url(source_url)
     article = {
@@ -189,6 +238,10 @@ def _empty_article(
     }
     if crawl_source:
         article["crawl_source"] = crawl_source
+    if matched_crop_names is not None:
+        article["matched_crop_names"] = list(dict.fromkeys(matched_crop_names))
+    if rejection_reason:
+        article["rejection_reason"] = rejection_reason
     return article
 
 
@@ -674,10 +727,65 @@ def _published_sort_key(article: dict[str, Any]) -> tuple[str, str]:
     return (article.get("published_date") or "", article.get("title") or "")
 
 
+def _add_matched_crop_name(article: dict[str, Any], crop_name: str) -> None:
+    matched = article.setdefault("matched_crop_names", [])
+    if crop_name not in matched:
+        matched.append(crop_name)
+
+
+def _yahoo_card_mentions_crop(*, title: str, card_text: str, crop_name: str) -> bool:
+    return crop_name in title or crop_name in card_text
+
+
+def evaluate_yahoo_relevance(
+    *,
+    title: str,
+    content_text: str | None,
+    matched_crop_names: list[str],
+) -> tuple[bool, str]:
+    normalized_crops = [
+        crop for crop in dict.fromkeys(str(crop).strip() for crop in matched_crop_names) if crop
+    ]
+    if not normalized_crops:
+        return False, "no matched crop names"
+
+    body = content_text or ""
+    combined_text = f"{title}\n{body}"
+    strong_terms = sorted(term for term in STRONG_AGRI_CONTEXT_TERMS if term in combined_text)
+    market_terms = sorted(term for term in MARKET_CONTEXT_TERMS if term in combined_text)
+    strong_context_found = bool(strong_terms)
+    market_context_count = len(set(market_terms))
+
+    for crop_name in normalized_crops:
+        if len(crop_name) == 1:
+            crop_match = crop_name in title or body.count(crop_name) >= 3
+            if crop_match and strong_context_found:
+                return True, (
+                    f"single-character crop '{crop_name}' matched with strong agriculture "
+                    f"context: {', '.join(strong_terms[:3])}"
+                )
+            continue
+
+        crop_match = crop_name in title or body.count(crop_name) >= 2
+        context_match = strong_context_found or market_context_count >= 2
+        if crop_match and context_match:
+            context_reason = (
+                f"strong agriculture context: {', '.join(strong_terms[:3])}"
+                if strong_context_found
+                else f"market context terms: {', '.join(market_terms[:3])}"
+            )
+            return True, f"crop '{crop_name}' matched with {context_reason}"
+
+    return (
+        False,
+        "missing required crop frequency or agriculture/market context",
+    )
+
+
 def fetch_yahoo_news_list(
     keywords: list[str] | None,
     *,
-    limit: int = 10,
+    limit: int = YAHOO_CANDIDATE_LIMIT,
 ) -> list[dict[str, Any]]:
     normalized_keywords = []
     seen_keywords: set[str] = set()
@@ -709,8 +817,17 @@ def fetch_yahoo_news_list(
             if not raw_title or not href:
                 continue
 
+            card_text = re.sub(r"\s+", " ", card.get_text(" ", strip=True)).strip()
+            if not _yahoo_card_mentions_crop(
+                title=raw_title,
+                card_text=card_text,
+                crop_name=keyword,
+            ):
+                continue
+
             source_url = _normalize_source_url(urljoin(YAHOO_BASE_URL, href))
             if source_url in deduped:
+                _add_matched_crop_name(deduped[source_url], keyword)
                 continue
 
             publisher, date_text = _yahoo_publisher_from_meta(card)
@@ -723,10 +840,11 @@ def fetch_yahoo_news_list(
                 source_url=source_url,
                 parse_status="partial",
                 crawl_source="yahoo",
+                matched_crop_names=[keyword],
             )
 
     articles = sorted(deduped.values(), key=_published_sort_key, reverse=True)
-    return articles[: min(limit, 10)]
+    return articles[: min(limit, YAHOO_CANDIDATE_LIMIT)]
 
 
 def fetch_yahoo_article_content(url: str) -> dict[str, Any]:
@@ -782,7 +900,43 @@ def _merge_article(base: dict[str, Any], detail: dict[str, Any]) -> dict[str, An
     merged["article_key"] = _article_key(merged["source_url"])
     if base.get("crawl_source") or detail.get("crawl_source"):
         merged["crawl_source"] = base.get("crawl_source") or detail.get("crawl_source")
+    if base.get("matched_crop_names") or detail.get("matched_crop_names"):
+        merged["matched_crop_names"] = list(
+            dict.fromkeys(
+                [
+                    *base.get("matched_crop_names", []),
+                    *detail.get("matched_crop_names", []),
+                ]
+            )
+        )
     return merged
+
+
+def fetch_relevant_yahoo_articles(
+    yahoo_keywords: list[str] | None,
+    *,
+    candidate_limit: int = YAHOO_CANDIDATE_LIMIT,
+    final_limit: int = YAHOO_FINAL_LIMIT,
+) -> list[dict[str, Any]]:
+    candidates = fetch_yahoo_news_list(yahoo_keywords, limit=candidate_limit)
+    accepted: list[dict[str, Any]] = []
+
+    for candidate in candidates:
+        detail = fetch_yahoo_article_content(candidate["source_url"])
+        article = _merge_article(candidate, detail)
+        is_relevant, reason = evaluate_yahoo_relevance(
+            title=article.get("title") or "",
+            content_text=article.get("content_text"),
+            matched_crop_names=article.get("matched_crop_names", []),
+        )
+        if not is_relevant:
+            article["rejection_reason"] = reason
+            continue
+        article["relevance_reason"] = reason
+        accepted.append(article)
+
+    accepted.sort(key=_published_sort_key, reverse=True)
+    return accepted[: min(final_limit, YAHOO_FINAL_LIMIT)]
 
 
 def fetch_agri_news(
@@ -794,13 +948,14 @@ def fetch_agri_news(
         (fetch_afa_news_list(limit_per_source), fetch_afa_article_content),
         (fetch_ptt_fruits_news_list(limit_per_source), fetch_ptt_fruits_article_content),
         (fetch_agriharvest_news_list(limit_per_source), fetch_agriharvest_article_content),
-        (
-            fetch_yahoo_news_list(yahoo_keywords, limit=min(limit_per_source, 10)),
-            fetch_yahoo_article_content,
-        ),
     ]
+    yahoo_articles = fetch_relevant_yahoo_articles(
+        yahoo_keywords,
+        candidate_limit=YAHOO_CANDIDATE_LIMIT,
+        final_limit=min(limit_per_source, YAHOO_FINAL_LIMIT),
+    )
 
-    if not any(items for items, _detail_fetcher in source_jobs):
+    if not any(items for items, _detail_fetcher in source_jobs) and not yahoo_articles:
         raise RuntimeError("Unable to fetch any agriculture news list data.")
 
     articles: list[dict[str, Any]] = []
@@ -809,4 +964,5 @@ def fetch_agri_news(
             detail = detail_fetcher(item["source_url"])
             articles.append(_merge_article(item, detail))
 
+    articles.extend(yahoo_articles)
     return articles

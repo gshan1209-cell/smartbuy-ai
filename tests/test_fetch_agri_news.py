@@ -148,7 +148,7 @@ YAHOO_SEARCH_HTML = """
   </li>
   <li class="stream-card">
     <h3>
-      <a href="/duplicate-news-222.html">[三立新聞網 setn.com] 產地採收順利</a>
+      <a href="/duplicate-news-222.html">[三立新聞網 setn.com] 芒果產地採收順利</a>
     </h3>
     <div class="text-px12">三立新聞網 setn.com ・ 2026年7月14日</div>
   </li>
@@ -160,7 +160,7 @@ YAHOO_SEARCH_DUPLICATE_HTML = """
 <html><body>
   <li class="stream-card">
     <h3>
-      <a href="/duplicate-news-222.html">[三立新聞網 setn.com] 產地採收順利</a>
+      <a href="/duplicate-news-222.html">[三立新聞網 setn.com] 香蕉產地採收順利</a>
     </h3>
     <div class="text-px12">三立新聞網 setn.com ・ 2026年7月14日</div>
   </li>
@@ -297,23 +297,49 @@ def test_fetch_yahoo_news_list_dedupes_splits_source_and_title(monkeypatch):
     assert items[0]["title"] == "芒果價格上揚"
     assert not items[0]["title"].startswith("[")
     assert items[1]["source_name"] == "三立新聞網 setn.com"
+    assert items[1]["matched_crop_names"] == ["芒果", "香蕉"]
 
 
-def test_fetch_yahoo_news_list_final_limit_is_ten(monkeypatch):
+def test_fetch_yahoo_news_list_filters_cards_that_do_not_mention_search_crop(monkeypatch):
+    html = """
+    <html><body>
+      <li class="stream-card">
+        <h3><a href="/phone-101.html">[科技網] 蘋果發表新手機</a></h3>
+        <div class="text-px12">科技網 ・ 2026年7月15日</div>
+      </li>
+      <li class="stream-card">
+        <h3><a href="/banana-102.html">[自由時報] 香蕉產地供應減少</a></h3>
+        <div class="text-px12">自由時報 ・ 2026年7月15日</div>
+      </li>
+    </body></html>
+    """
+    monkeypatch.setattr(news, "_get_html", lambda url: html)
+
+    items = news.fetch_yahoo_news_list(["香蕉"], limit=10)
+
+    assert len(items) == 1
+    assert items[0]["title"] == "香蕉產地供應減少"
+
+
+def test_fetch_yahoo_news_list_candidate_limit_is_sixty(monkeypatch):
     cards = "\n".join(
         f"""
         <li class="stream-card">
-          <h3><a href="/article-{index}-123{index}.html">[自由時報] 標題 {index}</a></h3>
+          <h3><a href="/article-{index}-123{index}.html">[自由時報] 芒果產地新聞 {index}</a></h3>
           <div class="text-px12">自由時報 ・ 2026年7月{index + 1:02d}日</div>
         </li>
         """
-        for index in range(12)
+        for index in range(70)
     )
     monkeypatch.setattr(news, "_get_html", lambda url: f"<html><body>{cards}</body></html>")
 
     items = news.fetch_yahoo_news_list(["芒果"], limit=50)
 
-    assert len(items) == 10
+    assert len(items) == 50
+
+    items = news.fetch_yahoo_news_list(["芒果"], limit=100)
+
+    assert len(items) == news.YAHOO_CANDIDATE_LIMIT
 
 
 def test_fetch_yahoo_article_content_extracts_clean_body(monkeypatch):
@@ -330,6 +356,105 @@ def test_fetch_yahoo_article_content_extracts_clean_body(monkeypatch):
     assert article["content_hash"] == hashlib.sha256(
         article["content_text"].encode("utf-8")
     ).hexdigest()
+
+
+@pytest.mark.parametrize(
+    ("title", "content_text", "matched_crop_names", "expected"),
+    [
+        ("高麗菜價格崩跌，農民棄採", "產地供應量增加。", ["高麗菜"], True),
+        ("高麗菜絲免費加，豬排定食限時 199 元", "餐廳活動。", ["高麗菜"], False),
+        ("蘋果發表新手機", "新款手機上市。", ["蘋果"], False),
+        ("蘋果產地受寒害，產量減少", "農民表示採收延後。", ["蘋果"], True),
+        ("蔥價上漲", "農民提前採收。", ["蔥"], True),
+        ("明星推薦蔥油餅店", "餐廳料理優惠。", ["蔥"], False),
+        ("市場行情", "農民表示高麗菜供應穩定。", ["高麗菜"], False),
+        ("市場行情", "農民表示高麗菜供應穩定，高麗菜採收增加。", ["高麗菜"], True),
+    ],
+)
+def test_evaluate_yahoo_relevance_rules(title, content_text, matched_crop_names, expected):
+    is_relevant, reason = news.evaluate_yahoo_relevance(
+        title=title,
+        content_text=content_text,
+        matched_crop_names=matched_crop_names,
+    )
+
+    assert is_relevant is expected
+    assert reason
+
+
+def test_fetch_relevant_yahoo_articles_returns_at_most_ten(monkeypatch):
+    candidates = [
+        news._empty_article(
+            source_name="自由時報",
+            title=f"芒果產地新聞 {index}",
+            source_url=f"https://tw.news.yahoo.com/article-{index}-123{index}.html",
+            crawl_source="yahoo",
+            matched_crop_names=["芒果"],
+        )
+        for index in range(12)
+    ]
+    monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: candidates)
+    monkeypatch.setattr(
+        news,
+        "fetch_yahoo_article_content",
+        lambda url: news._article_from_content(
+            source_name="Yahoo新聞",
+            source_url=url,
+            source_article_id=None,
+            title="",
+            published_date="2026-07-15",
+            content_text="芒果農民採收，芒果產地供應穩定。",
+            crawl_source="yahoo",
+        ),
+    )
+
+    items = news.fetch_relevant_yahoo_articles(["芒果"])
+
+    assert len(items) == news.YAHOO_FINAL_LIMIT
+
+
+def test_fetch_relevant_yahoo_articles_checks_candidates_beyond_first_ten(monkeypatch):
+    candidates = [
+        news._empty_article(
+            source_name="自由時報",
+            title=f"芒果餐廳優惠 {index}",
+            source_url=f"https://tw.news.yahoo.com/food-{index}-123{index}.html",
+            crawl_source="yahoo",
+            matched_crop_names=["芒果"],
+        )
+        for index in range(10)
+    ] + [
+        news._empty_article(
+            source_name="自由時報",
+            title="芒果產地採收增加",
+            source_url="https://tw.news.yahoo.com/agri-999.html",
+            crawl_source="yahoo",
+            matched_crop_names=["芒果"],
+        )
+    ]
+
+    def fake_fetch_detail(url):
+        if "agri" in url:
+            content = "芒果農民採收，芒果產地供應穩定。"
+        else:
+            content = "餐廳甜點優惠，芒果蛋糕限時折扣。"
+        return news._article_from_content(
+            source_name="Yahoo新聞",
+            source_url=url,
+            source_article_id=None,
+            title="",
+            published_date="2026-07-15",
+            content_text=content,
+            crawl_source="yahoo",
+        )
+
+    monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: candidates)
+    monkeypatch.setattr(news, "fetch_yahoo_article_content", fake_fetch_detail)
+
+    items = news.fetch_relevant_yahoo_articles(["芒果"])
+
+    assert len(items) == 1
+    assert items[0]["title"] == "芒果產地採收增加"
 
 
 def test_roc_date_converts_to_western_date():
@@ -398,6 +523,27 @@ def test_article_parse_failure_returns_failed_status(monkeypatch):
     assert "selector not found" in article["parse_error"]
 
 
+def test_standard_article_shape_does_not_include_yahoo_internal_fields():
+    article = news._empty_article(
+        source_name="農業部",
+        title="農業部測試新聞",
+        source_url="https://example.test/news/1",
+    )
+
+    assert set(article) == {
+        "article_key",
+        "source_name",
+        "source_article_id",
+        "title",
+        "published_date",
+        "source_url",
+        "content_text",
+        "content_hash",
+        "parse_status",
+        "parse_error",
+    }
+
+
 def test_fetch_agri_news_merges_sources_and_keeps_going_after_article_failure(monkeypatch):
     moa_base = news._empty_article(
         source_name="農業部",
@@ -461,13 +607,14 @@ def test_fetch_agri_news_raises_when_both_lists_empty(monkeypatch):
         news.fetch_agri_news(limit_per_source=1, yahoo_keywords=["芒果"])
 
 
-def test_fetch_agri_news_yahoo_fetches_at_most_ten_detail_pages(monkeypatch):
+def test_fetch_agri_news_yahoo_returns_at_most_ten_relevant_articles(monkeypatch):
     yahoo_items = [
         news._empty_article(
             source_name="自由時報",
             title=f"新聞 {index}",
             source_url=f"https://tw.news.yahoo.com/article-{index}-123{index}.html",
             crawl_source="yahoo",
+            matched_crop_names=["芒果"],
         )
         for index in range(12)
     ]
@@ -487,7 +634,7 @@ def test_fetch_agri_news_yahoo_fetches_at_most_ten_detail_pages(monkeypatch):
             source_article_id=None,
             title="",
             published_date="2026-07-15",
-            content_text="Yahoo 正文",
+            content_text="芒果農民採收，芒果產地供應穩定。",
             crawl_source="yahoo",
         )
 
@@ -496,4 +643,56 @@ def test_fetch_agri_news_yahoo_fetches_at_most_ten_detail_pages(monkeypatch):
     items = news.fetch_agri_news(limit_per_source=50, yahoo_keywords=["芒果"])
 
     assert len(items) == 10
-    assert len(fetched_urls) == 10
+    assert len(fetched_urls) == 12
+
+
+def test_fetch_agri_news_excludes_yahoo_articles_rejected_by_relevance(monkeypatch):
+    moa_base = news._empty_article(
+        source_name="農業部",
+        source_article_id="10036",
+        title="農業部測試新聞",
+        published_date="2026-07-12",
+        source_url="https://www.moa.gov.tw/theme_data.php?theme=news&sub_theme=agri&id=10209",
+    )
+    yahoo_candidate = news._empty_article(
+        source_name="自由時報",
+        title="高麗菜絲免費加，豬排定食限時 199 元",
+        source_url="https://tw.news.yahoo.com/food-199.html",
+        crawl_source="yahoo",
+        matched_crop_names=["高麗菜"],
+    )
+    monkeypatch.setattr(news, "fetch_moa_news_list", lambda limit: [moa_base])
+    monkeypatch.setattr(news, "fetch_afa_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_ptt_fruits_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_agriharvest_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: [yahoo_candidate])
+    monkeypatch.setattr(
+        news,
+        "fetch_moa_article_content",
+        lambda url: {
+            **moa_base,
+            "content_text": "農業部正文",
+            "content_hash": news._content_hash("農業部正文"),
+            "parse_status": "success",
+            "parse_error": None,
+        },
+    )
+    monkeypatch.setattr(
+        news,
+        "fetch_yahoo_article_content",
+        lambda url: news._article_from_content(
+            source_name="Yahoo新聞",
+            source_url=url,
+            source_article_id=None,
+            title="",
+            published_date="2026-07-15",
+            content_text="餐廳活動，高麗菜絲免費加。",
+            crawl_source="yahoo",
+        ),
+    )
+
+    items = news.fetch_agri_news(limit_per_source=10, yahoo_keywords=["高麗菜"])
+
+    assert len(items) == 1
+    assert items[0]["source_name"] == "農業部"
+    assert all(item.get("crawl_source") != "yahoo" for item in items)
