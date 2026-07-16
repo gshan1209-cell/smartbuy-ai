@@ -8,6 +8,18 @@
   --yz-bg: #F7F4EF;  --yz-bgs: #F0ECE5; --yz-bdr: #E2DDD2;
   --yz-txt: #1A1A18; --yz-mut: #6C6B60; --yz-dim: #9B9A90;
   --yz-shd: 0 1px 3px rgba(0,0,0,.05), 0 4px 18px rgba(0,0,0,.07);
+  --yz-card-bg: #ffffff;
+  --yz-input-bg: #ffffff;
+  --yz-btn-bg: #ffffff;
+}
+
+[data-theme="dark"] {
+  --yz-bg: #1a1a1a;  --yz-bgs: #242424; --yz-bdr: #3a3a3a;
+  --yz-txt: #f0f0f0; --yz-mut: #aaaaaa; --yz-dim: #777777;
+  --yz-shd: 0 1px 3px rgba(0,0,0,.3), 0 4px 18px rgba(0,0,0,.4);
+  --yz-card-bg: #2a2a2a;
+  --yz-input-bg: #333333;
+  --yz-btn-bg: #2a2a2a;
 }
 
 .yz-page { background: var(--yz-bg); color: var(--yz-txt); font-family: 'Noto Sans TC', 'PingFang TC', sans-serif; min-height: 100vh; }
@@ -17,11 +29,11 @@
 .yz-btn:disabled { cursor: not-allowed; opacity: .6; }
 .yz-btn-g { background: var(--yz-g); color: #fff; }
 .yz-btn-g:hover:not(:disabled) { opacity: .9; }
-.yz-btn-out { background: #fff; color: var(--yz-g); border: 1.5px solid var(--yz-g); }
-.yz-btn-gho { background: #fff; color: var(--yz-mut); border: 1.5px solid var(--yz-bdr); }
+.yz-btn-out { background: var(--yz-btn-bg); color: var(--yz-g); border: 1.5px solid var(--yz-g); }
+.yz-btn-gho { background: var(--yz-btn-bg); color: var(--yz-mut); border: 1.5px solid var(--yz-bdr); }
 .yz-btn-sm { padding: 6px 14px; font-size: 12px; }
 
-.yz-card { background: #fff; border-radius: 12px; border: 1px solid var(--yz-bdr); padding: 20px 24px; box-shadow: var(--yz-shd); }
+.yz-card { background: var(--yz-card-bg); border-radius: 12px; border: 1px solid var(--yz-bdr); padding: 20px 24px; box-shadow: var(--yz-shd); }
 
 .yz-bdg { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .yz-bdg-g { background: var(--yz-gl); color: var(--yz-gd); }
@@ -38,7 +50,7 @@
 .yz-tgl.off { background: #D0CDC7; }
 .yz-tgl.off::after { left: 3px; }
 
-.yz-input { width: 100%; padding: 10px 13px; border: 1.5px solid var(--yz-bdr); border-radius: 8px; font-size: 14px; color: var(--yz-txt); background: #fff; outline: none; font-family: inherit; transition: border-color .15s; }
+.yz-input { width: 100%; padding: 10px 13px; border: 1.5px solid var(--yz-bdr); border-radius: 8px; font-size: 14px; color: var(--yz-txt); background: var(--yz-input-bg); outline: none; font-family: inherit; transition: border-color .15s; }
 .yz-input:focus { border-color: var(--yz-g); }
 .yz-input::placeholder { color: #B0ACA5; }
 

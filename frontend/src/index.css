@@ -25,6 +25,16 @@
   --shadow:      0 2px 12px rgba(45,55,72,.07);
 }
 
+[data-theme="dark"] {
+  --cream:       #1a1a1a;
+  --cream-dark:  #242424;
+  --text:        #f0f0f0;
+  --text-muted:  #aaaaaa;
+  --border:      #3a3a3a;
+  --card:        #2a2a2a;
+  --shadow:      0 2px 12px rgba(0,0,0,.35);
+}
+
 html { font-size: 16px; scroll-behavior: smooth; }
 
 body {

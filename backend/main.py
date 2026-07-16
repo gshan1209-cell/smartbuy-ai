@@ -29,12 +29,13 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    prices = load_price_history(days=30)
+    import asyncio
+    prices = await asyncio.to_thread(lambda: load_price_history(days=30))
     price_cache["prices"]          = prices
-    price_cache["all_statuses"]    = get_all_price_statuses(prices=prices)
-    price_cache["recommendations"] = get_bargain_recommendations(prices=prices)
-    price_cache["weather_risks"]   = build_product_weather_risks()
-    price_cache["market_intel"]    = compute_market_intel()
+    price_cache["all_statuses"]    = await asyncio.to_thread(get_all_price_statuses, prices=prices)
+    price_cache["recommendations"] = await asyncio.to_thread(get_bargain_recommendations, prices=prices)
+    price_cache["weather_risks"]   = await asyncio.to_thread(build_product_weather_risks)
+    price_cache["market_intel"]    = await asyncio.to_thread(compute_market_intel)
     yield
     price_cache.clear()
 

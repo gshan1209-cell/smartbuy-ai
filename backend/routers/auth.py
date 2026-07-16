@@ -160,7 +160,7 @@ def auth_get_preferences(member_id: int = Depends(_get_current_member_id)):
     return get_preferences(member_id)
 
 
-@router.put("/preferences")
+@router.patch("/preferences")
 def auth_update_preferences(
     payload: UpdatePreferencesRequest,
     member_id: int = Depends(_get_current_member_id),

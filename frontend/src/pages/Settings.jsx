@@ -42,7 +42,7 @@ function splitPrefs(data) {
 
 async function savePreferences(patch) {
   const res = await fetch(`${BASE}/api/auth/preferences`, {
-    method: 'PUT',
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify(patch),
@@ -53,14 +53,13 @@ async function savePreferences(patch) {
 
 const PREF_ITEMS = [
   { key: 'priceAlert', label: '品項降價通知', desc: '菜籃內的品項價格明顯下降時通知我' },
-  { key: 'weatherAlert', label: '產地天氣異常警示', desc: '關注品項的產地發生多雨、乾旱等異常天氣時通知我' },
   { key: 'mutualAidReply', label: '互助網回應通知', desc: '我發布的貼文有新留言時通知我' },
 ];
 
 const FAQ_ITEMS = [
-  { q: '價格資料來源是什麼？', a: '本站批發行情資料來自行政院農業部農產品批發市場交易行情，每日更新。' },
-  { q: 'AI 方向預測的準確率如何？', a: '目前模型預測次日漲跌方向，準確率約 51%，僅供參考，請勿作為唯一採買依據。' },
-  { q: '菜籃資料會消失嗎？', a: '菜籃品項儲存在瀏覽器本機，清除瀏覽器快取或換裝置後資料不保留。' },
+  { id: 'data-source', q: '價格資料來源是什麼？', a: '本站批發行情資料來自行政院農業部農產品批發市場交易行情，每日更新。' },
+  { id: 'accuracy', q: 'AI 方向預測的準確率如何？', a: '目前模型預測次日漲跌方向，準確率約 51%，僅供參考，請勿作為唯一採買依據。' }, /* UPDATE after each model retrain */
+  { id: 'basket', q: '菜籃資料會消失嗎？', a: '菜籃品項儲存在瀏覽器本機，清除瀏覽器快取或換裝置後資料不保留。' },
 ];
 
 function Toggle({ on, onClick }) {
@@ -94,16 +93,16 @@ function FaqAccordion() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
       {FAQ_ITEMS.map((item, i) => (
-        <div key={i} style={{ borderBottom: i < FAQ_ITEMS.length - 1 ? '1px solid var(--yz-bdr)' : 'none' }}>
+        <div key={item.id} style={{ borderBottom: i < FAQ_ITEMS.length - 1 ? '1px solid var(--yz-bdr)' : 'none' }}>
           <button
             type="button"
-            onClick={() => setOpen(open === i ? null : i)}
+            onClick={() => setOpen(open === item.id ? null : item.id)}
             style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 8 }}
           >
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--yz-txt)' }}>{item.q}</span>
-            <span style={{ fontSize: 12, color: 'var(--yz-dim)', flexShrink: 0 }}>{open === i ? '▴' : '▾'}</span>
+            <span style={{ fontSize: 12, color: 'var(--yz-dim)', flexShrink: 0 }}>{open === item.id ? '▴' : '▾'}</span>
           </button>
-          {open === i && (
+          {open === item.id && (
             <p style={{ fontSize: 12, color: 'var(--yz-mut)', lineHeight: 1.7, paddingBottom: 12 }}>{item.a}</p>
           )}
         </div>

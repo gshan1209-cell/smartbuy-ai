@@ -240,6 +240,7 @@ def _preferences_response(row) -> dict:
 def get_preferences(member_id: int) -> dict:
     """
     取得會員的推播與顯示偏好；若尚無資料則以預設值建立一筆。
+    Side-effect: inserts a default row if none exists (idempotent after first call).
     """
     engine = _get_engine()
     with engine.begin() as conn:
