@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import date
 import hashlib
 from pathlib import Path
 
@@ -66,7 +67,6 @@ class FakeConnection:
             return FakeResult(deepcopy(row) if row else None)
 
         if "from public.agri_price_daily" in sql:
-            limit = params.get("limit", 50)
             rows = self.state.get("prices", [])
             latest_date = max((row["trans_date"] for row in rows), default=None)
             totals = {}
@@ -77,11 +77,15 @@ class FakeConnection:
                     continue
                 totals[crop_name] = totals.get(crop_name, 0) + (row.get("volume") or 0)
             result_rows = [
-                {"crop_name": crop_name, "total_volume": total_volume}
+                {
+                    "latest_trade_date": latest_date,
+                    "crop_name": crop_name,
+                    "total_volume": total_volume,
+                }
                 for crop_name, total_volume in totals.items()
             ]
             result_rows.sort(key=lambda row: (-row["total_volume"], row["crop_name"]))
-            return FakeResult(rows=result_rows[:limit])
+            return FakeResult(rows=result_rows)
 
         if "insert into public.agri_news_articles" in sql:
             if self.state.get("fail_article_write"):
@@ -338,7 +342,7 @@ def test_database_write_exception_rolls_back_news_and_records_failed_log(monkeyp
     assert "database write failed" in engine.state["logs"][0]["error_message"]
 
 
-def test_fetch_latest_top_crop_names_uses_latest_date_aggregates_and_sorts():
+def test_latest_ranked_crop_query_uses_latest_date_aggregates_and_sorts():
     engine = FakeEngine()
     engine.state["prices"] = [
         {"trans_date": "2026-07-14", "crop_name": "芒果", "volume": 999},
@@ -352,12 +356,15 @@ def test_fetch_latest_top_crop_names_uses_latest_date_aggregates_and_sorts():
     ]
 
     with engine.begin() as conn:
-        crops = script.fetch_latest_top_crop_names(conn, limit=50)
+        result = script.fetch_latest_ranked_crop_names(conn)
 
-    assert crops == ["芒果", "蘋果", "香蕉"]
+    assert result == {
+        "latest_trade_date": "2026-07-15",
+        "crop_names": ["芒果", "蘋果", "香蕉"],
+    }
 
 
-def test_fetch_latest_top_crop_names_limits_to_top_50():
+def test_latest_ranked_crop_query_returns_all_latest_date_crops_without_limit_50():
     engine = FakeEngine()
     engine.state["prices"] = [
         {"trans_date": "2026-07-15", "crop_name": f"作物{i:02d}", "volume": i}
@@ -365,22 +372,173 @@ def test_fetch_latest_top_crop_names_limits_to_top_50():
     ]
 
     with engine.begin() as conn:
-        crops = script.fetch_latest_top_crop_names(conn, limit=50)
+        result = script.fetch_latest_ranked_crop_names(conn)
 
-    assert len(crops) == 50
-    assert crops[0] == "作物59"
-    assert crops[-1] == "作物10"
+    assert len(result["crop_names"]) == 60
+    assert result["crop_names"][0] == "作物59"
+    assert result["crop_names"][-1] == "作物00"
 
 
-def test_run_pipeline_queries_crop_names_and_passes_them_to_yahoo(monkeypatch):
+def test_ranked_crop_sql_has_no_fixed_limit_50_and_orders_in_database():
+    sql = str(script.LATEST_RANKED_CROP_NAMES_SQL).lower()
+
+    assert "max(trans_date)" in sql
+    assert "join latest_date" in sql
+    assert "group by" in sql
+    assert "sum(coalesce(agri_price_daily.volume, 0))" in sql
+    assert "order by" in sql
+    assert "total_volume desc" in sql
+    assert "agri_price_daily.crop_name asc" in sql
+    assert "limit 50" not in sql
+    assert "limit :limit" not in sql
+
+
+def _crop_names(count):
+    return [f"作物{i:03d}" for i in range(1, count + 1)]
+
+
+def test_select_daily_yahoo_keywords_keeps_top_50_fixed():
+    ranked = _crop_names(130)
+    selection = script.select_daily_yahoo_keywords(
+        ranked,
+        rotation_date=date(2026, 7, 15),
+    )
+
+    assert selection["fixed_keywords"] == ranked[:50]
+    assert selection["keywords"][:50] == ranked[:50]
+
+
+def test_select_daily_yahoo_keywords_batches_remaining_crops_by_50():
+    ranked = _crop_names(180)
+    selection = script.select_daily_yahoo_keywords(
+        ranked,
+        rotation_date=date(2026, 7, 14),
+    )
+
+    assert selection["remaining_crop_count"] == 130
+    assert selection["rotation_batch_count"] == 3
+    assert len(selection["rotating_keywords"]) in {30, 50}
+    batch_index = selection["rotation_batch_index"]
+    start = 50 + batch_index * 50
+    assert selection["rotating_keywords"] == ranked[start : start + 50]
+
+
+def test_select_daily_yahoo_keywords_same_date_is_stable_and_next_date_advances():
+    ranked = _crop_names(180)
+    today = script.select_daily_yahoo_keywords(ranked, rotation_date=date(2026, 7, 15))
+    rerun = script.select_daily_yahoo_keywords(ranked, rotation_date=date(2026, 7, 15))
+    tomorrow = script.select_daily_yahoo_keywords(ranked, rotation_date=date(2026, 7, 16))
+
+    assert today["rotating_keywords"] == rerun["rotating_keywords"]
+    assert tomorrow["rotation_batch_index"] == (
+        today["rotation_batch_index"] + 1
+    ) % today["rotation_batch_count"]
+
+
+def test_select_daily_yahoo_keywords_wraps_after_last_batch():
+    ranked = _crop_names(180)
+    batch_count = script.select_daily_yahoo_keywords(
+        ranked,
+        rotation_date=date(2026, 7, 15),
+    )["rotation_batch_count"]
+    last_day = date.fromordinal(batch_count - 1)
+    wrapped_day = date.fromordinal(batch_count)
+
+    last_selection = script.select_daily_yahoo_keywords(ranked, rotation_date=last_day)
+    wrapped_selection = script.select_daily_yahoo_keywords(ranked, rotation_date=wrapped_day)
+
+    assert last_selection["rotation_batch_index"] == batch_count - 1
+    assert wrapped_selection["rotation_batch_index"] == 0
+
+
+def test_select_daily_yahoo_keywords_last_batch_does_not_backfill():
+    ranked = _crop_names(180)
+    last_batch_date = date.fromordinal(2)
+
+    selection = script.select_daily_yahoo_keywords(ranked, rotation_date=last_batch_date)
+
+    assert selection["rotation_batch_count"] == 3
+    assert selection["rotation_batch_index"] == 2
+    assert selection["rotating_keywords"] == ranked[150:180]
+    assert len(selection["keywords"]) == 80
+
+
+@pytest.mark.parametrize("count", [0, 1, 50])
+def test_select_daily_yahoo_keywords_no_rotation_when_total_is_at_most_50(count):
+    ranked = _crop_names(count)
+
+    selection = script.select_daily_yahoo_keywords(
+        ranked,
+        rotation_date=date(2026, 7, 15),
+    )
+
+    assert selection["fixed_keywords"] == ranked
+    assert selection["rotating_keywords"] == []
+    assert selection["rotation_batch_index"] == 0
+    assert selection["rotation_batch_count"] == 0
+    assert selection["keywords"] == ranked
+
+
+def test_select_daily_yahoo_keywords_51_to_100_includes_all_remaining():
+    ranked = _crop_names(75)
+
+    selection = script.select_daily_yahoo_keywords(
+        ranked,
+        rotation_date=date(2026, 7, 15),
+    )
+
+    assert selection["fixed_keywords"] == ranked[:50]
+    assert selection["rotating_keywords"] == ranked[50:]
+    assert len(selection["keywords"]) == 75
+    assert selection["rotation_batch_count"] == 1
+
+
+def test_select_daily_yahoo_keywords_caps_daily_selection_at_100():
+    ranked = _crop_names(250)
+
+    selection = script.select_daily_yahoo_keywords(
+        ranked,
+        rotation_date=date(2026, 7, 15),
+    )
+
+    assert len(selection["fixed_keywords"]) == 50
+    assert len(selection["rotating_keywords"]) == 50
+    assert len(selection["keywords"]) == 100
+
+
+def test_select_daily_yahoo_keywords_removes_blanks_and_duplicates():
+    ranked = [" 芒果 ", "", "香蕉", "芒果", "  ", "蘋果", "香蕉"]
+
+    selection = script.select_daily_yahoo_keywords(
+        ranked,
+        rotation_date=date(2026, 7, 15),
+    )
+
+    assert selection["keywords"] == ["芒果", "香蕉", "蘋果"]
+    assert len(selection["keywords"]) == len(set(selection["keywords"]))
+    assert all(keyword.strip() for keyword in selection["keywords"])
+
+
+def test_run_pipeline_selects_rotated_keywords_and_passes_them_to_yahoo(monkeypatch, capsys):
     engine = FakeEngine()
     engine.state["prices"] = [
-        {"trans_date": "2026-07-15", "crop_name": "芒果", "volume": 10},
-        {"trans_date": "2026-07-15", "crop_name": "香蕉", "volume": 8},
+        {"trans_date": "2026-07-15", "crop_name": f"作物{i:03d}", "volume": 200 - i}
+        for i in range(1, 121)
     ]
     captured = {}
     monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@example/db")
     monkeypatch.setattr(script, "create_engine", lambda *args, **kwargs: engine)
+    select_daily_yahoo_keywords = script.select_daily_yahoo_keywords
+    monkeypatch.setattr(
+        script,
+        "select_daily_yahoo_keywords",
+        lambda ranked_crop_names: {
+            **select_daily_yahoo_keywords(
+                ranked_crop_names,
+                rotation_date=date(2026, 7, 15),
+            ),
+        },
+    )
 
     def fake_fetch_agri_news(limit_per_source, yahoo_keywords):
         captured["limit_per_source"] = limit_per_source
@@ -396,8 +554,24 @@ def test_run_pipeline_queries_crop_names_and_passes_them_to_yahoo(monkeypatch):
 
     result = script.run_pipeline(limit_per_source=7)
 
-    assert captured == {"limit_per_source": 7, "yahoo_keywords": ["芒果", "香蕉"]}
+    expected_selection = select_daily_yahoo_keywords(
+        [f"作物{i:03d}" for i in range(1, 121)],
+        rotation_date=date(2026, 7, 15),
+    )
+    assert captured == {
+        "limit_per_source": 7,
+        "yahoo_keywords": expected_selection["keywords"],
+    }
+    assert len(captured["yahoo_keywords"]) == 100
     assert result["status"] == "partial_success"
+    output = capsys.readouterr().out
+    assert "Yahoo keyword selection:" in output
+    assert "latest_trade_date=2026-07-15" in output
+    assert "total_crop_count=120" in output
+    assert "fixed_count=50" in output
+    assert "rotating_count=50" in output
+    assert "selected_count=100" in output
+    assert "rotation_batch=" in output
 
 
 def test_determine_status_success_requires_all_five_sources_and_no_parse_issues():

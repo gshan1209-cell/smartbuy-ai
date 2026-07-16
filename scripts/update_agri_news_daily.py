@@ -4,11 +4,12 @@ Fetch agriculture news articles and upsert them into Supabase.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 import os
 from pathlib import Path
 import sys
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import create_engine, text
 
@@ -25,6 +26,8 @@ from src.data.fetch_agri_news import fetch_agri_news  # noqa: E402
 JOB_NAME = "update_agri_news_daily"
 VALID_PARSE_STATUSES = {"success", "partial", "failed"}
 REQUIRED_CRAWL_SOURCES = {"moa", "afa", "ptt_fruits", "agriharvest", "yahoo"}
+YAHOO_FIXED_KEYWORD_COUNT = 50
+YAHOO_ROTATING_KEYWORD_COUNT = 50
 MATERIAL_FIELDS = [
     "source_name",
     "source_article_id",
@@ -254,35 +257,112 @@ TOUCH_ARTICLE_SQL = text(
     """
 )
 
-TOP_CROP_NAMES_SQL = text(
+LATEST_RANKED_CROP_NAMES_SQL = text(
     """
     WITH latest_date AS (
         SELECT MAX(trans_date) AS trans_date
         FROM public.agri_price_daily
     )
     SELECT
-        crop_name,
-        SUM(COALESCE(volume, 0)) AS total_volume
+        latest_date.trans_date AS latest_trade_date,
+        agri_price_daily.crop_name,
+        SUM(COALESCE(agri_price_daily.volume, 0)) AS total_volume
     FROM public.agri_price_daily
     JOIN latest_date
       ON agri_price_daily.trans_date = latest_date.trans_date
-    WHERE crop_name IS NOT NULL
-      AND BTRIM(crop_name) <> ''
-    GROUP BY crop_name
-    ORDER BY total_volume DESC, crop_name ASC
-    LIMIT :limit;
+    WHERE agri_price_daily.crop_name IS NOT NULL
+      AND BTRIM(agri_price_daily.crop_name) <> ''
+    GROUP BY
+        latest_date.trans_date,
+        agri_price_daily.crop_name
+    ORDER BY
+        total_volume DESC,
+        agri_price_daily.crop_name ASC;
     """
 )
 
 
-def fetch_latest_top_crop_names(conn: Any, limit: int = 50) -> list[str]:
-    rows = conn.execute(TOP_CROP_NAMES_SQL, {"limit": limit}).mappings().all()
+def fetch_latest_ranked_crop_names(conn: Any) -> dict[str, Any]:
+    rows = conn.execute(LATEST_RANKED_CROP_NAMES_SQL).mappings().all()
     crop_names: list[str] = []
+    latest_trade_date: str | None = None
     for row in rows:
+        if latest_trade_date is None:
+            latest_trade_date = _normalize_date(row.get("latest_trade_date"))
         crop_name = _normalize_text(row.get("crop_name"))
         if crop_name:
             crop_names.append(crop_name)
-    return crop_names
+    return {
+        "latest_trade_date": latest_trade_date,
+        "crop_names": crop_names,
+    }
+
+
+def select_daily_yahoo_keywords(
+    ranked_crop_names: list[str],
+    *,
+    rotation_date: date | None = None,
+) -> dict[str, Any]:
+    if rotation_date is None:
+        rotation_date = datetime.now(ZoneInfo("Asia/Taipei")).date()
+
+    cleaned_crop_names: list[str] = []
+    seen: set[str] = set()
+    for raw_crop_name in ranked_crop_names:
+        crop_name = _normalize_text(raw_crop_name)
+        if crop_name and crop_name not in seen:
+            cleaned_crop_names.append(crop_name)
+            seen.add(crop_name)
+
+    fixed_keywords = cleaned_crop_names[:YAHOO_FIXED_KEYWORD_COUNT]
+    remaining_keywords = cleaned_crop_names[YAHOO_FIXED_KEYWORD_COUNT:]
+    remaining_crop_count = len(remaining_keywords)
+    if remaining_crop_count == 0:
+        rotating_keywords: list[str] = []
+        rotation_batch_count = 0
+        rotation_batch_index = 0
+    else:
+        rotation_batch_count = (
+            remaining_crop_count + YAHOO_ROTATING_KEYWORD_COUNT - 1
+        ) // YAHOO_ROTATING_KEYWORD_COUNT
+        rotation_batch_index = rotation_date.toordinal() % rotation_batch_count
+        start = rotation_batch_index * YAHOO_ROTATING_KEYWORD_COUNT
+        end = start + YAHOO_ROTATING_KEYWORD_COUNT
+        rotating_keywords = remaining_keywords[start:end]
+
+    keywords = fixed_keywords + rotating_keywords
+    return {
+        "keywords": keywords,
+        "fixed_keywords": fixed_keywords,
+        "rotating_keywords": rotating_keywords,
+        "total_crop_count": len(cleaned_crop_names),
+        "remaining_crop_count": remaining_crop_count,
+        "rotation_batch_index": rotation_batch_index,
+        "rotation_batch_count": rotation_batch_count,
+    }
+
+
+def _print_yahoo_keyword_selection_summary(
+    *,
+    latest_trade_date: str | None,
+    selection: dict[str, Any],
+) -> None:
+    rotation_batch_count = selection["rotation_batch_count"]
+    if rotation_batch_count:
+        rotation_batch = f"{selection['rotation_batch_index'] + 1}/{rotation_batch_count}"
+    else:
+        rotation_batch = "0/0"
+
+    print(
+        "Yahoo keyword selection: "
+        f"latest_trade_date={latest_trade_date or 'None'}, "
+        f"total_crop_count={selection['total_crop_count']}, "
+        f"fixed_count={len(selection['fixed_keywords'])}, "
+        f"rotating_count={len(selection['rotating_keywords'])}, "
+        f"selected_count={len(selection['keywords'])}, "
+        f"rotation_batch={rotation_batch}",
+        flush=True,
+    )
 
 
 def upsert_articles(conn: Any, articles: list[dict[str, Any]]) -> dict[str, int]:
@@ -343,11 +423,19 @@ def run_pipeline(limit_per_source: int = 10) -> dict[str, Any]:
 
     try:
         with engine.begin() as conn:
-            yahoo_keywords = fetch_latest_top_crop_names(conn, limit=50)
+            ranked_crop_result = fetch_latest_ranked_crop_names(conn)
+            keyword_selection = select_daily_yahoo_keywords(
+                ranked_crop_result["crop_names"],
+            )
+
+        _print_yahoo_keyword_selection_summary(
+            latest_trade_date=ranked_crop_result["latest_trade_date"],
+            selection=keyword_selection,
+        )
 
         articles = fetch_agri_news(
             limit_per_source=limit_per_source,
-            yahoo_keywords=yahoo_keywords,
+            yahoo_keywords=keyword_selection["keywords"],
         )
         if not articles:
             raise RuntimeError("fetch_agri_news returned no articles.")
