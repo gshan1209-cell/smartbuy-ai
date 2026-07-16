@@ -577,7 +577,7 @@ function DetailContent({ productName, market, detail }) {
                   if (ctx.dataset.label === '成交量') {
                     return ctx.raw != null ? `成交量：${Math.round(ctx.raw).toLocaleString()} kg` : null;
                   }
-                  return ctx.raw != null ? `${ctx.dataset.label}：${ctx.raw} 元/kg` : null;
+                  return ctx.raw != null ? `${ctx.dataset.label}：${ctx.raw} 元 / kg` : null;
                 },
                 filter: item => item.raw != null,
               },
@@ -774,7 +774,7 @@ function DetailContent({ productName, market, detail }) {
           <span style={{ fontSize: 36, fontWeight: 900, color: todayPriceColor, lineHeight: 1.1 }}>
             {todayPrice ?? '—'}
           </span>
-          {todayPrice != null && <span style={{ fontSize: 14, color: 'var(--yz-mut)', fontWeight: 500 }}>元/kg</span>}
+          {todayPrice != null && <span style={{ fontSize: 16, color: 'var(--yz-mut)', fontWeight: 500 }}>元/kg</span>}
           {priceDiff != null && (
             <span style={{ fontSize: 16, fontWeight: 700, color: diffColor }}>
               {diffArrow} {priceDiff > 0 ? '+' : ''}{priceDiff} ({pricePct > 0 ? '+' : ''}{pricePct}%)

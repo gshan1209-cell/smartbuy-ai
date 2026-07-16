@@ -210,6 +210,127 @@ def update_member_profile(
     }
 
 
+_PREFS_FIELD_MAP = {
+    "priceAlert": "price_alert",
+    "weatherAlert": "weather_alert",
+    "mutualAidReply": "mutual_aid_reply",
+    "fontSize": "font_size",
+    "layout": "layout_mode",
+    "theme": "theme",
+}
+
+_PREFS_ALLOWED_VALUES = {
+    "fontSize": {"sm", "md", "lg"},
+    "layout": {"simple", "detailed"},
+    "theme": {"light", "dark"},
+}
+
+
+def _preferences_response(row) -> dict:
+    return {
+        "priceAlert": row["price_alert"],
+        "weatherAlert": row["weather_alert"],
+        "mutualAidReply": row["mutual_aid_reply"],
+        "fontSize": row["font_size"],
+        "layout": row["layout_mode"],
+        "theme": row["theme"],
+    }
+
+
+def get_preferences(member_id: int) -> dict:
+    """
+    取得會員的推播與顯示偏好；若尚無資料則以預設值建立一筆。
+    """
+    engine = _get_engine()
+    with engine.begin() as conn:
+        row = conn.execute(
+            text(
+                """
+                SELECT price_alert, weather_alert, mutual_aid_reply,
+                       font_size, layout_mode, theme
+                FROM user_preferences
+                WHERE member_id = :member_id
+                LIMIT 1;
+                """
+            ),
+            {"member_id": member_id},
+        ).mappings().first()
+
+        if row is None:
+            row = conn.execute(
+                text(
+                    """
+                    INSERT INTO user_preferences (member_id)
+                    VALUES (:member_id)
+                    RETURNING price_alert, weather_alert, mutual_aid_reply,
+                              font_size, layout_mode, theme;
+                    """
+                ),
+                {"member_id": member_id},
+            ).mappings().first()
+
+    return _preferences_response(row)
+
+
+def update_preferences(member_id: int, patch: dict) -> dict:
+    """
+    更新會員的推播與顯示偏好（只更新有傳入的欄位）。
+
+    參數:
+        member_id: 會員 ID
+        patch:     欲更新欄位，key 為前端命名（priceAlert / fontSize ...）
+
+    例外:
+        ValueError: 欄位值不在允許範圍內
+    """
+    for api_field, allowed in _PREFS_ALLOWED_VALUES.items():
+        if api_field in patch and patch[api_field] not in allowed:
+            raise ValueError(f"{api_field} 的值不在允許範圍內。")
+
+    engine = _get_engine()
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                INSERT INTO user_preferences (member_id)
+                SELECT :member_id
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM user_preferences WHERE member_id = :member_id
+                );
+                """
+            ),
+            {"member_id": member_id},
+        )
+
+        set_parts = []
+        params: dict = {"member_id": member_id}
+        for api_field, db_field in _PREFS_FIELD_MAP.items():
+            if api_field in patch:
+                set_parts.append(f"{db_field} = :{api_field}")
+                params[api_field] = patch[api_field]
+
+        if set_parts:
+            conn.execute(
+                text(f"UPDATE user_preferences SET {', '.join(set_parts)} WHERE member_id = :member_id;"),
+                params,
+            )
+
+        row = conn.execute(
+            text(
+                """
+                SELECT price_alert, weather_alert, mutual_aid_reply,
+                       font_size, layout_mode, theme
+                FROM user_preferences
+                WHERE member_id = :member_id
+                LIMIT 1;
+                """
+            ),
+            {"member_id": member_id},
+        ).mappings().first()
+
+    return _preferences_response(row)
+
+
 def get_member_by_id(member_id: int) -> Optional[dict]:
     """
     依 ID 查詢單一會員資料（不含密碼雜湊）。
