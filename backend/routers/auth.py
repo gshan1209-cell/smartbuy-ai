@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from src.data.member_repository import (
@@ -7,24 +8,19 @@ from src.data.member_repository import (
     login_member,
     update_member_profile,
     get_member_by_id,
+    get_preferences,
+    update_preferences,
 )
 from src.data.auth_utils import create_access_token, decode_access_token
 
 router = APIRouter(prefix="/api/auth")
 
-_bearer_scheme = HTTPBearer(auto_error=False)
 
-
-def _get_current_member_id(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
-) -> int:
-    """
-    FastAPI 依賴注入：從 Authorization: Bearer <token> 解出會員 ID。
-    Token 無效或未提供時回傳 401。
-    """
-    if credentials is None:
+def _get_current_member_id(request: Request) -> int:
+    token = request.cookies.get("access_token")
+    if not token:
         raise HTTPException(status_code=401, detail="請先登入。")
-    payload = decode_access_token(credentials.credentials)
+    payload = decode_access_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Token 無效或已過期，請重新登入。")
     return payload["member_id"]
@@ -48,8 +44,32 @@ class UpdateProfileRequest(BaseModel):
     name: str | None = None
 
 
+class UpdatePreferencesRequest(BaseModel):
+    """更新會員推播與顯示偏好（全部欄位選填，只更新有傳入的欄位）。"""
+    priceAlert: bool | None = None
+    weatherAlert: bool | None = None
+    mutualAidReply: bool | None = None
+    fontSize: Literal["sm", "md", "lg"] | None = None
+    layout: Literal["simple", "detailed"] | None = None
+    theme: Literal["light", "dark"] | None = None
+
+    model_config = {"extra": "forbid"}
+
+
+def _set_auth_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=86400,
+        path="/",
+    )
+
+
 @router.post("/register", status_code=201)
-def auth_register(payload: RegisterRequest):
+def auth_register(payload: RegisterRequest, response: Response):
     """
     會員申請（註冊）。
     - 不需要傳入 plan；系統預設「免費會員」。
@@ -73,20 +93,28 @@ def auth_register(payload: RegisterRequest):
         raise HTTPException(status_code=500, detail="資料庫錯誤，請稍後再試。")
     token = create_access_token(member_id=result["member_id"], email=result["email"])
     member = {"id": result["member_id"], "email": result["email"], "name": result["name"]}
-    return {"success": True, "token": token, "member": member}
+    _set_auth_cookie(response, token)
+    return {"success": True, "member": member}
 
 
 @router.post("/login")
-def auth_login(payload: LoginRequest):
+def auth_login(payload: LoginRequest, response: Response):
     """
     會員登入。
-    成功時回傳 JWT Token 與會員公開資訊（不含密碼雜湊）。
+    成功時設定 httpOnly cookie 並回傳會員公開資訊（不含密碼雜湊）。
     """
     member = login_member(email=payload.email, password=payload.password)
     if member is None:
         raise HTTPException(status_code=401, detail="電子郵件或密碼錯誤，請重新輸入。")
     token = create_access_token(member_id=member["id"], email=member["email"])
-    return {"success": True, "token": token, "member": member}
+    _set_auth_cookie(response, token)
+    return {"success": True, "member": member}
+
+
+@router.post("/logout")
+def auth_logout(response: Response):
+    response.delete_cookie("access_token", path="/")
+    return {"success": True}
 
 
 @router.patch("/profile")
@@ -121,3 +149,28 @@ def auth_me(member_id: int = Depends(_get_current_member_id)):
     if member is None:
         raise HTTPException(status_code=404, detail="找不到會員資料。")
     return member
+
+
+@router.get("/preferences")
+def auth_get_preferences(member_id: int = Depends(_get_current_member_id)):
+    """
+    取得目前登入會員的推播與顯示偏好；若尚無資料會自動建立預設值。
+    - 需在 Header 帶入 Authorization: Bearer <token>。
+    """
+    return get_preferences(member_id)
+
+
+@router.put("/preferences")
+def auth_update_preferences(
+    payload: UpdatePreferencesRequest,
+    member_id: int = Depends(_get_current_member_id),
+):
+    """
+    更新目前登入會員的推播與顯示偏好（只更新有傳入的欄位）。
+    - 需在 Header 帶入 Authorization: Bearer <token>。
+    """
+    patch = payload.model_dump(exclude_unset=True)
+    try:
+        return update_preferences(member_id, patch)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))

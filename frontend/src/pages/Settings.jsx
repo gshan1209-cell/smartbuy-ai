@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const LS_TOKEN = 'yz_auth_token';
 const LS_KEY = 'smartbuy_notif_prefs';
 const DEFAULT_PREFS = { priceAlert: true, weatherAlert: true, mutualAidReply: false };
 
@@ -42,10 +41,10 @@ function splitPrefs(data) {
 }
 
 async function savePreferences(patch) {
-  const token = localStorage.getItem(LS_TOKEN);
-  const res = await fetch(`${BASE}/auth/preferences`, {
+  const res = await fetch(`${BASE}/api/auth/preferences`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(patch),
   });
   if (!res.ok) throw new Error('設定同步失敗');
@@ -126,22 +125,19 @@ export default function Settings() {
     if (!user) return;
 
     async function loadServerPreferences() {
-      const token = localStorage.getItem(LS_TOKEN);
-      if (!token) return;
-
       try {
-        const res = await fetch(`${BASE}/auth/preferences`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await fetch(`${BASE}/api/auth/preferences`, {
+          credentials: 'include',
         });
-        if (!res.ok) throw new Error('設定載入失敗');
+        if (!res.ok) return;
         const data = await res.json();
         const { prefs: nextPrefs, display: nextDisplay } = splitPrefs(data);
         setPrefs(nextPrefs);
         setDisplayPrefs(nextDisplay);
         localStorage.setItem(LS_KEY, JSON.stringify(nextPrefs));
         saveDisplayPrefs(nextDisplay);
-      } catch (err) {
-        setError(err.message);
+      } catch {
+        // server preferences unavailable; fall back to localStorage
       }
     }
 
@@ -172,20 +168,31 @@ export default function Settings() {
 
   function togglePref(key) {
     setError('');
-    setPrefs(p => {
-      const next = { ...p, [key]: !p[key] };
-      localStorage.setItem(LS_KEY, JSON.stringify(next));
-      savePreferences({ [key]: next[key] }).catch(err => setError(err.message));
-      return next;
-    });
+    const prevPrefs = prefs;
+    const nextPrefs = { ...prefs, [key]: !prefs[key] };
+    setPrefs(nextPrefs);
+    localStorage.setItem(LS_KEY, JSON.stringify(nextPrefs));
+    savePreferences({ [key]: nextPrefs[key] })
+      .catch(err => {
+        setPrefs(prevPrefs);
+        localStorage.setItem(LS_KEY, JSON.stringify(prevPrefs));
+        setError(err.message);
+      });
   }
 
   function updateDisplay(key, val) {
+    if (val === displayPrefs[key]) return;
     setError('');
-    const next = { ...displayPrefs, [key]: val };
-    setDisplayPrefs(next);
-    saveDisplayPrefs(next);
-    savePreferences({ [key]: val }).catch(err => setError(err.message));
+    const prevDisplay = displayPrefs;
+    const nextDisplay = { ...displayPrefs, [key]: val };
+    setDisplayPrefs(nextDisplay);
+    saveDisplayPrefs(nextDisplay);
+    savePreferences({ [key]: val })
+      .catch(err => {
+        setDisplayPrefs(prevDisplay);
+        saveDisplayPrefs(prevDisplay);
+        setError(err.message);
+      });
   }
 
   function handleShare() {

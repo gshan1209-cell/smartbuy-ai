@@ -21,14 +21,15 @@ export default function Register() {
       const res = await fetch(`${BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ name, email, password }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || '註冊失敗');
       }
-      const { token, member } = await res.json();
-      setAuthData(token, member);
+      const { member } = await res.json();
+      setAuthData(member);
       navigate('/settings');
     } catch (err) {
       setError(err.message);

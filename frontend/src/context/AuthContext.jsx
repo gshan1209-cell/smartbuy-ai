@@ -2,7 +2,6 @@ import { createContext, useContext, useState } from 'react';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const LS_USER = 'yz_auth_user';
-const LS_TOKEN = 'yz_auth_token';
 
 function loadUser() {
   try { return JSON.parse(localStorage.getItem(LS_USER)); }
@@ -18,35 +17,34 @@ export function AuthProvider({ children }) {
     const res = await fetch(`${BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ email, password }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || '登入失敗');
     }
-    const { token, member: u } = await res.json();
-    localStorage.setItem(LS_TOKEN, token);
+    const { member: u } = await res.json();
     localStorage.setItem(LS_USER, JSON.stringify(u));
     setUser(u);
   }
 
-  function logout() {
+  async function logout() {
+    await fetch(`${BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
     setUser(null);
-    localStorage.removeItem(LS_TOKEN);
     localStorage.removeItem(LS_USER);
   }
 
-  function setAuthData(token, u) {
-    localStorage.setItem(LS_TOKEN, token);
+  function setAuthData(u) {
     localStorage.setItem(LS_USER, JSON.stringify(u));
     setUser(u);
   }
 
   async function updateProfile(patch) {
-    const token = localStorage.getItem(LS_TOKEN);
     const res = await fetch(`${BASE}/api/auth/profile`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(patch),
     });
     if (!res.ok) throw new Error('更新失敗');
