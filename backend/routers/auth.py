@@ -27,6 +27,16 @@ def _get_current_member_id(request: Request) -> int:
     return payload["member_id"]
 
 
+def _get_current_member_id_optional(request: Request) -> int | None:
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    payload = decode_access_token(token)
+    if payload is None:
+        return None
+    return payload["member_id"]
+
+
 class RegisterRequest(BaseModel):
     """會員申請表單欄位（不含 plan）。"""
     email: str

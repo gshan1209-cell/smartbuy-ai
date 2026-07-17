@@ -858,8 +858,20 @@ function DetailContent({ productName, market, detail }) {
                 {todayPrice != null && <span style={{ fontSize: 12, color: 'var(--yz-mut)' }}>元/kg</span>}
               </div>
               {priceDiff != null && (
-                <div style={{ fontSize: 12, fontWeight: 700, color: diffColor, marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: diffColor, marginBottom: 6 }}>
                   {diffArrow} {priceDiff > 0 ? '+' : ''}{priceDiff} ({pricePct > 0 ? '+' : ''}{pricePct}%)
+                </div>
+              )}
+              {priceStatus && priceStatus !== '資料不足' && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  background: zColor === '#16A34A' ? 'rgba(22,163,74,0.10)' : zColor === '#DC2626' ? 'rgba(220,38,38,0.10)' : 'rgba(156,163,175,0.12)',
+                  border: `1px solid ${zColor}44`,
+                  borderRadius: 20, padding: '3px 9px', marginBottom: 8,
+                }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: zColor, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: zColor }}>{priceStatus}</span>
+                  <span style={{ fontSize: 10, color: 'var(--yz-mut)' }}>（歷史水位）</span>
                 </div>
               )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderTop: '1px solid var(--yz-bdr)', paddingTop: 8 }}>

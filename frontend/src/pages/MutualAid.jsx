@@ -1,96 +1,87 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import ReportPrice from './ReportPrice';
 import { useAuth } from '../context/AuthContext';
-import { loadSavedPostIds, toggleSavedPostId } from '../lib/savedPosts';
+import {
+  fetchPosts,
+  fetchPost,
+  createPost,
+  updatePost,
+  deletePost as apiDeletePost,
+  updatePostStatus as apiUpdatePostStatus,
+  addComment as apiAddComment,
+  deleteComment as apiDeleteComment,
+  toggleLike as apiToggleLike,
+  toggleSave as apiToggleSave,
+  fetchSavedPosts,
+  uploadImage,
+} from '../lib/mutualAidApi';
 import './MutualAid.css';
-
-// mock 資料：社群討論串尚無後端支援，先以示範內容呈現版型，
-// 待留言功能開發後改為真實資料，元件介面不須更動。新發布的貼文只存在畫面狀態，重新整理會消失。
-const INITIAL_POSTS = [
-  {
-    id: 1,
-    type: '滯銷急售',
-    author: '阿仁',
-    location: '雲林縣',
-    date: '2026-07-01',
-    content: '絲瓜盛產產量過大，園子裡還有 300 斤左右賣不掉，願意用市價六折出清，也歡迎以物易物換飼料或資材，有興趣的鄉親留言。',
-    comments: [
-      { id: 101, author: '阿財', date: '2026-07-01', content: '我要 50 斤，可以留給我嗎？' },
-      { id: 102, author: '玉蘭', date: '2026-07-02', content: '願意用自家的雞蛋跟你換，有興趣私訊我。' },
-    ],
-  },
-  {
-    id: 2,
-    type: '求助',
-    author: '美惠姐',
-    location: '南投縣',
-    date: '2026-06-30',
-    content: '颱風預警來了，棚架還沒加固完，人手不夠，這週六上午徵求鄰近農友幫忙，工資照算，中午管一頓飯。',
-    comments: [
-      { id: 201, author: '志豪', date: '2026-06-30', content: '週六早上我有空，算我一個。' },
-    ],
-  },
-  {
-    id: 3,
-    type: '資訊分享',
-    author: '志豪',
-    location: '彰化縣',
-    date: '2026-06-29',
-    content: '這兩週甘藍價格明顯回穩，田邊詢價的盤商也變多了，之前觀望的朋友可以評估出貨時機了。',
-    comments: [
-      { id: 301, author: '陳大哥', date: '2026-06-29', content: '謝謝分享，我這邊也感覺到了，準備這兩天出貨。' },
-    ],
-  },
-  {
-    id: 4,
-    type: '滯銷急售',
-    author: '陳大哥',
-    location: '台南市',
-    date: '2026-06-27',
-    content: '香蕉這批熟過頭了，賣相不好但口感沒問題，適合做果乾或加工用，量大可議價，需要的人快聯絡。',
-    comments: [],
-  },
-  {
-    id: 5,
-    type: '求助',
-    author: '阿財',
-    location: '嘉義縣',
-    date: '2026-06-26',
-    content: '家裡的曳引機這週送修，想跟附近有多一台的朋友借用兩天整地，願意付租金或以工換工。',
-    comments: [
-      { id: 501, author: '阿仁', date: '2026-06-26', content: '我這台週末沒排，你要用直接來牽。' },
-    ],
-  },
-  {
-    id: 6,
-    type: '資訊分享',
-    author: '玉蘭',
-    location: '屏東縣',
-    date: '2026-06-24',
-    content: '最近豪雨後葉菜類病斑變多，噴藥前建議先剪除病葉集中銷毀，能有效減緩擴散，跟大家分享一下經驗。',
-    comments: [
-      { id: 601, author: '美惠姐', date: '2026-06-25', content: '這招有用，我這邊照做後病斑真的變少了。' },
-      { id: 602, author: '志豪', date: '2026-06-25', content: '請問剪下來的病葉怎麼處理比較好？直接埋土裡可以嗎？' },
-    ],
-  },
-];
 
 const TYPE_BADGE = { '滯銷急售': 'badge-orange', '求助': 'badge-red', '資訊分享': 'badge-green' };
 const POST_TYPES = ['滯銷急售', '求助', '資訊分享'];
+const CITIES = [
+  '台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市', '新竹縣',
+  '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義市', '嘉義縣', '屏東縣', '宜蘭縣', '花蓮縣',
+  '台東縣', '澎湖縣', '金門縣', '連江縣',
+];
+const STATUS_LABEL = { open: '徵求中', dealing: '洽談中', closed: '已結束' };
+const STATUS_OPTIONS = ['open', 'dealing', 'closed'];
+const PAGE_SIZE = 20;
+const MAX_IMAGES = 3;
+const EMPTY_FORM = { type: '資訊分享', farm_name: '', location_city: '', location_addr: '', content: '', images: [] };
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
+function formatDate(iso) {
+  return iso ? iso.slice(0, 10) : '';
 }
 
-function PostDetailModal({ post, myName, onClose, onAddComment, onDeleteComment }) {
-  const [commentText, setCommentText] = useState('');
+function formatLocation(post) {
+  return [post.location_city, post.location_addr].filter(Boolean).join(' ') || '未提供地點';
+}
 
-  function submitComment(e) {
+function PostDetailModal({ postId, myId, onClose, onAuthError }) {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [commentText, setCommentText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    fetchPost(postId)
+      .then(data => { if (!cancelled) setDetail(data); })
+      .catch(err => { if (!cancelled) setError(err.message || '載入失敗'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [postId]);
+
+  async function submitComment(e) {
     e.preventDefault();
     const text = commentText.trim();
     if (!text) return;
-    onAddComment(post.id, text);
-    setCommentText('');
+    setSubmitting(true);
+    try {
+      const comment = await apiAddComment(postId, text);
+      setDetail(d => ({ ...d, comments: [...d.comments, comment] }));
+      setCommentText('');
+    } catch (err) {
+      if (err.status === 401) onAuthError();
+      else setError(err.message || '留言失敗');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function removeComment(commentId) {
+    try {
+      await apiDeleteComment(commentId);
+      setDetail(d => ({ ...d, comments: d.comments.filter(c => c.id !== commentId) }));
+    } catch (err) {
+      if (err.status === 401) onAuthError();
+      else setError(err.message || '刪除失敗');
+    }
   }
 
   return (
@@ -99,48 +90,80 @@ function PostDetailModal({ post, myName, onClose, onAddComment, onDeleteComment 
       style={{ position: 'fixed', inset: 0, background: 'rgba(45,55,72,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}
     >
       <div onClick={e => e.stopPropagation()} className="card" style={{ width: 480, maxHeight: '85vh', overflowY: 'auto', padding: '24px 26px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <span className={`badge ${TYPE_BADGE[post.type]}`}>{post.type}</span>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text-muted)' }}>✕</button>
         </div>
-        <p style={{ fontSize: 15, lineHeight: 1.8, marginBottom: 12 }}>{post.content}</p>
-        <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 20 }}>{post.author}．{post.location}．{post.date}</p>
 
-        <div style={{ height: 1, background: 'var(--border)', marginBottom: 16 }} />
+        {loading && <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '20px 0', textAlign: 'center' }}>載入中...</p>}
+        {!loading && error && (
+          <p className="rp-msg rp-warn">{error}</p>
+        )}
 
-        <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>💬 {post.comments.length} 則回應</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-          {post.comments.length === 0 && (
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>還沒有回應，來當第一個吧</p>
-          )}
-          {post.comments.map(c => (
-            <div key={c.id} style={{ background: 'var(--cream-dark)', borderRadius: 8, padding: '10px 12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 600 }}>{c.author}．<span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{c.date}</span></span>
-                {c.author === myName && (
-                  <button className="ma-post-link ma-post-link-danger" onClick={() => onDeleteComment(post.id, c.id)}>刪除</button>
-                )}
-              </div>
-              <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>{c.content}</p>
+        {!loading && !error && detail && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span className={`badge ${TYPE_BADGE[detail.type]}`}>{detail.type}</span>
+              <span className={`ma-status-chip ma-status-${detail.status}`}>{STATUS_LABEL[detail.status]}</span>
             </div>
-          ))}
-        </div>
+            {detail.images?.length > 0 && (
+              <div className="ma-image-list" style={{ marginBottom: 12 }}>
+                {detail.images.map(url => (
+                  <div key={url} className="ma-image-thumb">
+                    <img src={url} alt="" />
+                  </div>
+                ))}
+              </div>
+            )}
+            <p style={{ fontSize: 15, lineHeight: 1.8, marginBottom: 12 }}>{detail.content}</p>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 20 }}>
+              {detail.author_name}{detail.farm_name ? `．${detail.farm_name}` : ''}．{formatLocation(detail)}．{formatDate(detail.created_at)}
+            </p>
 
-        <form onSubmit={submitComment} style={{ display: 'flex', gap: 8 }}>
-          <input
-            className="input"
-            placeholder="留個回應..."
-            value={commentText}
-            onChange={e => setCommentText(e.target.value)}
-          />
-          <button className="btn btn-primary" type="submit" style={{ flexShrink: 0 }}>送出</button>
-        </form>
+            <div style={{ height: 1, background: 'var(--border)', marginBottom: 16 }} />
+
+            <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>💬 {detail.comments.length} 則回應</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+              {detail.comments.length === 0 && (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>還沒有回應，來當第一個吧</p>
+              )}
+              {detail.comments.map(c => (
+                <div key={c.id} style={{ background: 'var(--cream-dark)', borderRadius: 8, padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 600 }}>{c.author_name}．<span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{formatDate(c.created_at)}</span></span>
+                    {c.member_id === myId && (
+                      <button className="ma-post-link ma-post-link-danger" onClick={() => removeComment(c.id)}>刪除</button>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>{c.content}</p>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={submitComment} style={{ display: 'flex', gap: 8 }}>
+              <input
+                className="input"
+                placeholder="留個回應..."
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+              />
+              <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flexShrink: 0 }}>送出</button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function ComposeModal({ form, onChange, onSubmit, error, onClose }) {
+function ComposeModal({ form, onChange, onSubmit, error, apiError, submitting, uploading, onAddImages, onRemoveImage, onClose }) {
+  const fileInputRef = useRef(null);
+
+  function handleFilePick(e) {
+    const files = Array.from(e.target.files || []);
+    if (files.length) onAddImages(files);
+    e.target.value = '';
+  }
+
   return (
     <div
       onClick={onClose}
@@ -155,14 +178,25 @@ function ComposeModal({ form, onChange, onSubmit, error, onClose }) {
           <select name="type" className="input ma-post-type" value={form.type} onChange={onChange}>
             {POST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <input
-            name="location"
-            className="input ma-post-location"
-            placeholder="所在地，例如：雲林縣"
-            value={form.location}
-            onChange={onChange}
-          />
+          <select name="location_city" className="input ma-post-location" value={form.location_city} onChange={onChange}>
+            <option value="">選擇縣市</option>
+            {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
+        <input
+          name="location_addr"
+          className="input"
+          placeholder="詳細地址（選填）"
+          value={form.location_addr}
+          onChange={onChange}
+        />
+        <input
+          name="farm_name"
+          className="input"
+          placeholder="農場／攤位名稱（選填）"
+          value={form.farm_name}
+          onChange={onChange}
+        />
         <textarea
           name="content"
           className="input ma-post-content"
@@ -172,8 +206,25 @@ function ComposeModal({ form, onChange, onSubmit, error, onClose }) {
           onChange={onChange}
           autoFocus
         />
-        {error && <p className="rp-msg rp-warn">請填寫所在地與內容</p>}
-        <button className="btn btn-primary" type="submit">發布</button>
+
+        <div className="ma-image-list">
+          {form.images.map((url, i) => (
+            <div key={url} className="ma-image-thumb">
+              <img src={url} alt="" />
+              <button type="button" className="ma-image-remove" onClick={() => onRemoveImage(i)}>✕</button>
+            </div>
+          ))}
+          {form.images.length < MAX_IMAGES && (
+            <button type="button" className="ma-image-add" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+              {uploading ? '上傳中...' : '＋ 新增圖片'}
+            </button>
+          )}
+        </div>
+        <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={handleFilePick} />
+
+        {error && <p className="rp-msg rp-warn">請選擇所在縣市並填寫內容</p>}
+        {apiError && <p className="rp-msg rp-warn">{apiError}</p>}
+        <button className="btn btn-primary" type="submit" disabled={submitting}>{submitting ? '發布中...' : '發布'}</button>
       </form>
     </div>
   );
@@ -181,59 +232,178 @@ function ComposeModal({ form, onChange, onSubmit, error, onClose }) {
 
 function DiscussionBoard() {
   const { user } = useAuth();
-  const [posts, setPosts] = useState(INITIAL_POSTS);
-  const [form, setForm] = useState({ type: '資訊分享', location: '', content: '' });
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [listError, setListError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState(false);
+  const [composeApiError, setComposeApiError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ type: '', location: '', content: '' });
+  const [editForm, setEditForm] = useState({ type: '', location_city: '', location_addr: '', content: '' });
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [detailId, setDetailId] = useState(null);
   const [composeOpen, setComposeOpen] = useState(false);
-  const [savedIds, setSavedIds] = useState(loadSavedPostIds);
   const [onlySaved, setOnlySaved] = useState(false);
   const [typeFilter, setTypeFilter] = useState('全部');
+  const [cityFilter, setCityFilter] = useState('全部');
+  const [actionError, setActionError] = useState('');
+  const [authNotice, setAuthNotice] = useState(false);
+
   const myName = user?.name || '訪客';
+
+  function reportError(err, fallback) {
+    if (err?.status === 401) setAuthNotice(true);
+    else setActionError(err?.message || fallback);
+  }
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setListError('');
+    const task = onlySaved
+      ? fetchSavedPosts()
+      : fetchPosts({ type: typeFilter, city: cityFilter, q: debouncedQuery, offset: 0, limit: PAGE_SIZE });
+    task
+      .then(data => {
+        if (cancelled) return;
+        setPosts(data);
+        setHasMore(!onlySaved && data.length === PAGE_SIZE);
+      })
+      .catch(err => { if (!cancelled) setListError(err.message || '載入失敗'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [typeFilter, cityFilter, debouncedQuery, onlySaved, reloadKey]);
+
+  async function loadMore() {
+    if (onlySaved || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const data = await fetchPosts({ type: typeFilter, city: cityFilter, q: debouncedQuery, offset: posts.length, limit: PAGE_SIZE });
+      setPosts(ps => [...ps, ...data]);
+      setHasMore(data.length === PAGE_SIZE);
+    } catch (err) {
+      reportError(err, '載入更多失敗');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   function handleChange(e) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   }
 
-  function handleSubmit(e) {
+  async function handleAddImages(files) {
+    const remaining = MAX_IMAGES - form.images.length;
+    const toUpload = files.slice(0, remaining);
+    setImageUploading(true);
+    setComposeApiError('');
+    try {
+      for (const file of toUpload) {
+        try {
+          const { url } = await uploadImage(file);
+          setForm(f => ({ ...f, images: [...f.images, url] }));
+        } catch (err) {
+          if (err.status === 401) { setAuthNotice(true); break; }
+          setComposeApiError(err.message || '圖片上傳失敗');
+        }
+      }
+    } finally {
+      setImageUploading(false);
+    }
+  }
+
+  function handleRemoveImage(idx) {
+    setForm(f => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.location.trim() || !form.content.trim()) {
+    if (!form.location_city || !form.content.trim()) {
       setError(true);
       return;
     }
-    const newPost = {
-      id: Date.now(),
-      type: form.type,
-      author: user?.name || '訪客',
-      location: form.location.trim(),
-      date: today(),
-      content: form.content.trim(),
-      comments: [],
-    };
-    setPosts(p => [newPost, ...p]);
-    setForm({ type: '資訊分享', location: '', content: '' });
     setError(false);
-    setComposeOpen(false);
+    setComposeApiError('');
+    setSubmitting(true);
+    try {
+      const newPost = await createPost({
+        type: form.type,
+        content: form.content.trim(),
+        farm_name: form.farm_name.trim() || undefined,
+        location_city: form.location_city,
+        location_addr: form.location_addr.trim() || undefined,
+        images: form.images,
+      });
+      setPosts(ps => [newPost, ...ps]);
+      setForm(EMPTY_FORM);
+      setComposeOpen(false);
+    } catch (err) {
+      if (err.status === 401) setAuthNotice(true);
+      else setComposeApiError(err.message || '發布失敗');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function toggleSave(e, id) {
+  async function handleToggleLike(e, post) {
     e.stopPropagation();
-    setSavedIds(toggleSavedPostId(id));
+    const prevLiked = Boolean(post.is_liked);
+    const prevCount = post.like_count;
+    setPosts(ps => ps.map(p => p.id === post.id ? { ...p, is_liked: !prevLiked, like_count: prevLiked ? prevCount - 1 : prevCount + 1 } : p));
+    try {
+      const res = await apiToggleLike(post.id);
+      setPosts(ps => ps.map(p => p.id === post.id ? { ...p, is_liked: res.liked, like_count: res.like_count } : p));
+    } catch (err) {
+      setPosts(ps => ps.map(p => p.id === post.id ? { ...p, is_liked: prevLiked, like_count: prevCount } : p));
+      reportError(err, '按讚失敗');
+    }
   }
 
-  const q = query.trim();
-  const visiblePosts = posts
-    .filter(p => !q || p.content.includes(q) || p.location.includes(q) || p.author.includes(q))
-    .filter(p => !onlySaved || savedIds.includes(p.id))
-    .filter(p => typeFilter === '全部' || p.type === typeFilter);
+  async function handleToggleSave(e, post) {
+    e.stopPropagation();
+    const prevSaved = Boolean(post.is_saved);
+    setPosts(ps => ps.map(p => p.id === post.id ? { ...p, is_saved: !prevSaved } : p));
+    try {
+      const res = await apiToggleSave(post.id);
+      if (onlySaved && !res.saved) {
+        setPosts(ps => ps.filter(p => p.id !== post.id));
+      } else {
+        setPosts(ps => ps.map(p => p.id === post.id ? { ...p, is_saved: res.saved } : p));
+      }
+    } catch (err) {
+      setPosts(ps => ps.map(p => p.id === post.id ? { ...p, is_saved: prevSaved } : p));
+      reportError(err, '收藏失敗');
+    }
+  }
+
+  async function handleStatusChange(post, status) {
+    const prevStatus = post.status;
+    setPosts(ps => ps.map(p => p.id === post.id ? { ...p, status } : p));
+    try {
+      await apiUpdatePostStatus(post.id, status);
+    } catch (err) {
+      setPosts(ps => ps.map(p => p.id === post.id ? { ...p, status: prevStatus } : p));
+      reportError(err, '更新狀態失敗');
+    }
+  }
 
   function startEdit(post) {
     setEditingId(post.id);
-    setEditForm({ type: post.type, location: post.location, content: post.content });
+    setEditForm({ type: post.type, location_city: post.location_city || '', location_addr: post.location_addr || '', content: post.content });
     setConfirmDeleteId(null);
   }
 
@@ -241,41 +411,48 @@ function DiscussionBoard() {
     setEditingId(null);
   }
 
-  function saveEdit(id) {
-    if (!editForm.location.trim() || !editForm.content.trim()) return;
-    setPosts(ps => ps.map(p => p.id === id
-      ? { ...p, type: editForm.type, location: editForm.location.trim(), content: editForm.content.trim() }
-      : p
-    ));
-    setEditingId(null);
+  async function saveEdit(id) {
+    if (!editForm.location_city || !editForm.content.trim()) return;
+    try {
+      const updated = await updatePost(id, {
+        type: editForm.type,
+        location_city: editForm.location_city,
+        location_addr: editForm.location_addr.trim() || undefined,
+        content: editForm.content.trim(),
+      });
+      setPosts(ps => ps.map(p => p.id === id ? updated : p));
+      setEditingId(null);
+    } catch (err) {
+      reportError(err, '更新失敗');
+    }
   }
 
-  function deletePost(id) {
-    setPosts(ps => ps.filter(p => p.id !== id));
-    setConfirmDeleteId(null);
+  async function handleDeletePost(id) {
+    try {
+      await apiDeletePost(id);
+      setPosts(ps => ps.filter(p => p.id !== id));
+      setConfirmDeleteId(null);
+    } catch (err) {
+      reportError(err, '刪除失敗');
+    }
   }
 
-  function addComment(postId, text) {
-    setPosts(ps => ps.map(p => p.id === postId
-      ? { ...p, comments: [...p.comments, { id: Date.now(), author: myName, date: today(), content: text }] }
-      : p
-    ));
-  }
-
-  function deleteComment(postId, commentId) {
-    setPosts(ps => ps.map(p => p.id === postId
-      ? { ...p, comments: p.comments.filter(c => c.id !== commentId) }
-      : p
-    ));
-  }
-
-  const detailPost = posts.find(p => p.id === detailId);
+  const visiblePosts = posts;
 
   return (
     <div>
-      <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 16 }}>
-        目前為示範內容，發布的貼文僅存在畫面中，重新整理會消失
-      </p>
+      {authNotice && (
+        <p className="rp-msg rp-warn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>請先登入才能使用這個功能。<Link to="/login" style={{ color: 'var(--green-dark)', fontWeight: 600 }}>前往登入</Link></span>
+          <button onClick={() => setAuthNotice(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
+        </p>
+      )}
+      {actionError && (
+        <p className="rp-msg rp-warn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{actionError}</span>
+          <button onClick={() => setActionError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
+        </p>
+      )}
 
       <button type="button" className="card ma-post-trigger" onClick={() => setComposeOpen(true)}>
         <span className="ma-post-trigger-avatar">{myName[0]}</span>
@@ -304,7 +481,7 @@ function DiscussionBoard() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
         {['全部', ...POST_TYPES].map(t => (
           <button
             key={t}
@@ -322,93 +499,154 @@ function DiscussionBoard() {
         ))}
       </div>
 
-      {visiblePosts.length === 0 && (
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '24px 0', textAlign: 'center' }}>
-          {onlySaved && !savedIds.length ? '還沒有收藏任何貼文' : q ? `找不到符合「${q}」的貼文` : '沒有符合篩選條件的貼文'}
+      <select className="input" style={{ marginBottom: 14, maxWidth: 200 }} value={cityFilter} onChange={e => setCityFilter(e.target.value)}>
+        <option value="全部">所有縣市</option>
+        {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+      </select>
+
+      {loading && posts.length === 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} className="card" style={{ height: 92, background: 'var(--cream-dark)', opacity: 0.6 }} />
+          ))}
+        </div>
+      )}
+
+      {!loading && listError && (
+        <p className="rp-msg rp-warn" style={{ cursor: 'pointer' }} onClick={() => setReloadKey(k => k + 1)}>
+          載入失敗，點此重試
         </p>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {visiblePosts.map(post => {
-          const isOwn = post.author === myName;
-          const isEditing = editingId === post.id;
+      {!loading && !listError && visiblePosts.length === 0 && (
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '24px 0', textAlign: 'center' }}>
+          {onlySaved ? '還沒有收藏任何貼文' : debouncedQuery ? `找不到符合「${debouncedQuery}」的貼文` : '沒有符合篩選條件的貼文'}
+        </p>
+      )}
 
-          if (isEditing) {
-            return (
-              <div key={post.id} className="card ma-post-form">
-                <div className="ma-post-row">
-                  <select
-                    className="input ma-post-type"
-                    value={editForm.type}
-                    onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
-                  >
-                    {POST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+      {!loading && !listError && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {visiblePosts.map(post => {
+            const isOwn = user && post.member_id === user.id;
+            const isEditing = editingId === post.id;
+
+            if (isEditing) {
+              return (
+                <div key={post.id} className="card ma-post-form">
+                  <div className="ma-post-row">
+                    <select
+                      className="input ma-post-type"
+                      value={editForm.type}
+                      onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
+                    >
+                      {POST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <select
+                      className="input ma-post-location"
+                      value={editForm.location_city}
+                      onChange={e => setEditForm(f => ({ ...f, location_city: e.target.value }))}
+                    >
+                      <option value="">選擇縣市</option>
+                      {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
                   <input
-                    className="input ma-post-location"
-                    value={editForm.location}
-                    onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
+                    className="input"
+                    placeholder="詳細地址（選填）"
+                    value={editForm.location_addr}
+                    onChange={e => setEditForm(f => ({ ...f, location_addr: e.target.value }))}
                   />
+                  <textarea
+                    className="input ma-post-content"
+                    rows={3}
+                    value={editForm.content}
+                    onChange={e => setEditForm(f => ({ ...f, content: e.target.value }))}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-primary" onClick={() => saveEdit(post.id)}>儲存</button>
+                    <button className="btn btn-secondary" onClick={cancelEdit}>取消</button>
+                  </div>
                 </div>
-                <textarea
-                  className="input ma-post-content"
-                  rows={3}
-                  value={editForm.content}
-                  onChange={e => setEditForm(f => ({ ...f, content: e.target.value }))}
-                />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn btn-primary" onClick={() => saveEdit(post.id)}>儲存</button>
-                  <button className="btn btn-secondary" onClick={cancelEdit}>取消</button>
+              );
+            }
+
+            return (
+              <div key={post.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setDetailId(post.id)}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span className={`badge ${TYPE_BADGE[post.type]}`}>{post.type}</span>
+                    <span className={`ma-status-chip ma-status-${post.status}`}>{STATUS_LABEL[post.status]}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(post.created_at)}</span>
+                    <button
+                      onClick={e => handleToggleSave(e, post)}
+                      title={post.is_saved ? '取消收藏' : '收藏'}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 0, lineHeight: 1, color: post.is_saved ? '#E07B39' : 'var(--text-muted)' }}
+                    >
+                      {post.is_saved ? '★' : '☆'}
+                    </button>
+                    {isOwn && (
+                      confirmDeleteId === post.id ? (
+                        <span style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+                          <button className="ma-post-link ma-post-link-danger" onClick={() => handleDeletePost(post.id)}>確定刪除？</button>
+                          <button className="ma-post-link" onClick={() => setConfirmDeleteId(null)}>取消</button>
+                        </span>
+                      ) : (
+                        <span style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                          <select
+                            className="input"
+                            style={{ fontSize: 12, padding: '2px 6px', height: 'auto' }}
+                            value={post.status}
+                            onChange={e => handleStatusChange(post, e.target.value)}
+                          >
+                            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+                          </select>
+                          <button className="ma-post-link" onClick={() => startEdit(post)}>編輯</button>
+                          <button className="ma-post-link ma-post-link-danger" onClick={() => setConfirmDeleteId(post.id)}>刪除</button>
+                        </span>
+                      )
+                    )}
+                  </div>
+                </div>
+                <p style={{ fontSize: 14, lineHeight: 1.7, marginBottom: 10 }}>{post.content}</p>
+                {post.images?.[0] && (
+                  <div className="ma-image-thumb" style={{ marginBottom: 10 }}>
+                    <img src={post.images[0]} alt="" />
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, color: 'var(--text-muted)' }}>
+                  <span>{post.author_name}{post.farm_name ? `．${post.farm_name}` : ''}．{formatLocation(post)}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <button
+                      onClick={e => handleToggleLike(e, post)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, padding: 0, color: post.is_liked ? '#E07B39' : 'var(--text-muted)' }}
+                    >
+                      {post.is_liked ? '♥' : '♡'} {post.like_count}
+                    </button>
+                    <span>💬 留言</span>
+                  </span>
                 </div>
               </div>
             );
-          }
+          })}
+        </div>
+      )}
 
-          return (
-            <div key={post.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setDetailId(post.id)}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span className={`badge ${TYPE_BADGE[post.type]}`}>{post.type}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{post.date}</span>
-                  <button
-                    onClick={e => toggleSave(e, post.id)}
-                    title={savedIds.includes(post.id) ? '取消收藏' : '收藏'}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 0, lineHeight: 1, color: savedIds.includes(post.id) ? '#E07B39' : 'var(--text-muted)' }}
-                  >
-                    {savedIds.includes(post.id) ? '★' : '☆'}
-                  </button>
-                  {isOwn && (
-                    confirmDeleteId === post.id ? (
-                      <span style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-                        <button className="ma-post-link ma-post-link-danger" onClick={() => deletePost(post.id)}>確定刪除？</button>
-                        <button className="ma-post-link" onClick={() => setConfirmDeleteId(null)}>取消</button>
-                      </span>
-                    ) : (
-                      <span style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-                        <button className="ma-post-link" onClick={() => startEdit(post)}>編輯</button>
-                        <button className="ma-post-link ma-post-link-danger" onClick={() => setConfirmDeleteId(post.id)}>刪除</button>
-                      </span>
-                    )
-                  )}
-                </div>
-              </div>
-              <p style={{ fontSize: 14, lineHeight: 1.7, marginBottom: 10 }}>{post.content}</p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, color: 'var(--text-muted)' }}>
-                <span>{post.author}．{post.location}</span>
-                <span>💬 {post.comments.length} 則回應</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {!loading && !listError && hasMore && !onlySaved && (
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <button className="btn" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? '載入中...' : '載入更多'}
+          </button>
+        </div>
+      )}
 
-      {detailPost && (
+      {detailId && (
         <PostDetailModal
-          post={detailPost}
-          myName={myName}
+          postId={detailId}
+          myId={user?.id}
           onClose={() => setDetailId(null)}
-          onAddComment={addComment}
-          onDeleteComment={deleteComment}
+          onAuthError={() => setAuthNotice(true)}
         />
       )}
 
@@ -418,6 +656,11 @@ function DiscussionBoard() {
           onChange={handleChange}
           onSubmit={handleSubmit}
           error={error}
+          apiError={composeApiError}
+          submitting={submitting}
+          uploading={imageUploading}
+          onAddImages={handleAddImages}
+          onRemoveImage={handleRemoveImage}
           onClose={() => setComposeOpen(false)}
         />
       )}
