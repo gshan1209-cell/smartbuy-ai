@@ -4,3 +4,4 @@
 - [帳號與設定（Settings.jsx）](project_settings.md) — 帳號資料、顯示偏好、推播設定、變更密碼，及後端 auth API 總覽
 - [我的收藏（MyBasket.jsx）](project_mybasket.md) — 純收藏頁結構、favoritesService 雲端同步（/api/favorites + user_favorites 表）與 localStorage fallback
 - [售價動態架構（PriceSearch/ProductDetail）](price-pages-architecture.md) — 雙頁設計、API、元件樹、資料流
+- [互助網（MutualAid.jsx）](project_mutualaid.md) — 社群討論串真實 API 串接、按讚/收藏/圖片上傳/狀態切換、401 處理慣例
