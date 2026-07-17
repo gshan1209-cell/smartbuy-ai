@@ -83,7 +83,6 @@ def get_product_history(name: str, days: int = Query(default=30), market: str = 
                            AVG(price_return_7) AS price_return_7
                     FROM public.agri_price_features_daily
                     WHERE crop_name = :crop_name
-                      AND is_feature_complete = TRUE
                       AND trade_date >= :start_date
                       AND (:market_name = '' OR market_name = :market_name)
                     GROUP BY trade_date
