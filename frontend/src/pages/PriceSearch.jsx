@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi, get } from '../hooks/useApi';
 import Chart from 'chart.js/auto';
-import { loadSavedProducts, toggleSavedProduct } from '../lib/savedProducts';
+import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
 
 const FEATURED_COUNT = 20;
 const STATUS_RANK = { '便宜': 0, '正常': 1, '偏貴': 2, '資料不足': 3 };
@@ -455,7 +455,25 @@ export default function PriceSearch() {
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 500]);
-  const [savedProductNames, setSavedProductNames] = useState(() => loadSavedProducts());
+  const [savedProductNames, setSavedProductNames] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchFavorites('product')
+      .then(names => { if (!cancelled) setSavedProductNames(names); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  function handleToggleSavedProduct(name) {
+    if (savedProductNames.includes(name)) {
+      setSavedProductNames(prev => prev.filter(n => n !== name));
+      removeFavorite('product', name).catch(() => {});
+    } else {
+      setSavedProductNames(prev => [...prev, name]);
+      addFavorite('product', name).catch(() => {});
+    }
+  }
 
   const updateParam = useCallback((key, value) => {
     setSearchParams(prev => {
@@ -687,7 +705,7 @@ export default function PriceSearch() {
                 <button
                   onClick={e => {
                     e.stopPropagation();
-                    setSavedProductNames(toggleSavedProduct(item.product_name));
+                    handleToggleSavedProduct(item.product_name);
                   }}
                   title={isSaved ? '取消收藏' : '收藏'}
                   style={{

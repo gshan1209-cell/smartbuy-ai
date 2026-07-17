@@ -1,15 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PriceCard from '../components/PriceCard';
-import { get } from '../hooks/useApi';
-import { loadSavedNews, removeSavedNews } from '../lib/savedNews';
-import { loadSavedProducts, removeSavedProduct } from '../lib/savedProducts';
-import { loadBasket, saveBasket } from '../lib/basket';
+import { fetchFavorites, removeFavorite } from '../lib/favoritesService';
 import './MyBasket.css';
-
-function matchedBasketItems(article, basket) {
-  return basket.filter(name => article.title.includes(name) || article.summary.includes(name));
-}
 
 function SavedProductsList({ savedProducts, onRemove }) {
   const navigate = useNavigate();
@@ -61,13 +53,12 @@ function SavedProductsList({ savedProducts, onRemove }) {
   );
 }
 
-function SavedNewsList({ savedNews, basket, onRemove }) {
+function SavedNewsList({ savedNews, onRemove }) {
   const [expandedId, setExpandedId] = useState(null);
   return (
     <div className="mb-grid">
       {savedNews.map(article => {
         const expanded = expandedId === article.id;
-        const related = matchedBasketItems(article, basket);
         return (
           <div
             key={article.id}
@@ -89,13 +80,8 @@ function SavedNewsList({ savedNews, basket, onRemove }) {
               display: '-webkit-box', WebkitBoxOrient: 'vertical',
               WebkitLineClamp: expanded ? 'unset' : 3,
               overflow: expanded ? 'visible' : 'hidden',
-              marginBottom: related.length ? 8 : 0,
+              marginBottom: 0,
             }}>{article.summary}</p>
-            {related.length > 0 && (
-              <p style={{ fontSize: 12, color: 'var(--orange-dark)', fontWeight: 500, marginBottom: 0 }}>
-                🧺 與你的菜籃相關：{related.join('、')}
-              </p>
-            )}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10,
@@ -130,87 +116,43 @@ function SavedNewsList({ savedNews, basket, onRemove }) {
 
 export default function MyBasket() {
   const navigate = useNavigate();
-  const [basket,  setBasket]  = useState(loadBasket);
-  const [advices, setAdvices] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [savedNews, setSavedNews] = useState(loadSavedNews);
-  const [savedProducts, setSavedProducts] = useState(loadSavedProducts);
+  const [savedNews, setSavedNews] = useState([]);
+  const [savedProducts, setSavedProducts] = useState([]);
+  const [favLoading, setFavLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([fetchFavorites('news'), fetchFavorites('product')])
+      .then(([news, products]) => {
+        if (cancelled) return;
+        setSavedNews(news);
+        setSavedProducts(products);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setFavLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   function handleRemoveSavedNews(id) {
-    setSavedNews(removeSavedNews(id));
+    setSavedNews(prev => prev.filter(a => String(a.id) !== String(id)));
+    removeFavorite('news', id).catch(() => {});
   }
 
   function handleRemoveSavedProduct(name) {
-    setSavedProducts(removeSavedProduct(name));
-  }
-
-  const fetchAdvice = useCallback(async (items) => {
-    if (!items.length) { setAdvices([]); return; }
-    setLoading(true);
-    try {
-      const data = await get(`/api/basket/advice?items=${encodeURIComponent(items.join(','))}`);
-      setAdvices(data);
-    } catch { setAdvices([]); }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => {
-    fetchAdvice(basket);
-  }, [basket, fetchAdvice]);
-
-  function removeItem(name) {
-    const next = basket.filter(n => n !== name);
-    setBasket(next);
-    saveBasket(next);
-  }
-
-  function clearBasket() {
-    setBasket([]);
-    saveBasket([]);
+    setSavedProducts(prev => prev.filter(n => n !== name));
+    removeFavorite('product', name).catch(() => {});
   }
 
   return (
     <div className="container mb-page">
-      <h1 className="page-title">🧺 我的菜籃</h1>
-      <p className="mb-desc">加入常買的品項，一鍵查看今日採買建議。清單儲存於本機，不會上傳。</p>
+      <h1 className="page-title">⭐ 我的收藏</h1>
+      <p className="mb-desc">收藏喜歡的品項與文章，登入後跨裝置同步。</p>
 
-      {/* 操作列 */}
-      {basket.length > 0 && (
-        <div className="mb-add-row">
-          <button className="btn btn-secondary" onClick={clearBasket}>清空菜籃</button>
-        </div>
-      )}
-
-      {/* 已選品項 chips */}
-      {basket.length > 0 && (
-        <div className="mb-chips">
-          {basket.map(name => (
-            <span key={name} className="mb-chip">
-              {name}
-              <button className="mb-chip-remove" onClick={() => removeItem(name)}>×</button>
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* 採買建議 */}
-      {basket.length === 0 && (
-        <p className="empty">菜籃是空的，請從上方選擇品項</p>
-      )}
-
-      {loading && <div className="spinner" />}
-
-      {!loading && advices.length > 0 && (
-        <div className="mb-grid">
-          {advices.map((item, i) => (
-            <PriceCard key={i} item={item} />
-          ))}
-        </div>
-      )}
+      {favLoading && <div className="spinner" />}
 
       {/* 收藏品項（來自售價動態頁） */}
       <h2 className="page-title" style={{ fontSize: 20, marginTop: 40 }}>⭐ 收藏品項</h2>
-      {savedProducts.length === 0 ? (
+      {!favLoading && savedProducts.length === 0 ? (
         <p className="empty">還沒有收藏的品項，前往<a href="/search" onClick={e => { e.preventDefault(); navigate('/search'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>售價動態</a>收藏</p>
       ) : (
         <SavedProductsList savedProducts={savedProducts} onRemove={handleRemoveSavedProduct} />
@@ -218,10 +160,10 @@ export default function MyBasket() {
 
       {/* 收藏文章（來自農產新知頁，獨立於品項清單） */}
       <h2 className="page-title" style={{ fontSize: 20, marginTop: 40 }}>📰 收藏文章</h2>
-      {savedNews.length === 0 ? (
+      {!favLoading && savedNews.length === 0 ? (
         <p className="empty">還沒有收藏的文章，前往<a href="/news" onClick={e => { e.preventDefault(); navigate('/news'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>農產新知</a>看看</p>
       ) : (
-        <SavedNewsList savedNews={savedNews} basket={basket} onRemove={handleRemoveSavedNews} />
+        <SavedNewsList savedNews={savedNews} onRemove={handleRemoveSavedNews} />
       )}
     </div>
   );

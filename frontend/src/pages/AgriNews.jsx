@@ -1,20 +1,8 @@
 import { useState, useEffect } from 'react';
-import { loadSavedNews, toggleSavedNews } from '../lib/savedNews';
-import { loadBasket } from '../lib/basket';
+import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 const PAGE_SIZE = 12;
-
-function matchedBasketItems(article, basket) {
-  const text = (article.title ?? '') + ' ' + (article.summary ?? '');
-  return basket.filter(name => {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(
-      `(?<![\\u4e00-\\u9fff])${escaped}(?![\\u4e00-\\u9fff])`
-    );
-    return pattern.test(text);
-  });
-}
 
 function formatDate(raw) {
   if (!raw) return '';
@@ -30,12 +18,19 @@ export default function AgriNews() {
   const [expandedId, setExpandedId] = useState(null);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [savedIds, setSavedIds] = useState(() => loadSavedNews().map(a => a.id));
-  const [basket] = useState(loadBasket);
+  const [savedIds, setSavedIds] = useState([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [sources, setSources] = useState([]);
   const [sourceFilter, setSourceFilter] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchFavorites('news')
+      .then(data => { if (!cancelled) setSavedIds(data.map(a => String(a.id))); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 400);
@@ -95,9 +90,20 @@ export default function AgriNews() {
 
   function handleToggleSave(e, article) {
     e.stopPropagation();
-    const toSave = { ...article, summary: article.fullContent };
-    const next = toggleSavedNews(toSave);
-    setSavedIds(next.map(a => a.id));
+    const id = String(article.id);
+    if (savedIds.includes(id)) {
+      setSavedIds(prev => prev.filter(x => x !== id));
+      removeFavorite('news', id).catch(() => {});
+    } else {
+      setSavedIds(prev => [...prev, id]);
+      addFavorite('news', id, {
+        title: article.title,
+        summary: article.fullContent,
+        source: article.source,
+        url: article.url,
+        date: article.date,
+      }).catch(() => {});
+    }
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -186,8 +192,7 @@ export default function AgriNews() {
         }}>
           {articles.map(article => {
             const expanded = expandedId === article.id;
-            const saved = savedIds.includes(article.id);
-            const related = matchedBasketItems(article, basket);
+            const saved = savedIds.includes(String(article.id));
             return (
               <div
                 key={article.id}
@@ -230,12 +235,6 @@ export default function AgriNews() {
                 }}>
                   {article.summary}
                 </p>
-
-                {related.length > 0 && (
-                  <p style={{ fontSize: 12, color: 'var(--yz-or)', fontWeight: 600, marginTop: 8 }}>
-                    🧺 與你的菜籃相關：{related.join('、')}
-                  </p>
-                )}
 
                 <div style={{
                   display: 'flex', justifyContent: 'space-between',
