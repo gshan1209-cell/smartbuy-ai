@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import date
 import hashlib
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -68,12 +69,23 @@ class FakeConnection:
 
         if "from public.agri_price_daily" in sql:
             rows = self.state.get("prices", [])
-            latest_date = max((row["trans_date"] for row in rows), default=None)
+            excludes_known_non_crop_values = "not in ('其他', '休市')" in sql
+            latest_date = max(
+                (
+                    row["trans_date"]
+                    for row in rows
+                    if not excludes_known_non_crop_values
+                    or str(row.get("crop_name") or "").strip() not in {"其他", "休市"}
+                ),
+                default=None,
+            )
             totals = {}
             for row in rows:
                 crop_name = row.get("crop_name")
                 crop_name = crop_name.strip() if isinstance(crop_name, str) else crop_name
                 if row.get("trans_date") != latest_date or not crop_name:
+                    continue
+                if excludes_known_non_crop_values and crop_name in {"其他", "休市"}:
                     continue
                 totals[crop_name] = totals.get(crop_name, 0) + (row.get("volume") or 0)
             result_rows = [
@@ -379,6 +391,23 @@ def test_latest_ranked_crop_query_returns_all_latest_date_crops_without_limit_50
     assert result["crop_names"][-1] == "作物00"
 
 
+def test_latest_ranked_crop_query_uses_latest_date_with_valid_yahoo_crops():
+    engine = FakeEngine()
+    engine.state["prices"] = [
+        {"trans_date": "2026-07-17", "crop_name": "芒果", "volume": 10},
+        {"trans_date": "2026-07-17", "crop_name": "其他", "volume": 999},
+        {"trans_date": "2026-07-20", "crop_name": "休市", "volume": 999},
+    ]
+
+    with engine.begin() as conn:
+        result = script.fetch_latest_ranked_crop_names(conn)
+
+    assert result == {
+        "latest_trade_date": "2026-07-17",
+        "crop_names": ["芒果"],
+    }
+
+
 def test_ranked_crop_sql_has_no_fixed_limit_50_and_orders_in_database():
     sql = str(script.LATEST_RANKED_CROP_NAMES_SQL).lower()
 
@@ -389,6 +418,7 @@ def test_ranked_crop_sql_has_no_fixed_limit_50_and_orders_in_database():
     assert "order by" in sql
     assert "total_volume desc" in sql
     assert "agri_price_daily.crop_name asc" in sql
+    assert "not in ('其他', '休市')" in sql
     assert "limit 50" not in sql
     assert "limit :limit" not in sql
 
@@ -545,6 +575,19 @@ def test_select_daily_yahoo_keywords_removes_blanks_and_duplicates():
     assert all(keyword.strip() for keyword in selection["keywords"])
 
 
+def test_select_daily_yahoo_keywords_removes_known_non_crop_values_but_keeps_single_crop():
+    ranked = ["其他", "休市", "蔥", "芒果", "蔥"]
+
+    selection = script.select_daily_yahoo_keywords(
+        ranked,
+        rotation_date=date(2026, 7, 15),
+    )
+
+    assert selection["keywords"] == ["蔥", "芒果"]
+    assert "豬" not in selection["keywords"]
+    assert "豬肉" not in selection["keywords"]
+
+
 def test_run_pipeline_selects_rotated_keywords_and_passes_them_to_yahoo(monkeypatch, capsys):
     engine = FakeEngine()
     engine.state["prices"] = [
@@ -623,6 +666,32 @@ def test_threads_is_required_and_source_count_summary_includes_it(capsys):
     script._print_source_counts([{**make_article(), "crawl_source": "threads"}])
 
     assert "threads=1" in capsys.readouterr().out
+
+
+def test_yahoo_relevance_summary_prints_candidate_and_rejection_counts(monkeypatch, capsys):
+    monkeypatch.setattr(
+        script,
+        "get_last_yahoo_relevance_stats",
+        lambda: SimpleNamespace(
+            candidate_count=5,
+            accepted_count=2,
+            rejected_count=3,
+            rejection_reasons={
+                "ambiguous_crop_negative_title": 1,
+                "missing_nearby_agri_context": 2,
+            },
+        ),
+    )
+
+    script._print_yahoo_relevance_summary()
+
+    output = capsys.readouterr().out
+    assert "Yahoo relevance summary:" in output
+    assert "candidates=5" in output
+    assert "accepted=2" in output
+    assert "rejected=3" in output
+    assert "ambiguous_crop_negative_title=1" in output
+    assert "missing_nearby_agri_context=2" in output
 
 
 def test_daily_news_workflow_installs_chromium_without_changing_schedule_or_retries():

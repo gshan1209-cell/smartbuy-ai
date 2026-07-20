@@ -20,7 +20,11 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
-from src.data.fetch_agri_news import fetch_agri_news  # noqa: E402
+from src.data.fetch_agri_news import (  # noqa: E402
+    fetch_agri_news,
+    get_last_yahoo_relevance_stats,
+    is_valid_yahoo_crop_name,
+)
 
 
 JOB_NAME = "update_agri_news_daily"
@@ -262,6 +266,9 @@ LATEST_RANKED_CROP_NAMES_SQL = text(
     WITH latest_date AS (
         SELECT MAX(trans_date) AS trans_date
         FROM public.agri_price_daily
+        WHERE crop_name IS NOT NULL
+          AND BTRIM(crop_name) <> ''
+          AND BTRIM(crop_name) NOT IN ('其他', '休市')
     )
     SELECT
         latest_date.trans_date AS latest_trade_date,
@@ -272,6 +279,7 @@ LATEST_RANKED_CROP_NAMES_SQL = text(
       ON agri_price_daily.trans_date = latest_date.trans_date
     WHERE agri_price_daily.crop_name IS NOT NULL
       AND BTRIM(agri_price_daily.crop_name) <> ''
+      AND BTRIM(agri_price_daily.crop_name) NOT IN ('其他', '休市')
     GROUP BY
         latest_date.trans_date,
         agri_price_daily.crop_name
@@ -310,7 +318,7 @@ def select_daily_yahoo_keywords(
     seen: set[str] = set()
     for raw_crop_name in ranked_crop_names:
         crop_name = _normalize_text(raw_crop_name)
-        if crop_name and crop_name not in seen:
+        if crop_name and is_valid_yahoo_crop_name(crop_name) and crop_name not in seen:
             cleaned_crop_names.append(crop_name)
             seen.add(crop_name)
 
@@ -428,6 +436,21 @@ def _print_source_counts(articles: list[dict[str, Any]]) -> None:
     )
 
 
+def _print_yahoo_relevance_summary() -> None:
+    stats = get_last_yahoo_relevance_stats()
+    rejection_summary = ", ".join(
+        f"{reason}={count}" for reason, count in stats.rejection_reasons.items()
+    )
+    print(
+        "Yahoo relevance summary: "
+        f"candidates={stats.candidate_count}, "
+        f"accepted={stats.accepted_count}, "
+        f"rejected={stats.rejected_count}, "
+        f"rejection_reasons={rejection_summary or 'none'}",
+        flush=True,
+    )
+
+
 def run_pipeline(limit_per_source: int = 10) -> dict[str, Any]:
     database_url = load_database_url()
     print("DATABASE_URL detected; creating Supabase engine.", flush=True)
@@ -452,6 +475,7 @@ def run_pipeline(limit_per_source: int = 10) -> dict[str, Any]:
         if not articles:
             raise RuntimeError("fetch_agri_news returned no articles.")
         _print_source_counts(articles)
+        _print_yahoo_relevance_summary()
 
         with engine.begin() as conn:
             stats = upsert_articles(conn, articles)

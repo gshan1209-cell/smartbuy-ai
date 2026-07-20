@@ -364,22 +364,126 @@ def test_fetch_yahoo_article_content_extracts_clean_body(monkeypatch):
         ("高麗菜價格崩跌，農民棄採", "產地供應量增加。", ["高麗菜"], True),
         ("高麗菜絲免費加，豬排定食限時 199 元", "餐廳活動。", ["高麗菜"], False),
         ("蘋果發表新手機", "新款手機上市。", ["蘋果"], False),
-        ("蘋果產地受寒害，產量減少", "農民表示採收延後。", ["蘋果"], True),
+        ("蘋果產地受寒害，果農採收延後", "農民表示採收延後。", ["蘋果"], True),
         ("蔥價上漲", "農民提前採收。", ["蔥"], True),
         ("明星推薦蔥油餅店", "餐廳料理優惠。", ["蔥"], False),
         ("市場行情", "農民表示高麗菜供應穩定。", ["高麗菜"], False),
         ("市場行情", "農民表示高麗菜供應穩定，高麗菜採收增加。", ["高麗菜"], True),
+        (
+            "市場行情",
+            "今日產地回報高麗菜到貨量增加，農民表示高麗菜採收順利。",
+            ["高麗菜"],
+            True,
+        ),
+        ("蘋果公司供應鏈庫存回升，產品價格調整", "法人看好新機銷售。", ["蘋果"], False),
+        ("農業科技公司與蘋果合作開發新手機", "晶片規格升級。", ["蘋果"], False),
+        ("小米手機出口成長，庫存下降", "投資人關注財報。", ["小米"], False),
+        ("高麗菜料理價格上漲，餐廳供應吃到飽", "菜單優惠更新。", ["高麗菜"], False),
+        ("明星推薦蔥油餅，原料價格上漲", "節目介紹餐廳料理。", ["蔥"], False),
+        ("早餐空腹吃香蕉超讚！這4類人千萬別碰", "香蕉種植產地採收資訊。", ["香蕉"], False),
+        ("香蕉容易壞？買回家先做1動作延長保存", "香蕉採收後上市。", ["香蕉"], False),
+        ("高麗菜料理這樣做最好吃", "高麗菜產地農民採收。", ["高麗菜"], False),
+        ("酪梨、紅豆激盪美味 萬丹農會創意料理大比拼", "酪梨產量與拍賣市場資訊。", ["酪梨"], False),
+        ("芒果甜點限時優惠", "芒果產地農民採收。", ["芒果"], False),
+        ("小農平台開張滿千送伴手禮", "芒果酪梨產地小農供應。", ["芒果", "酪梨"], False),
+        ("海峽論壇談中央地方治理", "正文提及釋迦農民與產地。", ["釋迦"], False),
+        ("手機管理16公頃果園，型農打造酪梨智慧農場", "酪梨果園導入灌溉。", ["酪梨"], True),
+        ("果園導入感測器監測灌溉", "酪梨果園採用感測器，酪梨農民追蹤灌溉。", ["酪梨"], True),
+        ("高麗菜產地供應增加，批發價下跌", "高麗菜到貨量同步增加。", ["高麗菜"], True),
+        ("香蕉寒害造成產量下降", "農民表示香蕉採收延後。", ["香蕉"], True),
+        ("蘋果產地採收延後", "果農表示蘋果受天候影響。", ["蘋果"], True),
     ],
 )
 def test_evaluate_yahoo_relevance_rules(title, content_text, matched_crop_names, expected):
-    is_relevant, reason = news.evaluate_yahoo_relevance(
+    decision = news.evaluate_yahoo_relevance(
         title=title,
         content_text=content_text,
         matched_crop_names=matched_crop_names,
     )
 
-    assert is_relevant is expected
-    assert reason
+    assert decision.is_relevant is expected
+    assert decision.reason
+    assert isinstance(decision.score, int)
+
+
+def test_yahoo_context_terms_must_be_near_crop():
+    far_content = (
+        "高麗菜今日在城市活動中被提及，民眾分享童年回憶。"
+        + "這是一段沒有相關脈絡的文字。" * 10
+        + "農民表示近期採收與產地管理順利。"
+        + "這是另一段沒有相關脈絡的文字。" * 10
+        + "高麗菜再次出現在餐飲評論中。"
+    )
+
+    decision = news.evaluate_yahoo_relevance(
+        title="市場活動",
+        content_text=far_content,
+        matched_crop_names=["高麗菜"],
+    )
+
+    assert decision.is_relevant is False
+    assert decision.reason_code == "missing_nearby_agri_context"
+
+
+def test_single_character_crop_rejects_repeated_character_without_agri_context():
+    decision = news.evaluate_yahoo_relevance(
+        title="市場話題",
+        content_text="蔥明消費者分享蔥容生活，內容多次出現蔥字但沒有農業脈絡。",
+        matched_crop_names=["蔥"],
+    )
+
+    assert decision.is_relevant is False
+    assert decision.reason_code == "single_crop_missing_title"
+
+
+def test_terms_near_crop_uses_configured_window():
+    near_text = "高麗菜" + ("x" * (news.AGRI_CONTEXT_WINDOW_CHARS - 2)) + "農民"
+    far_text = "高麗菜" + ("x" * (news.AGRI_CONTEXT_WINDOW_CHARS + 1)) + "農民"
+
+    assert news._has_agri_context_near_crop(
+        text=near_text,
+        crop_name="高麗菜",
+        terms=news.AGRI_PRODUCTION_CONTEXT_TERMS,
+    )
+    assert not news._has_agri_context_near_crop(
+        text=far_text,
+        crop_name="高麗菜",
+        terms=news.AGRI_PRODUCTION_CONTEXT_TERMS,
+    )
+
+
+def test_yahoo_crop_name_cleanup_removes_only_known_non_crop_values():
+    assert news.normalize_yahoo_crop_names(["其他", "休市", "蔥", " 蔥 ", ""]) == ["蔥"]
+    assert news.is_valid_yahoo_crop_name("蔥")
+
+
+def test_fetch_yahoo_news_list_does_not_match_excluded_crop_names(monkeypatch):
+    html = """
+    <html><body>
+      <li class="stream-card">
+        <h3><a href="/other-101.html">[新聞網] 其他產地採收新聞</a></h3>
+        <div class="text-px12">新聞網 ・ 2026年7月15日</div>
+      </li>
+      <li class="stream-card">
+        <h3><a href="/scallion-102.html">[自由時報] 蔥產地採收順利</a></h3>
+        <div class="text-px12">自由時報 ・ 2026年7月15日</div>
+      </li>
+    </body></html>
+    """
+    requested_urls = []
+
+    def fake_get_html(url):
+        requested_urls.append(url)
+        return html
+
+    monkeypatch.setattr(news, "_get_html", fake_get_html)
+
+    items = news.fetch_yahoo_news_list(["其他", "休市", "蔥"], limit=10)
+
+    assert len(items) == 1
+    assert items[0]["matched_crop_names"] == ["蔥"]
+    assert len(requested_urls) == 1
+    assert "other" not in items[0]["source_url"]
 
 
 def test_fetch_relevant_yahoo_articles_returns_at_most_ten(monkeypatch):
@@ -411,6 +515,44 @@ def test_fetch_relevant_yahoo_articles_returns_at_most_ten(monkeypatch):
     items = news.fetch_relevant_yahoo_articles(["芒果"])
 
     assert len(items) == news.YAHOO_FINAL_LIMIT
+
+
+def test_fetch_relevant_yahoo_articles_sorts_by_score_before_date(monkeypatch):
+    old_high = news._empty_article(
+        source_name="自由時報",
+        title="高麗菜產地採收受寒害",
+        published_date="2026-07-14",
+        source_url="https://tw.news.yahoo.com/high-111.html",
+        crawl_source="yahoo",
+        matched_crop_names=["高麗菜"],
+    )
+    new_low = news._empty_article(
+        source_name="自由時報",
+        title="高麗菜批發價走弱",
+        published_date="2026-07-15",
+        source_url="https://tw.news.yahoo.com/low-222.html",
+        crawl_source="yahoo",
+        matched_crop_names=["高麗菜"],
+    )
+    monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: [new_low, old_high])
+    monkeypatch.setattr(
+        news,
+        "fetch_yahoo_article_content",
+        lambda url: news._article_from_content(
+            source_name="Yahoo新聞",
+            source_url=url,
+            source_article_id=None,
+            title="",
+            published_date=None,
+            content_text="高麗菜產地農民採收。" if "high" in url else "高麗菜批發價下跌。",
+            crawl_source="yahoo",
+        ),
+    )
+
+    items = news.fetch_relevant_yahoo_articles(["高麗菜"])
+
+    assert [item["title"] for item in items] == ["高麗菜產地採收受寒害", "高麗菜批發價走弱"]
+    assert items[0]["relevance_score"] > items[1]["relevance_score"]
 
 
 def test_fetch_relevant_yahoo_articles_checks_candidates_beyond_first_ten(monkeypatch):
@@ -455,6 +597,46 @@ def test_fetch_relevant_yahoo_articles_checks_candidates_beyond_first_ten(monkey
 
     assert len(items) == 1
     assert items[0]["title"] == "芒果產地採收增加"
+
+
+def test_fetch_relevant_yahoo_articles_records_relevance_stats(monkeypatch):
+    accepted = news._empty_article(
+        source_name="自由時報",
+        title="芒果產地採收增加",
+        source_url="https://tw.news.yahoo.com/agri-101.html",
+        crawl_source="yahoo",
+        matched_crop_names=["芒果"],
+    )
+    rejected = news._empty_article(
+        source_name="科技網",
+        title="蘋果公司供應鏈庫存回升，產品價格調整",
+        source_url="https://tw.news.yahoo.com/tech-202.html",
+        crawl_source="yahoo",
+        matched_crop_names=["蘋果"],
+    )
+    monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: [accepted, rejected])
+    monkeypatch.setattr(
+        news,
+        "fetch_yahoo_article_content",
+        lambda url: news._article_from_content(
+            source_name="Yahoo新聞",
+            source_url=url,
+            source_article_id=None,
+            title="",
+            published_date="2026-07-15",
+            content_text="芒果農民採收，芒果產地供應穩定。" if "agri" in url else "手機財報消息。",
+            crawl_source="yahoo",
+        ),
+    )
+
+    items = news.fetch_relevant_yahoo_articles(["芒果", "蘋果"])
+    stats = news.get_last_yahoo_relevance_stats()
+
+    assert len(items) == 1
+    assert stats.candidate_count == 2
+    assert stats.accepted_count == 1
+    assert stats.rejected_count == 1
+    assert stats.rejection_reasons == {"ambiguous_crop_negative_title": 1}
 
 
 def test_roc_date_converts_to_western_date():
