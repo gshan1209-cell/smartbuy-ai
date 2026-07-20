@@ -5,7 +5,6 @@
 
 【相關元件 (Related Components)】
 - 依賴: src.data.price_repository._load_database_url  (共用 DB URL 讀取)
-- 依賴: src.data.r2_sync  (共用 R2 boto3 client 建構)
 - 依賴: sqlalchemy (資料庫操作)
 - 依賴: Pillow (圖片轉 webp)
 - 被呼叫: backend/routers/mutual_aid.py 的 /api/mutual-aid 路由
@@ -17,18 +16,18 @@
 - mutual_aid_comments(id, post_id, member_id, content, created_at)
 - mutual_aid_likes(post_id, member_id)  -- PK (post_id, member_id)
 - mutual_aid_saved(post_id, member_id) -- PK (post_id, member_id)
+
+圖片上傳不落地任何檔案系統/物件儲存，直接把 webp 轉成 base64 data URL 字串，
+存進 mutual_aid_posts.images（text[]）本身，不需要額外資料表或環境變數。
 """
 from __future__ import annotations
 
-import os
-import uuid
 from io import BytesIO
 from typing import Optional
 
 from sqlalchemy import create_engine, text
 
 from src.data.price_repository import _load_database_url
-from src.data.r2_sync import _get_r2_client, is_r2_configured
 
 _MAX_IMAGES = 5
 _ALLOWED_STATUS = {"open", "dealing", "closed"}
@@ -84,8 +83,9 @@ def list_posts(
     limit: int = 20,
     offset: int = 0,
     member_id: Optional[int] = None,
+    mine: bool = False,
 ) -> list[dict]:
-    """列出貼文，支援類型/縣市/關鍵字篩選與排序分頁。"""
+    """列出貼文，支援類型/縣市/關鍵字篩選與排序分頁。mine=True 時僅回傳 member_id 本人的貼文。"""
     order_by = "p.like_count DESC, p.created_at DESC" if sort == "likes" else "p.created_at DESC"
 
     where_parts = []
@@ -99,7 +99,6 @@ def list_posts(
     if q is not None:
         where_parts.append("(p.content ILIKE :q OR p.location_addr ILIKE :q)")
         params["q"] = f"%{q}%"
-    where_clause = f"WHERE {' AND '.join(where_parts)}" if where_parts else ""
 
     is_liked_expr = "NULL AS is_liked"
     is_saved_expr = "NULL AS is_saved"
@@ -111,6 +110,10 @@ def list_posts(
         liked_join = "LEFT JOIN mutual_aid_likes l ON l.post_id = p.id AND l.member_id = :member_id"
         saved_join = "LEFT JOIN mutual_aid_saved s ON s.post_id = p.id AND s.member_id = :member_id"
         params["member_id"] = member_id
+        if mine:
+            where_parts.append("p.member_id = :member_id")
+
+    where_clause = f"WHERE {' AND '.join(where_parts)}" if where_parts else ""
 
     sql = f"""
         SELECT p.*, m.name AS author_name, {is_liked_expr}, {is_saved_expr}
@@ -466,31 +469,15 @@ def list_saved_posts(member_id: int) -> list[dict]:
     return posts
 
 
-def upload_post_image(member_id: int, file_bytes: bytes) -> str:
-    """將圖片轉為 webp 後上傳至 R2，回傳公開存取 URL。"""
+def upload_post_image(file_bytes: bytes) -> str:
+    """將圖片轉為 webp 並編碼成 base64 data URL，直接存進貼文的 images 欄位。"""
+    import base64
+
     from PIL import Image
-
-    if not is_r2_configured():
-        raise RuntimeError("r2_not_configured")
-
-    public_url = os.getenv("R2_PUBLIC_URL")
-    bucket_name = os.getenv("R2_BUCKET_NAME")
-    if not public_url or not bucket_name:
-        raise RuntimeError("r2_not_configured")
 
     image = Image.open(BytesIO(file_bytes))
     image = image.convert("RGB")
     buffer = BytesIO()
     image.save(buffer, format="WEBP", quality=85)
-    buffer.seek(0)
-
-    key = f"mutual-aid/{member_id}/{uuid.uuid4()}.webp"
-    client = _get_r2_client()
-    client.put_object(
-        Bucket=bucket_name,
-        Key=key,
-        Body=buffer.getvalue(),
-        ContentType="image/webp",
-    )
-
-    return f"{public_url.rstrip('/')}/{key}"
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/webp;base64,{encoded}"

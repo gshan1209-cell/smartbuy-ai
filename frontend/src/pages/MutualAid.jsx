@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import ReportPrice from './ReportPrice';
 import { useAuth } from '../context/AuthContext';
 import {
   fetchPosts,
@@ -39,12 +38,55 @@ function formatLocation(post) {
   return [post.location_city, post.location_addr].filter(Boolean).join(' ') || '未提供地點';
 }
 
+function ImageLightbox({ images, index, onClose, onNav }) {
+  if (!images || images.length === 0) return null;
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}
+    >
+      <button
+        onClick={onClose}
+        style={{ position: 'absolute', top: 18, right: 22, background: 'none', border: 'none', color: '#fff', fontSize: 26, cursor: 'pointer', lineHeight: 1 }}
+      >
+        ✕
+      </button>
+      {images.length > 1 && (
+        <button
+          onClick={e => { e.stopPropagation(); onNav(-1); }}
+          style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#fff', fontSize: 36, cursor: 'pointer', lineHeight: 1 }}
+        >
+          ‹
+        </button>
+      )}
+      <img
+        src={images[index]}
+        alt=""
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 8 }}
+      />
+      {images.length > 1 && (
+        <button
+          onClick={e => { e.stopPropagation(); onNav(1); }}
+          style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#fff', fontSize: 36, cursor: 'pointer', lineHeight: 1 }}
+        >
+          ›
+        </button>
+      )}
+      {images.length > 1 && (
+        <span style={{ position: 'absolute', bottom: 18, color: '#fff', fontSize: 12.5 }}>{index + 1} / {images.length}</span>
+      )}
+    </div>
+  );
+}
+
 function PostDetailModal({ postId, myId, onClose, onAuthError }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,8 +149,8 @@ function PostDetailModal({ postId, myId, onClose, onAuthError }) {
             </div>
             {detail.images?.length > 0 && (
               <div className="ma-image-list" style={{ marginBottom: 12 }}>
-                {detail.images.map(url => (
-                  <div key={url} className="ma-image-thumb">
+                {detail.images.map((url, i) => (
+                  <div key={url} className="ma-image-thumb ma-image-thumb-clickable" onClick={() => setLightboxIndex(i)}>
                     <img src={url} alt="" />
                   </div>
                 ))}
@@ -151,6 +193,15 @@ function PostDetailModal({ postId, myId, onClose, onAuthError }) {
           </>
         )}
       </div>
+
+      {lightboxIndex !== null && (
+        <ImageLightbox
+          images={detail?.images}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNav={d => setLightboxIndex(i => (i + d + detail.images.length) % detail.images.length)}
+        />
+      )}
     </div>
   );
 }
@@ -248,15 +299,18 @@ function DiscussionBoard() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ type: '', location_city: '', location_addr: '', content: '' });
+  const [editForm, setEditForm] = useState({ type: '', location_city: '', location_addr: '', content: '', images: [] });
+  const [editImageUploading, setEditImageUploading] = useState(false);
+  const editFileInputRef = useRef(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [detailId, setDetailId] = useState(null);
   const [composeOpen, setComposeOpen] = useState(false);
-  const [onlySaved, setOnlySaved] = useState(false);
+  const [viewFilter, setViewFilter] = useState('all'); // 'all' | 'saved' | 'mine'
   const [typeFilter, setTypeFilter] = useState('全部');
   const [cityFilter, setCityFilter] = useState('全部');
   const [actionError, setActionError] = useState('');
   const [authNotice, setAuthNotice] = useState(false);
+  const [lightbox, setLightbox] = useState(null); // { images, index }
 
   const myName = user?.name || '訪客';
 
@@ -274,25 +328,29 @@ function DiscussionBoard() {
     let cancelled = false;
     setLoading(true);
     setListError('');
-    const task = onlySaved
+    const task = viewFilter === 'saved'
       ? fetchSavedPosts()
-      : fetchPosts({ type: typeFilter, city: cityFilter, q: debouncedQuery, offset: 0, limit: PAGE_SIZE });
+      : fetchPosts({ type: typeFilter, city: cityFilter, q: debouncedQuery, mine: viewFilter === 'mine', offset: 0, limit: PAGE_SIZE });
     task
       .then(data => {
         if (cancelled) return;
         setPosts(data);
-        setHasMore(!onlySaved && data.length === PAGE_SIZE);
+        setHasMore(viewFilter !== 'saved' && data.length === PAGE_SIZE);
       })
-      .catch(err => { if (!cancelled) setListError(err.message || '載入失敗'); })
+      .catch(err => {
+        if (cancelled) return;
+        if (err.status === 401) { setAuthNotice(true); setViewFilter('all'); }
+        else setListError(err.message || '載入失敗');
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [typeFilter, cityFilter, debouncedQuery, onlySaved, reloadKey]);
+  }, [typeFilter, cityFilter, debouncedQuery, viewFilter, reloadKey]);
 
   async function loadMore() {
-    if (onlySaved || loadingMore) return;
+    if (viewFilter === 'saved' || loadingMore) return;
     setLoadingMore(true);
     try {
-      const data = await fetchPosts({ type: typeFilter, city: cityFilter, q: debouncedQuery, offset: posts.length, limit: PAGE_SIZE });
+      const data = await fetchPosts({ type: typeFilter, city: cityFilter, q: debouncedQuery, mine: viewFilter === 'mine', offset: posts.length, limit: PAGE_SIZE });
       setPosts(ps => [...ps, ...data]);
       setHasMore(data.length === PAGE_SIZE);
     } catch (err) {
@@ -379,7 +437,7 @@ function DiscussionBoard() {
     setPosts(ps => ps.map(p => p.id === post.id ? { ...p, is_saved: !prevSaved } : p));
     try {
       const res = await apiToggleSave(post.id);
-      if (onlySaved && !res.saved) {
+      if (viewFilter === 'saved' && !res.saved) {
         setPosts(ps => ps.filter(p => p.id !== post.id));
       } else {
         setPosts(ps => ps.map(p => p.id === post.id ? { ...p, is_saved: res.saved } : p));
@@ -403,12 +461,47 @@ function DiscussionBoard() {
 
   function startEdit(post) {
     setEditingId(post.id);
-    setEditForm({ type: post.type, location_city: post.location_city || '', location_addr: post.location_addr || '', content: post.content });
+    setEditForm({
+      type: post.type,
+      location_city: post.location_city || '',
+      location_addr: post.location_addr || '',
+      content: post.content,
+      images: post.images || [],
+    });
     setConfirmDeleteId(null);
   }
 
   function cancelEdit() {
     setEditingId(null);
+  }
+
+  async function handleEditAddImages(files) {
+    const remaining = MAX_IMAGES - editForm.images.length;
+    const toUpload = files.slice(0, remaining);
+    setEditImageUploading(true);
+    try {
+      for (const file of toUpload) {
+        try {
+          const { url } = await uploadImage(file);
+          setEditForm(f => ({ ...f, images: [...f.images, url] }));
+        } catch (err) {
+          if (err.status === 401) { setAuthNotice(true); break; }
+          reportError(err, '圖片上傳失敗');
+        }
+      }
+    } finally {
+      setEditImageUploading(false);
+    }
+  }
+
+  function handleEditRemoveImage(idx) {
+    setEditForm(f => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
+  }
+
+  function handleEditFilePick(e) {
+    const files = Array.from(e.target.files || []);
+    if (files.length) handleEditAddImages(files);
+    e.target.value = '';
   }
 
   async function saveEdit(id) {
@@ -419,6 +512,7 @@ function DiscussionBoard() {
         location_city: editForm.location_city,
         location_addr: editForm.location_addr.trim() || undefined,
         content: editForm.content.trim(),
+        images: editForm.images,
       });
       setPosts(ps => ps.map(p => p.id === id ? updated : p));
       setEditingId(null);
@@ -469,15 +563,28 @@ function DiscussionBoard() {
         <button
           type="button"
           className="btn"
-          onClick={() => setOnlySaved(v => !v)}
+          onClick={() => setViewFilter(v => v === 'saved' ? 'all' : 'saved')}
           style={{
             flexShrink: 0, fontSize: 13,
-            background: onlySaved ? 'var(--green)' : 'var(--cream-dark)',
-            color: onlySaved ? '#fff' : 'var(--text)',
+            background: viewFilter === 'saved' ? 'var(--green)' : 'var(--cream-dark)',
+            color: viewFilter === 'saved' ? '#fff' : 'var(--text)',
             border: '1px solid var(--border)',
           }}
         >
           ★ 只看收藏
+        </button>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => setViewFilter(v => v === 'mine' ? 'all' : 'mine')}
+          style={{
+            flexShrink: 0, fontSize: 13,
+            background: viewFilter === 'mine' ? 'var(--green)' : 'var(--cream-dark)',
+            color: viewFilter === 'mine' ? '#fff' : 'var(--text)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          🙋 只看我的
         </button>
       </div>
 
@@ -520,7 +627,9 @@ function DiscussionBoard() {
 
       {!loading && !listError && visiblePosts.length === 0 && (
         <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '24px 0', textAlign: 'center' }}>
-          {onlySaved ? '還沒有收藏任何貼文' : debouncedQuery ? `找不到符合「${debouncedQuery}」的貼文` : '沒有符合篩選條件的貼文'}
+          {viewFilter === 'saved' ? '還沒有收藏任何貼文'
+            : viewFilter === 'mine' ? '你還沒有發布任何貼文'
+            : debouncedQuery ? `找不到符合「${debouncedQuery}」的貼文` : '沒有符合篩選條件的貼文'}
         </p>
       )}
 
@@ -562,6 +671,25 @@ function DiscussionBoard() {
                     value={editForm.content}
                     onChange={e => setEditForm(f => ({ ...f, content: e.target.value }))}
                   />
+                  <div className="ma-image-list">
+                    {editForm.images.map((url, i) => (
+                      <div key={url} className="ma-image-thumb">
+                        <img src={url} alt="" />
+                        <button type="button" className="ma-image-remove" onClick={() => handleEditRemoveImage(i)}>✕</button>
+                      </div>
+                    ))}
+                    {editForm.images.length < MAX_IMAGES && (
+                      <button
+                        type="button"
+                        className="ma-image-add"
+                        onClick={() => editFileInputRef.current?.click()}
+                        disabled={editImageUploading}
+                      >
+                        {editImageUploading ? '上傳中...' : '＋ 新增圖片'}
+                      </button>
+                    )}
+                  </div>
+                  <input ref={editFileInputRef} type="file" accept="image/*" multiple hidden onChange={handleEditFilePick} />
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn btn-primary" onClick={() => saveEdit(post.id)}>儲存</button>
                     <button className="btn btn-secondary" onClick={cancelEdit}>取消</button>
@@ -611,7 +739,11 @@ function DiscussionBoard() {
                 </div>
                 <p style={{ fontSize: 14, lineHeight: 1.7, marginBottom: 10 }}>{post.content}</p>
                 {post.images?.[0] && (
-                  <div className="ma-image-thumb" style={{ marginBottom: 10 }}>
+                  <div
+                    className="ma-image-thumb ma-image-thumb-clickable"
+                    style={{ marginBottom: 10 }}
+                    onClick={e => { e.stopPropagation(); setLightbox({ images: post.images, index: 0 }); }}
+                  >
                     <img src={post.images[0]} alt="" />
                   </div>
                 )}
@@ -633,7 +765,7 @@ function DiscussionBoard() {
         </div>
       )}
 
-      {!loading && !listError && hasMore && !onlySaved && (
+      {!loading && !listError && hasMore && viewFilter !== 'saved' && (
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <button className="btn" onClick={loadMore} disabled={loadingMore}>
             {loadingMore ? '載入中...' : '載入更多'}
@@ -664,24 +796,26 @@ function DiscussionBoard() {
           onClose={() => setComposeOpen(false)}
         />
       )}
+
+      {lightbox && (
+        <ImageLightbox
+          images={lightbox.images}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onNav={d => setLightbox(l => ({ ...l, index: (l.index + d + l.images.length) % l.images.length }))}
+        />
+      )}
     </div>
   );
 }
 
 export default function MutualAid() {
-  const [tab, setTab] = useState('discussion');
-
   return (
     <div className="container ma-page">
       <h1 className="page-title">🤝 互助網</h1>
-      <p className="ma-desc">滯銷、急銷媒合與栽培互助，也能在這裡回報看到的實際市場價格。</p>
+      <p className="ma-desc">滯銷、急銷媒合與栽培互助。</p>
 
-      <div className="ma-tabs">
-        <button className={`ma-tab ${tab === 'discussion' ? 'active' : ''}`} onClick={() => setTab('discussion')}>社群討論</button>
-        <button className={`ma-tab ${tab === 'report' ? 'active' : ''}`} onClick={() => setTab('report')}>回報菜價</button>
-      </div>
-
-      {tab === 'discussion' ? <DiscussionBoard /> : <ReportPrice />}
+      <DiscussionBoard />
     </div>
   );
 }

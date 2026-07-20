@@ -7,30 +7,6 @@
   line-height: 1.6;
 }
 
-.ma-tabs {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.ma-tab {
-  padding: 10px 18px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-
-.ma-tab.active {
-  color: var(--green-dark);
-  font-weight: 700;
-  border-bottom-color: var(--green);
-}
-
 .ma-post-form {
   display: flex;
   flex-direction: column;
@@ -123,6 +99,8 @@
   object-fit: cover;
   display: block;
 }
+
+.ma-image-thumb-clickable { cursor: zoom-in; }
 
 .ma-image-remove {
   position: absolute;

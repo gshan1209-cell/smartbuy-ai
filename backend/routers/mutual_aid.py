@@ -78,14 +78,18 @@ def mutual_aid_list_posts(
     type: Optional[Literal["滯銷急售", "求助", "資訊分享"]] = Query(None),
     city: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
+    mine: bool = Query(False),
     sort: Literal["latest", "likes"] = Query("latest"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     member_id: Optional[int] = Depends(_get_current_member_id_optional),
 ):
-    """列出貼文，支援類型/縣市/關鍵字篩選、排序與分頁。"""
+    """列出貼文，支援類型/縣市/關鍵字篩選、排序與分頁；mine=true 僅列出本人貼文（需登入）。"""
+    if mine and member_id is None:
+        raise HTTPException(status_code=401, detail="請先登入才能查看自己的貼文。")
     return list_posts(
-        type=type, city=city, q=q, sort=sort, limit=limit, offset=offset, member_id=member_id
+        type=type, city=city, q=q, sort=sort, limit=limit, offset=offset,
+        member_id=member_id, mine=mine,
     )
 
 
@@ -213,7 +217,7 @@ async def mutual_aid_upload_image(
     file: UploadFile = File(...),
     member_id: int = Depends(_get_current_member_id),
 ):
-    """上傳貼文圖片至 R2，回傳公開 URL。"""
+    """上傳貼文圖片，轉為 webp 並回傳 base64 data URL（直接存進貼文的 images 欄位）。"""
     ext = (file.filename or "").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else ""
     if ext not in _ALLOWED_IMAGE_EXT:
         raise HTTPException(status_code=422, detail="圖片格式僅支援 jpg / jpeg / png / webp。")
@@ -223,10 +227,8 @@ async def mutual_aid_upload_image(
         raise HTTPException(status_code=422, detail="圖片大小不可超過 5MB。")
 
     try:
-        url = upload_post_image(member_id, file_bytes)
-    except RuntimeError as exc:
-        if str(exc) == "r2_not_configured":
-            raise HTTPException(status_code=503, detail="圖片上傳服務尚未設定。")
+        url = upload_post_image(file_bytes)
+    except Exception:
         raise HTTPException(status_code=500, detail="圖片上傳失敗，請稍後再試。")
 
     return {"url": url}

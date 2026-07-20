@@ -10,12 +10,11 @@ metadata:
 
 **路徑**: `frontend/src/pages/MutualAid.jsx` + `MutualAid.css`（路由 `/mutual-aid`）
 
-## 整體結構（2026-07-17 串接真實 API 後）
+## 整體結構（2026-07-20 移除回報菜價 tab 後）
 
-頁面分兩個 tab：
+頁面只剩單一內容，無 tab 切換：`DiscussionBoard` 元件。
 
-1. **社群討論**（`DiscussionBoard` 元件）— 本檔案主要說明對象
-2. **回報菜價**（`ReportPrice` 元件，另一個檔案，不在此範圍）
+**Why:** 2026-07-20 使用者要求移除「回報菜價」分頁，前端已刪除 `ReportPrice.jsx`/`.css` 與 tab 切換 UI，後端也一併移除已死掉的 `POST /api/report`（呼叫不存在的 `save_report`）與 `src/data/report_store.py`。`src/data/report_repository.py`（Supabase 版買貴通報，未被任何 router 掛載）判斷為獨立/未接線的元件，予以保留未動。
 
 `DiscussionBoard` 內容：
 
@@ -39,7 +38,9 @@ metadata:
 - `src/data/mutual_aid_repository.py` — SQLAlchemy Core + text()，資料表 `mutual_aid_posts` / `mutual_aid_comments` / `mutual_aid_likes` / `mutual_aid_saved`
 - 讀取端點（`GET /posts`、`GET /posts/{id}`）用 `_get_current_member_id_optional`（新增於 `backend/routers/auth.py`）做 optional auth，未登入時 `is_liked`/`is_saved` 回傳 `null` 而非 `false`
 - 寫入端點一律用既有的 `_get_current_member_id`（必須登入，401 若無/過期 cookie）
-- 圖片上傳 `POST /api/mutual-aid/upload-image` 轉存 Cloudflare R2（Pillow 轉 webp），回傳 R2 公開網址，**沒有本地 static 掛載**，前端直接拿 `url` 當 `<img src>`
+- 圖片上傳 `POST /api/mutual-aid/upload-image`（`upload_post_image()` in `src/data/mutual_aid_repository.py`）**不落地任何檔案系統/物件儲存**：Pillow 轉 webp 後直接 base64 編碼成 `data:image/webp;base64,...` 字串回傳給前端，前端把它當一般字串存進 `form.images`，貼文送出時跟其他文字欄位一起寫進 `mutual_aid_posts.images`（`text[]`）。`<img src>` 直接吃 data URL，不需要任何 GET 圖片的 API、也不需要任何外部服務環境變數。
+- **Why**: 2026-07-20 一開始沿用既有程式碼是轉存 Cloudflare R2，但 `backend/.env` 沒配 R2 credentials 而 503；本想改配 Supabase Storage（這個後端的 Postgres 本來就是 Supabase 代管專案），但需要另外申請 `service_role` key，使用者最後選擇最省事的做法：圖片直接以 base64 存進既有的 `mutual_aid_posts.images` 欄位，完全不依賴任何外部物件儲存或新憑證。R2 版本（`src/data/r2_sync.py`）繼續只服務農產品價格 Parquet 同步，兩者無關聯。
+- **權衡**: base64 會讓每張圖片在資料庫/回應 payload 中膨脹約 33%，且無 CDN 快取；貼文量很小的情況下可接受，量大時應重新考慮物件儲存方案。
 
 ### 與原本 mock 版的關鍵欄位差異
 

@@ -14,7 +14,6 @@
 | `GET /api/products/{name}/history` | 單一品項歷史價格走勢 |
 | `GET /api/predictions/direction/latest` | 單一市場作物最新下一交易日方向分類 |
 | `GET /api/predictions/direction` | 多筆下一交易日方向分類列表 |
-| `POST /api/report` | 使用者買貴通報 |
 | `GET /api/weather-summary` | 天氣影響摘要 |
 | `GET /api/solar-term` | 目前節氣 |
 

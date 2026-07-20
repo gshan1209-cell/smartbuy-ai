@@ -2,7 +2,6 @@ from __future__ import annotations
 import time
 from typing import Any
 from fastapi import APIRouter, Query, HTTPException
-from pydantic import BaseModel
 
 from backend.cache import price_cache
 from src.recommendation.purchase_advisor import get_bargain_recommendations, get_purchase_advice
@@ -124,25 +123,6 @@ def weather_summary():
 @router.get("/api/solar-term")
 def solar_term():
     return get_current_solar_term()
-
-
-class PriceReport(BaseModel):
-    product_name: str
-    market_name: str
-    price: float
-    note: str = ""
-
-
-@router.post("/api/report")
-def report_price(payload: PriceReport):
-    from src.data.report_store import save_report
-    save_report(
-        product_name=payload.product_name,
-        market_name=payload.market_name,
-        price=payload.price,
-        note=payload.note,
-    )
-    return {"success": True, "message": f"已收到 {payload.product_name} 的回報，謝謝！"}
 
 
 @router.get("/api/basket/products")

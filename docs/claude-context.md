@@ -56,7 +56,6 @@
 | GET | `/api/solar-term` | 今日節氣 |
 | GET | `/api/solar-term/all` | 全部節氣 |
 | GET | `/api/weather-summary` | 天氣影響摘要 |
-| POST | `/api/report` | 回報菜價 |
 | POST | `/auth/register` | 會員註冊，建立 `members` 與 `user_preferences` |
 | POST | `/auth/login` | 會員登入 |
 | GET/PUT | `/auth/me` | 讀取/更新會員資料 |
