@@ -598,17 +598,38 @@ def test_run_pipeline_selects_rotated_keywords_and_passes_them_to_yahoo(monkeypa
     assert "rotating_count=100" in output
     assert "selected_count=150" in output
     assert "rotation_batch=" in output
+    assert "News source counts:" in output
+    assert "threads=0" in output
 
 
-def test_determine_status_success_requires_all_five_sources_and_no_parse_issues():
+def test_determine_status_success_requires_all_six_sources_and_no_parse_issues():
     articles = [
         {**make_article(source_name="農業部", key="moa"), "crawl_source": "moa"},
         {**make_article(source_name="農糧署", key="afa"), "crawl_source": "afa"},
         {**make_article(source_name="PTT Fruits", key="ptt"), "crawl_source": "ptt_fruits"},
         {**make_article(source_name="農傳媒", key="agriharvest"), "crawl_source": "agriharvest"},
         {**make_article(source_name="自由時報", key="yahoo"), "crawl_source": "yahoo"},
+        {**make_article(source_name="農民日常（Threads）", key="threads"), "crawl_source": "threads"},
     ]
 
     assert script.determine_status(articles, {"parse_issue_count": 0}) == "success"
     assert script.determine_status(articles[:-1], {"parse_issue_count": 0}) == "partial_success"
     assert script.determine_status(articles, {"parse_issue_count": 1}) == "partial_success"
+
+
+def test_threads_is_required_and_source_count_summary_includes_it(capsys):
+    assert "threads" in script.REQUIRED_CRAWL_SOURCES
+
+    script._print_source_counts([{**make_article(), "crawl_source": "threads"}])
+
+    assert "threads=1" in capsys.readouterr().out
+
+
+def test_daily_news_workflow_installs_chromium_without_changing_schedule_or_retries():
+    workflow = Path(".github/workflows/daily_agri_news_update.yml").read_text(encoding="utf-8")
+
+    assert "python -m playwright install --with-deps chromium" in workflow
+    assert 'cron: "15 7 * * *"' in workflow
+    assert 'timezone: "Asia/Taipei"' in workflow
+    assert "timeout-minutes: 30" in workflow
+    assert "for attempt in 1 2 3" in workflow

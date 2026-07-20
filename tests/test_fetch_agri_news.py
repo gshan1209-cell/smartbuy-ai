@@ -563,6 +563,7 @@ def test_fetch_agri_news_merges_sources_and_keeps_going_after_article_failure(mo
     monkeypatch.setattr(news, "fetch_afa_news_list", lambda limit: [afa_base])
     monkeypatch.setattr(news, "fetch_ptt_fruits_news_list", lambda limit: [])
     monkeypatch.setattr(news, "fetch_agriharvest_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_threads_posts", lambda limit: [])
     monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: [])
     monkeypatch.setattr(
         news,
@@ -601,6 +602,7 @@ def test_fetch_agri_news_raises_when_both_lists_empty(monkeypatch):
     monkeypatch.setattr(news, "fetch_afa_news_list", lambda limit: [])
     monkeypatch.setattr(news, "fetch_ptt_fruits_news_list", lambda limit: [])
     monkeypatch.setattr(news, "fetch_agriharvest_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_threads_posts", lambda limit: [])
     monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: [])
 
     with pytest.raises(RuntimeError, match="Unable to fetch any agriculture news list data"):
@@ -624,6 +626,7 @@ def test_fetch_agri_news_yahoo_returns_at_most_ten_relevant_articles(monkeypatch
     monkeypatch.setattr(news, "fetch_afa_news_list", lambda limit: [])
     monkeypatch.setattr(news, "fetch_ptt_fruits_news_list", lambda limit: [])
     monkeypatch.setattr(news, "fetch_agriharvest_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_threads_posts", lambda limit: [])
     monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: yahoo_items[:limit])
 
     def fake_fetch_detail(url):
@@ -665,6 +668,7 @@ def test_fetch_agri_news_excludes_yahoo_articles_rejected_by_relevance(monkeypat
     monkeypatch.setattr(news, "fetch_afa_news_list", lambda limit: [])
     monkeypatch.setattr(news, "fetch_ptt_fruits_news_list", lambda limit: [])
     monkeypatch.setattr(news, "fetch_agriharvest_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_threads_posts", lambda limit: [])
     monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: [yahoo_candidate])
     monkeypatch.setattr(
         news,
@@ -696,3 +700,38 @@ def test_fetch_agri_news_excludes_yahoo_articles_rejected_by_relevance(monkeypat
     assert len(items) == 1
     assert items[0]["source_name"] == "農業部"
     assert all(item.get("crawl_source") != "yahoo" for item in items)
+
+
+def test_fetch_agri_news_includes_threads_and_limits_it_to_ten(monkeypatch):
+    threads_articles = [
+        {
+            **news._empty_article(
+                source_name="農民日常（Threads）",
+                source_article_id=f"thread-{index}",
+                title="Threads 測試貼文",
+                source_url=f"https://www.threads.net/t/thread-{index}",
+                crawl_source="threads",
+            ),
+            "content_text": "正文",
+            "content_hash": news._content_hash("正文"),
+            "parse_status": "success",
+        }
+        for index in range(10)
+    ]
+    monkeypatch.setattr(news, "fetch_moa_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_afa_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_ptt_fruits_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_agriharvest_news_list", lambda limit: [])
+    monkeypatch.setattr(news, "fetch_yahoo_news_list", lambda keywords, *, limit: [])
+    captured = {}
+
+    def fake_threads(limit):
+        captured["limit"] = limit
+        return threads_articles
+
+    monkeypatch.setattr(news, "fetch_threads_posts", fake_threads)
+
+    items = news.fetch_agri_news(limit_per_source=50, yahoo_keywords=[])
+
+    assert captured["limit"] == 10
+    assert items == threads_articles

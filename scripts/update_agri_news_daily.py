@@ -25,7 +25,7 @@ from src.data.fetch_agri_news import fetch_agri_news  # noqa: E402
 
 JOB_NAME = "update_agri_news_daily"
 VALID_PARSE_STATUSES = {"success", "partial", "failed"}
-REQUIRED_CRAWL_SOURCES = {"moa", "afa", "ptt_fruits", "agriharvest", "yahoo"}
+REQUIRED_CRAWL_SOURCES = {"moa", "afa", "ptt_fruits", "agriharvest", "yahoo", "threads"}
 YAHOO_FIXED_KEYWORD_COUNT = 50
 YAHOO_ROTATING_KEYWORD_COUNT = 100
 MATERIAL_FIELDS = [
@@ -416,6 +416,18 @@ def _summary_message(stats: dict[str, int]) -> str:
     )
 
 
+def _print_source_counts(articles: list[dict[str, Any]]) -> None:
+    counts = {source: 0 for source in sorted(REQUIRED_CRAWL_SOURCES)}
+    for article in articles:
+        source = _normalize_text(article.get("crawl_source"))
+        if source in counts:
+            counts[source] += 1
+    print(
+        "News source counts: " + ", ".join(f"{source}={counts[source]}" for source in counts),
+        flush=True,
+    )
+
+
 def run_pipeline(limit_per_source: int = 10) -> dict[str, Any]:
     database_url = load_database_url()
     print("DATABASE_URL detected; creating Supabase engine.", flush=True)
@@ -439,6 +451,7 @@ def run_pipeline(limit_per_source: int = 10) -> dict[str, Any]:
         )
         if not articles:
             raise RuntimeError("fetch_agri_news returned no articles.")
+        _print_source_counts(articles)
 
         with engine.begin() as conn:
             stats = upsert_articles(conn, articles)

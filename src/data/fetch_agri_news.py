@@ -17,6 +17,7 @@ from urllib.parse import parse_qs, parse_qsl, quote, urlencode, urljoin, urlpars
 
 import requests
 from bs4 import BeautifulSoup
+from src.data.fetch_threads_posts import fetch_threads_posts
 
 
 MOA_LIST_URL = "https://www.moa.gov.tw/theme_list.php?theme=news&sub_theme=agri"
@@ -954,8 +955,9 @@ def fetch_agri_news(
         candidate_limit=YAHOO_CANDIDATE_LIMIT,
         final_limit=min(limit_per_source, YAHOO_FINAL_LIMIT),
     )
+    threads_articles = fetch_threads_posts(limit=min(limit_per_source, 10))
 
-    if not any(items for items, _detail_fetcher in source_jobs) and not yahoo_articles:
+    if not any(items for items, _detail_fetcher in source_jobs) and not yahoo_articles and not threads_articles:
         raise RuntimeError("Unable to fetch any agriculture news list data.")
 
     articles: list[dict[str, Any]] = []
@@ -965,4 +967,5 @@ def fetch_agri_news(
             articles.append(_merge_article(item, detail))
 
     articles.extend(yahoo_articles)
+    articles.extend(threads_articles)
     return articles
