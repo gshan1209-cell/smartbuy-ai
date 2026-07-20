@@ -20,3 +20,8 @@ frontend/.env.local
 .vite/
 
 cookies.txt
+
+# Local-only dev setup scripts (not shared via git; sync manually if needed on another machine)
+/setup-env.ps1
+/start-dev.ps1
+/documents/
