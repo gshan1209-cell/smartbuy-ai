@@ -16,7 +16,6 @@ export default function App() {
     try {
       const p = JSON.parse(localStorage.getItem('smartbuy_display_prefs') || '{}');
       document.documentElement.setAttribute('data-theme', p.theme || 'light');
-      document.documentElement.setAttribute('data-fontsize', p.fontSize || 'md');
     } catch {}
   }, []);
 

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Modal from '../components/Modal';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const LS_KEY = 'smartbuy_notif_prefs';
-const DEFAULT_PREFS = { priceAlert: true, weatherAlert: true, mutualAidReply: false };
+const DEFAULT_PREFS = { weatherAlert: true, mutualAidReply: false };
 
 const LS_DISPLAY_KEY = 'smartbuy_display_prefs';
-const DEFAULT_DISPLAY = { fontSize: 'md', layout: 'simple', theme: 'light' };
+const DEFAULT_DISPLAY = { theme: 'light' };
 
 function loadPrefs() {
   try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(LS_KEY)) }; }
@@ -22,22 +23,30 @@ function loadDisplayPrefs() {
 function saveDisplayPrefs(next) {
   localStorage.setItem(LS_DISPLAY_KEY, JSON.stringify(next));
   document.documentElement.setAttribute('data-theme', next.theme);
-  document.documentElement.setAttribute('data-fontsize', next.fontSize);
 }
 
 function splitPrefs(data) {
   return {
     prefs: {
-      priceAlert:     data.priceAlert     ?? DEFAULT_PREFS.priceAlert,
       weatherAlert:   data.weatherAlert   ?? DEFAULT_PREFS.weatherAlert,
       mutualAidReply: data.mutualAidReply ?? DEFAULT_PREFS.mutualAidReply,
     },
     display: {
-      fontSize: data.fontSize ?? DEFAULT_DISPLAY.fontSize,
-      layout:   data.layout   ?? DEFAULT_DISPLAY.layout,
-      theme:    data.theme    ?? DEFAULT_DISPLAY.theme,
+      theme: data.theme ?? DEFAULT_DISPLAY.theme,
     },
   };
+}
+
+function extractErrorMessage(err, fallback) {
+  const detail = err?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map(item => item?.msg?.replace(/^Value error,\s*/i, ''))
+      .filter(Boolean)
+      .join('；') || fallback;
+  }
+  return fallback;
 }
 
 async function savePreferences(patch) {
@@ -52,7 +61,6 @@ async function savePreferences(patch) {
 }
 
 const PREF_ITEMS = [
-  { key: 'priceAlert', label: '品項降價通知', desc: '菜籃內的品項價格明顯下降時通知我' },
   { key: 'mutualAidReply', label: '互助網回應通知', desc: '我發布的貼文有新留言時通知我' },
 ];
 
@@ -121,7 +129,7 @@ export default function Settings() {
   const [pwForm, setPwForm] = useState({ old: '', new: '', confirm: '' });
   const [pwState, setPwState] = useState('idle');
   const [pwError, setPwError] = useState('');
-  const [showPwForm, setShowPwForm] = useState(false);
+  const [pwModalOpen, setPwModalOpen] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
 
   useEffect(() => {
@@ -221,15 +229,30 @@ export default function Settings() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || '密碼變更失敗');
+        throw new Error(extractErrorMessage(err, '密碼變更失敗'));
       }
-      setPwState('success');
       setPwForm({ old: '', new: '', confirm: '' });
-      setTimeout(() => setPwState('idle'), 3000);
+      setPwState('idle');
+      setPwModalOpen(false);
+      setFeedback({ type: 'success', msg: '✓ 密碼已變更' });
+      setTimeout(() => setFeedback(null), 3000);
     } catch (err) {
       setPwError(err.message);
       setPwState('error');
     }
+  }
+
+  function openPwModal() {
+    setPwModalOpen(true);
+    setPwError('');
+    setPwState('idle');
+  }
+
+  function closePwModal() {
+    setPwModalOpen(false);
+    setPwError('');
+    setPwState('idle');
+    setPwForm({ old: '', new: '', confirm: '' });
   }
 
   function handleShare() {
@@ -302,14 +325,14 @@ export default function Settings() {
 
           <button
             type="button"
-            onClick={() => { setShowPwForm(v => !v); setPwError(''); setPwState('idle'); }}
-            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--yz-dim)', marginBottom: showPwForm ? 12 : 16 }}
+            className="yz-btn yz-btn-gho yz-btn-sm"
+            onClick={openPwModal}
+            style={{ marginBottom: 16 }}
           >
-            <span style={{ fontSize: 11, display: 'inline-block', transform: showPwForm ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .2s' }}>▶</span>
             變更密碼
           </button>
 
-          {showPwForm && (
+          <Modal open={pwModalOpen} onClose={closePwModal} title="變更密碼">
             <form onSubmit={handleChangePassword}>
               <input
                 className="yz-input"
@@ -318,6 +341,7 @@ export default function Settings() {
                 value={pwForm.old}
                 onChange={e => setPwForm(f => ({ ...f, old: e.target.value }))}
                 style={{ marginBottom: 8 }}
+                autoFocus
               />
               <input
                 className="yz-input"
@@ -341,13 +365,13 @@ export default function Settings() {
               <button
                 className="yz-btn yz-btn-g"
                 type="submit"
-                disabled={pwState === 'loading' || pwState === 'success'}
-                style={{ marginBottom: 16 }}
+                disabled={pwState === 'loading'}
+                style={{ width: '100%' }}
               >
-                {pwState === 'loading' ? '處理中…' : pwState === 'success' ? '✓ 已變更' : '變更密碼'}
+                {pwState === 'loading' ? '處理中…' : '變更密碼'}
               </button>
             </form>
-          )}
+          </Modal>
 
           <button
             type="button"
@@ -359,30 +383,6 @@ export default function Settings() {
         {/* 顯示與版面 */}
         <div className="yz-card" style={sectionStyle}>
           <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 18 }}>顯示與版面</h2>
-
-          <div style={rowStyle}>
-            <div>
-              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>字體大小</p>
-              <p style={{ fontSize: 12, color: 'var(--yz-mut)' }}>調整全站文字大小</p>
-            </div>
-            <OptionGroup
-              options={[{ val: 'sm', label: '小' }, { val: 'md', label: '中' }, { val: 'lg', label: '大' }]}
-              value={displayPrefs.fontSize}
-              onChange={val => updateDisplay('fontSize', val)}
-            />
-          </div>
-
-          <div style={rowStyle}>
-            <div>
-              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>版面設定</p>
-              <p style={{ fontSize: 12, color: 'var(--yz-mut)' }}>詳細模式顯示更多行情數據</p>
-            </div>
-            <OptionGroup
-              options={[{ val: 'simple', label: '簡易' }, { val: 'detailed', label: '詳細' }]}
-              value={displayPrefs.layout}
-              onChange={val => updateDisplay('layout', val)}
-            />
-          </div>
 
           <div style={{ ...rowStyle, marginBottom: 0 }}>
             <div>
