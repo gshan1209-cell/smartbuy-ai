@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS public.user_preferences (
     price_alert      BOOLEAN NOT NULL DEFAULT TRUE,
     weather_alert    BOOLEAN NOT NULL DEFAULT TRUE,
     mutual_aid_reply BOOLEAN NOT NULL DEFAULT FALSE,
+    mutual_aid_like  BOOLEAN NOT NULL DEFAULT TRUE,
     font_size        TEXT NOT NULL DEFAULT 'md',
     layout_mode      TEXT NOT NULL DEFAULT 'simple',
     theme            TEXT NOT NULL DEFAULT 'light',
@@ -141,6 +142,7 @@ ALTER TABLE public.user_preferences
     ADD COLUMN IF NOT EXISTS price_alert BOOLEAN DEFAULT TRUE,
     ADD COLUMN IF NOT EXISTS weather_alert BOOLEAN DEFAULT TRUE,
     ADD COLUMN IF NOT EXISTS mutual_aid_reply BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS mutual_aid_like BOOLEAN DEFAULT TRUE,
     ADD COLUMN IF NOT EXISTS font_size TEXT DEFAULT 'md',
     ADD COLUMN IF NOT EXISTS layout_mode TEXT DEFAULT 'simple',
     ADD COLUMN IF NOT EXISTS theme TEXT DEFAULT 'light',
@@ -158,6 +160,10 @@ WHERE weather_alert IS NULL;
 UPDATE public.user_preferences
 SET mutual_aid_reply = FALSE
 WHERE mutual_aid_reply IS NULL;
+
+UPDATE public.user_preferences
+SET mutual_aid_like = TRUE
+WHERE mutual_aid_like IS NULL;
 
 UPDATE public.user_preferences
 SET font_size = 'md'
@@ -188,6 +194,7 @@ BEGIN
            OR price_alert IS NULL
            OR weather_alert IS NULL
            OR mutual_aid_reply IS NULL
+           OR mutual_aid_like IS NULL
            OR font_size IS NULL
            OR layout_mode IS NULL
            OR theme IS NULL
@@ -226,6 +233,8 @@ ALTER TABLE public.user_preferences
     ALTER COLUMN weather_alert SET NOT NULL,
     ALTER COLUMN mutual_aid_reply SET DEFAULT FALSE,
     ALTER COLUMN mutual_aid_reply SET NOT NULL,
+    ALTER COLUMN mutual_aid_like SET DEFAULT TRUE,
+    ALTER COLUMN mutual_aid_like SET NOT NULL,
     ALTER COLUMN font_size SET DEFAULT 'md',
     ALTER COLUMN font_size SET NOT NULL,
     ALTER COLUMN layout_mode SET DEFAULT 'simple',
