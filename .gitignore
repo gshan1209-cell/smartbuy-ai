@@ -8,6 +8,7 @@ __pycache__/
 uploads/
 data/history_parquet/*.parquet
 data/history_parquet/**/*.parquet
+data/private/
 
 # Pytest temporary files
 .tmp_pytest/
