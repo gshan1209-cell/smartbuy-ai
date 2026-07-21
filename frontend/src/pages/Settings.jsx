@@ -122,6 +122,7 @@ export default function Settings() {
   const [pwState, setPwState] = useState('idle');
   const [pwError, setPwError] = useState('');
   const [showPwForm, setShowPwForm] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -160,12 +161,18 @@ export default function Settings() {
     if (!name.trim()) return;
     try {
       await updateProfile({ name: name.trim() });
+      setIsEditingName(false);
       setFeedback({ type: 'success', msg: '✓ 已儲存' });
       setTimeout(() => setFeedback(null), 2000);
     } catch (err) {
       setFeedback({ type: 'error', msg: err.message });
       setTimeout(() => setFeedback(null), 3000);
     }
+  }
+
+  function handleCancelEditName() {
+    setName(user.name || '');
+    setIsEditingName(false);
   }
 
   function togglePref(key) {
@@ -272,14 +279,21 @@ export default function Settings() {
             </div>
           </div>
 
-          <form onSubmit={handleSaveName}>
-            <label htmlFor="yz-settings-name" style={labelStyle}>顯示名稱</label>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-              <input id="yz-settings-name" className="yz-input" value={name} onChange={e => setName(e.target.value)} />
-              <button className="yz-btn yz-btn-g" type="submit" style={{ flexShrink: 0 }}>儲存</button>
+          <label htmlFor="yz-settings-name" style={labelStyle}>顯示名稱</label>
+          {isEditingName ? (
+            <form onSubmit={handleSaveName}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                <input id="yz-settings-name" className="yz-input" value={name} onChange={e => setName(e.target.value)} autoFocus />
+                <button className="yz-btn yz-btn-g" type="submit" style={{ flexShrink: 0 }}>儲存</button>
+                <button type="button" className="yz-btn yz-btn-gho yz-btn-sm" style={{ flexShrink: 0 }} onClick={handleCancelEditName}>取消</button>
+              </div>
+            </form>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <p style={{ fontSize: 14 }}>{user.name}</p>
+              <button type="button" className="yz-btn yz-btn-gho yz-btn-sm" onClick={() => setIsEditingName(true)}>修改</button>
             </div>
-
-          </form>
+          )}
 
           <label style={labelStyle}>Email</label>
           <p style={{ fontSize: 14, color: 'var(--yz-dim)', marginBottom: 20 }}>{user.email}</p>
