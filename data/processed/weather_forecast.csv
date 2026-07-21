@@ -1,9 +1,0 @@
-origin_area,forecast_date,rain_probability,weather_status,warning_type,typhoon_risk,consecutive_rain_days
-雲林,2026-06-20,80,雷陣雨,豪雨特報,低,3
-彰化,2026-06-20,70,雷陣雨,,低,2
-南投,2026-06-20,60,短暫雨,,低,2
-嘉義,2026-06-20,50,短暫雨,,低,1
-台南,2026-06-20,40,多雲,,低,0
-高雄,2026-06-20,30,多雲,,低,0
-屏東,2026-06-20,30,多雲,,低,0
-
