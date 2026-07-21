@@ -1,6 +1,6 @@
 # SmartBuy AI｜便宜買 AI
 ![alt text](SmartBuy_AI_系統架構圖.png)
-把農產品行情、產地天氣、24 節氣與下一交易日價格方向分類轉成簡單採買建議的 React + FastAPI MVP。
+把農產品行情、24 節氣與下一交易日價格方向分類轉成簡單採買建議的 React + FastAPI MVP。
 
 AI Agent 或開發協作者開始工作前，請先閱讀 `README.md`、`docs/SPEC.md` 與相關任務文件；若未來恢復 `AGENT.md` 或任務中心資料，再依該文件執行。
 
@@ -62,37 +62,6 @@ pytest -q
    - **安全阻斷**: 僅在 Parquet 上傳 R2 成功且驗證通過後，才允許執行 Supabase 90 天前的舊資料 Pruning，確保歷史行情資料安全。
    - **ML 訓練載入方式**: 模型訓練時，應優先讀取 Parquet 數據湖（呼叫 `load_historical_prices_for_ml()` 函式），而不是大量查詢 Supabase 資料庫，避免造成雲端資料庫負擔與限制瓶頸。
    - **預測結果**: 正式 MVP 預測結果寫回 `price_direction_predictions`。舊版 `prediction_results` 不再是正式 MVP 預測資料表。
-
-## Agent 任務自動化
-
-Agent 可先列出候選任務，但不得自行認領：
-
-```powershell
-.\.venv\Scripts\python.exe -m src.tasks.agent_workflow list
-```
-
-由人類決定任務後，Agent 才能自動將它改為「進行中」並輸出讀取摘要：
-
-```powershell
-.\.venv\Scripts\python.exe -m src.tasks.agent_workflow start TASK-T09 `
-  --actor "Codex" `
-  --approved-by "產品負責人" `
-  --role "開發"
-```
-
-交付時自動產生缺少的開發紀錄、教學文件、交接摘要，並依結果更新狀態：
-
-```powershell
-.\.venv\Scripts\python.exe -m src.tasks.agent_workflow finish TASK-T09 `
-  --actor "Codex" `
-  --summary "完成 Agent 自動化流程" `
-  --outcome needs-test `
-  --test-command ".\.venv\Scripts\python.exe -m pytest -q" `
-  --test-result "測試通過" `
-  --next-step "進行人工驗收"
-```
-
-若未來恢復 `AGENT.md`，詳細規則與結果狀態對照再以該文件為準。
 
 目前版本使用 `data/` 內的示範資料，可在沒有 API 金鑰的情況下完整展示。正式串接農業部與中央氣象署 API 前，請先確認資料授權、欄位與更新頻率。
 

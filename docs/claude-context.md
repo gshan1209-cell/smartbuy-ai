@@ -1,7 +1,7 @@
 # Claude 專案 Context（SmartBuy AI）
 
 > 下次對話開始時，請 Claude 先讀這個檔案再繼續工作。
-> 最後更新：2026-07-13
+> 最後更新：2026-07-21
 
 ---
 
@@ -25,7 +25,6 @@
 
 - **前端**：React + Vite + React Router v6，無 UI library，自訂 CSS（yz- prefix 設計系統）
 - **後端**：FastAPI + SQLAlchemy + pandas
-- **天氣**：CWA 開放資料 API → `scripts/fetch_weather_history.py` → `data/weather/weather_daily.csv`
 - **Auth**：已串接 FastAPI + Supabase `members`
   - 主要路由：`/auth/register`, `/auth/login`, `/auth/me`, `/auth/preferences`
   - localStorage key：`yz_auth_user`, `yz_auth_token`
@@ -37,7 +36,7 @@
 | 路徑 | 頁面 | 狀態 |
 |------|------|------|
 | `/` | 首頁 | ✅ 真實資料 |
-| `/search` | 售價動態 | ✅ 真實資料（Supabase + CWA 天氣 + 30天折線圖） |
+| `/search` | 售價動態 | ✅ 真實資料（Supabase + 30天折線圖） |
 | `/news` | 農產新知 | ⚠️ mock 文章（6篇寫死） |
 | `/mutual-aid` | 互助網 | ⚠️ mock 貼文（重整消失） |
 | `/basket` | 我的菜籃 | ✅ localStorage |
@@ -50,12 +49,11 @@
 | Method | 路徑 | 說明 |
 |--------|------|------|
 | GET | `/api/products` | 搜尋農產品 |
-| GET | `/api/products/{name}` | 品項詳細 + 購買建議 + 天氣影響 |
+| GET | `/api/products/{name}` | 品項詳細 + 購買建議 |
 | GET | `/api/products/{name}/history?days=30` | 歷史價格走勢 |
 | GET | `/api/markets` | 市場列表 |
 | GET | `/api/solar-term` | 今日節氣 |
 | GET | `/api/solar-term/all` | 全部節氣 |
-| GET | `/api/weather-summary` | 天氣影響摘要 |
 | POST | `/auth/register` | 會員註冊，建立 `members` 與 `user_preferences` |
 | POST | `/auth/login` | 會員登入 |
 | GET/PUT | `/auth/me` | 讀取/更新會員資料 |
@@ -81,7 +79,6 @@
 
 ### 🔴 高優先
 - **互助網持久化**：貼文/留言重整消失，需 Supabase table（`community_posts`, `comments`）
-- **GitHub Actions 排程**：每日自動執行 `fetch_weather_history.py`，`.yml` 未寫
 
 ### 🟡 中優先
 - **農產新知真實資料**：需後端 proxy 農業部 API
@@ -92,9 +89,7 @@
 - **AI 價格預測**：正式 MVP 為 LightGBM 下一交易日跌 / 持平 / 漲方向分類，使用 `price_direction_predictions`；`src/ml/baseline_predictor.py` 僅為 deprecated 舊版五日數值 Baseline
 - **推播通知實際發送**：偏好已儲存，尚未串接實際推播服務
 - **歷史比較**：折線圖疊加去年同期
-- **產地地圖**：點擊縣市看天氣 + 主要農產
 - **互助網圖片上傳**：需 Supabase Storage / Cloudflare R2
-- **台東、澎湖天氣測站**：目前 15 縣市，這兩個缺
 
 ---
 

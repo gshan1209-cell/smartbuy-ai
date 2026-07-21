@@ -164,7 +164,8 @@ ProductDetail
 
 | 項目 | 原因 |
 |------|------|
-| 天氣影響區塊 | 規格要求移除 |
+| 天氣影響區塊 | 規格要求移除；2026-07-21 已確認整條產地天氣程式碼鏈（`src/weather/*`、`weather_loader.py`、相關 CSV）一併清除 |
+| 替代品推薦（`alternative_recommender.py`） | 前端從未渲染 `alternatives` 欄位，2026-07-21 一併移除 |
 | AgriFeatureCard（技術特徵） | 不在新版 spec 範圍 |
 | AuctionDetailModal（彈窗） | 改為 API detail 欄位內嵌 |
 | 右側詳情面板（原 PriceSearch 分欄） | 獨立為 `/product/:name` 頁面 |
