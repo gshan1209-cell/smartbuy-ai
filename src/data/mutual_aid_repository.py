@@ -5,6 +5,8 @@
 
 【相關元件 (Related Components)】
 - 依賴: src.data.price_repository._load_database_url  (共用 DB URL 讀取)
+- 依賴: src.data.notification_repository.create_notification
+  （add_comment() 在留言 insert 成功的同一個 transaction 內建立回文通知）
 - 依賴: sqlalchemy (資料庫操作)
 - 依賴: Pillow (圖片轉 webp)
 - 被呼叫: backend/routers/mutual_aid.py 的 /api/mutual-aid 路由
@@ -27,6 +29,7 @@ from typing import Optional
 
 from sqlalchemy import create_engine, text
 
+from src.data.notification_repository import create_notification, has_like_notification
 from src.data.price_repository import _load_database_url
 
 _MAX_IMAGES = 5
@@ -307,7 +310,7 @@ def add_comment(post_id: int, member_id: int, content: str) -> dict:
     engine = _get_engine()
     with engine.begin() as conn:
         post_row = conn.execute(
-            text("SELECT id FROM mutual_aid_posts WHERE id = :post_id LIMIT 1;"),
+            text("SELECT id, member_id FROM mutual_aid_posts WHERE id = :post_id LIMIT 1;"),
             {"post_id": post_id},
         ).mappings().first()
         if post_row is None:
@@ -336,6 +339,23 @@ def add_comment(post_id: int, member_id: int, content: str) -> dict:
             {"comment_id": comment_row["id"]},
         ).mappings().first()
 
+        author_id = post_row["member_id"]
+        if author_id != member_id:
+            pref_row = conn.execute(
+                text("SELECT mutual_aid_reply FROM user_preferences WHERE member_id = :author_id;"),
+                {"author_id": author_id},
+            ).scalar_one_or_none()
+            reply_enabled = True if pref_row is None else bool(pref_row)
+            if reply_enabled:
+                create_notification(
+                    conn,
+                    recipient_member_id=author_id,
+                    actor_member_id=member_id,
+                    type_="mutual_aid_reply",
+                    post_id=post_id,
+                    comment_id=comment_row["id"],
+                )
+
     return _comment_response(row)
 
 
@@ -352,7 +372,7 @@ def toggle_like(post_id: int, member_id: int) -> dict:
     engine = _get_engine()
     with engine.begin() as conn:
         post_row = conn.execute(
-            text("SELECT id FROM mutual_aid_posts WHERE id = :post_id LIMIT 1;"),
+            text("SELECT id, member_id FROM mutual_aid_posts WHERE id = :post_id LIMIT 1;"),
             {"post_id": post_id},
         ).mappings().first()
         if post_row is None:
@@ -395,6 +415,22 @@ def toggle_like(post_id: int, member_id: int) -> dict:
                 {"post_id": post_id},
             )
             liked = True
+
+            author_id = post_row["member_id"]
+            if author_id != member_id:
+                pref_row = conn.execute(
+                    text("SELECT mutual_aid_like FROM user_preferences WHERE member_id = :author_id;"),
+                    {"author_id": author_id},
+                ).scalar_one_or_none()
+                like_enabled = True if pref_row is None else bool(pref_row)
+                if like_enabled and not has_like_notification(conn, actor_member_id=member_id, post_id=post_id):
+                    create_notification(
+                        conn,
+                        recipient_member_id=author_id,
+                        actor_member_id=member_id,
+                        type_="mutual_aid_like",
+                        post_id=post_id,
+                    )
 
         like_count = conn.execute(
             text("SELECT like_count FROM mutual_aid_posts WHERE id = :post_id;"),

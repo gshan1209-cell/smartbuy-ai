@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   fetchPosts,
@@ -283,6 +283,7 @@ function ComposeModal({ form, onChange, onSubmit, error, apiError, submitting, u
 
 function DiscussionBoard() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -313,6 +314,19 @@ function DiscussionBoard() {
   const [lightbox, setLightbox] = useState(null); // { images, index }
 
   const myName = user?.name || '訪客';
+
+  // 從通知點擊導向 /mutual-aid?post=123 時，自動開啟該貼文的詳情 Modal
+  const postParam = searchParams.get('post');
+  useEffect(() => {
+    if (!postParam) return;
+    const id = Number(postParam);
+    if (!Number.isNaN(id)) setDetailId(id);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('post');
+      return next;
+    }, { replace: true });
+  }, [postParam]);
 
   function reportError(err, fallback) {
     if (err?.status === 401) setAuthNotice(true);
