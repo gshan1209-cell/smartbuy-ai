@@ -74,6 +74,7 @@ class UpdatePreferencesRequest(BaseModel):
     priceAlert: bool | None = None
     weatherAlert: bool | None = None
     mutualAidReply: bool | None = None
+    mutualAidLike: bool | None = None
     fontSize: Literal["sm", "md", "lg"] | None = None
     layout: Literal["simple", "detailed"] | None = None
     theme: Literal["light", "dark"] | None = None

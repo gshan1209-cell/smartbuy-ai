@@ -214,6 +214,7 @@ _PREFS_FIELD_MAP = {
     "priceAlert": "price_alert",
     "weatherAlert": "weather_alert",
     "mutualAidReply": "mutual_aid_reply",
+    "mutualAidLike": "mutual_aid_like",
     "fontSize": "font_size",
     "layout": "layout_mode",
     "theme": "theme",
@@ -231,6 +232,7 @@ def _preferences_response(row) -> dict:
         "priceAlert": row["price_alert"],
         "weatherAlert": row["weather_alert"],
         "mutualAidReply": row["mutual_aid_reply"],
+        "mutualAidLike": row["mutual_aid_like"],
         "fontSize": row["font_size"],
         "layout": row["layout_mode"],
         "theme": row["theme"],
@@ -247,7 +249,7 @@ def get_preferences(member_id: int) -> dict:
         row = conn.execute(
             text(
                 """
-                SELECT price_alert, weather_alert, mutual_aid_reply,
+                SELECT price_alert, weather_alert, mutual_aid_reply, mutual_aid_like,
                        font_size, layout_mode, theme
                 FROM user_preferences
                 WHERE member_id = :member_id
@@ -263,7 +265,7 @@ def get_preferences(member_id: int) -> dict:
                     """
                     INSERT INTO user_preferences (member_id)
                     VALUES (:member_id)
-                    RETURNING price_alert, weather_alert, mutual_aid_reply,
+                    RETURNING price_alert, weather_alert, mutual_aid_reply, mutual_aid_like,
                               font_size, layout_mode, theme;
                     """
                 ),
@@ -319,7 +321,7 @@ def update_preferences(member_id: int, patch: dict) -> dict:
         row = conn.execute(
             text(
                 """
-                SELECT price_alert, weather_alert, mutual_aid_reply,
+                SELECT price_alert, weather_alert, mutual_aid_reply, mutual_aid_like,
                        font_size, layout_mode, theme
                 FROM user_preferences
                 WHERE member_id = :member_id

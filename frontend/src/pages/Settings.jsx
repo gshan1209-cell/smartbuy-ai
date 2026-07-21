@@ -5,7 +5,7 @@ import Modal from '../components/Modal';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const LS_KEY = 'smartbuy_notif_prefs';
-const DEFAULT_PREFS = { weatherAlert: true, mutualAidReply: false };
+const DEFAULT_PREFS = { weatherAlert: true, mutualAidReply: true, mutualAidLike: true };
 
 const LS_DISPLAY_KEY = 'smartbuy_display_prefs';
 const DEFAULT_DISPLAY = { theme: 'light' };
@@ -30,6 +30,7 @@ function splitPrefs(data) {
     prefs: {
       weatherAlert:   data.weatherAlert   ?? DEFAULT_PREFS.weatherAlert,
       mutualAidReply: data.mutualAidReply ?? DEFAULT_PREFS.mutualAidReply,
+      mutualAidLike:  data.mutualAidLike  ?? DEFAULT_PREFS.mutualAidLike,
     },
     display: {
       theme: data.theme ?? DEFAULT_DISPLAY.theme,
@@ -62,6 +63,7 @@ async function savePreferences(patch) {
 
 const PREF_ITEMS = [
   { key: 'mutualAidReply', label: '互助網回應通知', desc: '我發布的貼文有新留言時通知我' },
+  { key: 'mutualAidLike', label: '互助網按讚通知', desc: '我發布的貼文被按讚時通知我' },
 ];
 
 const FAQ_ITEMS = [
