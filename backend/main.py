@@ -14,7 +14,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.anomaly.price_status import get_all_price_statuses
-from src.recommendation.purchase_advisor import get_bargain_recommendations
 from src.data.price_repository import load_price_history
 from backend.cache import price_cache, compute_market_intel
 
@@ -36,7 +35,6 @@ async def lifespan(app: FastAPI):
     prices = await asyncio.to_thread(lambda: load_price_history(days=30))
     price_cache["prices"]          = prices
     price_cache["all_statuses"]    = await asyncio.to_thread(get_all_price_statuses, prices=prices)
-    price_cache["recommendations"] = await asyncio.to_thread(get_bargain_recommendations, prices=prices)
     price_cache["market_intel"]    = await asyncio.to_thread(compute_market_intel)
     yield
     price_cache.clear()

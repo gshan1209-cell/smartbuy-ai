@@ -7,7 +7,6 @@
 | 路徑 | 用途 |
 |---|---|
 | `GET /health` | 健康檢查 |
-| `GET /api/home` | 首頁節氣與採買推薦 |
 | `GET /api/markets` | 市場清單 |
 | `GET /api/products` | 品項列表與行情狀態 |
 | `GET /api/products/{name}` | 單一品項行情與建議 |

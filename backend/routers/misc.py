@@ -3,11 +3,8 @@ import time
 from typing import Any
 from fastapi import APIRouter, Query, HTTPException
 
-from backend.cache import price_cache
-from src.recommendation.purchase_advisor import get_bargain_recommendations, get_purchase_advice
 from src.calendar.solar_terms import get_current_solar_term
 from src.data.agri_news_repository import query_agri_news, query_agri_news_count, query_news_sources
-from src.data.price_repository import load_latest_prices
 
 _news_cache: dict[str, Any] = {}
 _NEWS_TTL = 300  # 5 分鐘
@@ -29,15 +26,6 @@ def _set_cached_news(key: str, data):
 
 
 router = APIRouter()
-
-
-@router.get("/api/home")
-def home():
-    recommendations = price_cache.get("recommendations") or get_bargain_recommendations()
-    return {
-        "solar_term": get_current_solar_term(),
-        "recommendations": recommendations,
-    }
 
 
 @router.get("/api/news")
@@ -102,20 +90,3 @@ def get_news_sources():
 @router.get("/api/solar-term")
 def solar_term():
     return get_current_solar_term()
-
-
-@router.get("/api/basket/products")
-def basket_products():
-    """回傳所有可加入菜籃的品項名稱"""
-    df = load_latest_prices()
-    names = sorted(df["product_name"].unique().tolist())
-    return {"products": names}
-
-
-@router.get("/api/basket/advice")
-def basket_advice(items: str = Query(default="")):
-    """依逗號分隔的品項清單，逐一回傳採買建議"""
-    if not items.strip():
-        return []
-    names = [n.strip() for n in items.split(",") if n.strip()]
-    return [get_purchase_advice(n) for n in names]
