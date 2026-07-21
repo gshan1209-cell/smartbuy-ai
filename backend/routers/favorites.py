@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from backend.routers.auth import _get_current_member_id
@@ -27,7 +27,10 @@ def favorites_list(
     member_id: int = Depends(_get_current_member_id),
 ):
     """取得目前登入會員指定類型的所有收藏。"""
-    return list_favorites(member_id, type)
+    try:
+        return list_favorites(member_id, type)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("")
@@ -36,7 +39,10 @@ def favorites_add(
     member_id: int = Depends(_get_current_member_id),
 ):
     """新增收藏（重複收藏不報錯）。"""
-    add_favorite(member_id, payload.type, payload.ref_id, payload.meta)
+    try:
+        add_favorite(member_id, payload.type, payload.ref_id, payload.meta)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"success": True}
 
 
@@ -47,5 +53,8 @@ def favorites_remove(
     member_id: int = Depends(_get_current_member_id),
 ):
     """刪除單一收藏。"""
-    remove_favorite(member_id, type, ref_id)
+    try:
+        remove_favorite(member_id, type, ref_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"success": True}
