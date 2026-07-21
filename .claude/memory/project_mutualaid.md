@@ -14,7 +14,7 @@ metadata:
 
 頁面只剩單一內容，無 tab 切換：`DiscussionBoard` 元件。
 
-**Why:** 2026-07-20 使用者要求移除「回報菜價」分頁，前端已刪除 `ReportPrice.jsx`/`.css` 與 tab 切換 UI，後端也一併移除已死掉的 `POST /api/report`（呼叫不存在的 `save_report`）與 `src/data/report_store.py`。`src/data/report_repository.py`（Supabase 版買貴通報，未被任何 router 掛載）判斷為獨立/未接線的元件，予以保留未動。
+**Why:** 2026-07-20 使用者要求移除「回報菜價」分頁，前端已刪除 `ReportPrice.jsx`/`.css` 與 tab 切換 UI，後端也一併移除已死掉的 `POST /api/report`（呼叫不存在的 `save_report`）與 `src/data/report_store.py`。`src/data/report_repository.py`（Supabase 版買貴通報，未被任何 router 掛載）當時判斷為獨立/未接線的元件先保留；2026-07-21 確認前後端皆無引用後，整批移除：`src/data/report_repository.py`、`tests/test_report_repository.py`、`scripts/create_price_reports_table.sql`、`data/reports/price_reports.csv`，並清理 README.md / docs/SPEC.md / docs/database_current_state.md / docs/r2_parquet_data_lake.md 中對應描述。原始規格書與 docs/USER_FLOW.md 中的「買貴通報」屬產品願景/待做功能，維持不動。
 
 `DiscussionBoard` 內容：
 

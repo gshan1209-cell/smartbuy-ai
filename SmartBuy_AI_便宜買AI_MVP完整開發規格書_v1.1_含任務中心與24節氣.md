@@ -40,6 +40,12 @@
 - 首頁、搜尋菜價頁、商品詳情頁不顯示任何天氣、颱風、替代品相關資訊
 - 本文件第 1、3、4.1、5、6.2、6.3、7.2、7.5、12、14.2、14.4、15.1、19、20.1、21、23 節中與上述三項功能相關的敘述，皆為原始規劃，不代表目前實際行為
 
+另外，**買貴通報**（原規格 4.1 F07、6.6 資料規格、7.4 判斷邏輯、14 API、TASK-F08）已於 2026-07-21 整批移除：
+
+- 移除範圍：`src/data/report_repository.py`、`tests/test_report_repository.py`、`scripts/create_price_reports_table.sql`、`data/reports/price_reports.csv`（含本機 fallback CSV），以及 Supabase `price_reports` 資料表建表 SQL
+- 移除原因：確認前後端皆無任何 router 或頁面引用此模組（`add_price_report()` 僅被自身測試呼叫），屬於未接線的孤兒元件，且早於此之前前端「回報菜價」分頁（`ReportPrice.jsx`）已於同日先行移除
+- 現況：App 不提供任何買貴通報 / 回報菜價功能，本文件中與買貴通報相關的敘述（含第 1、4.1、5、6.6、7.4、12、19、20.1、21、23 節）皆為原始規劃，不代表目前實際行為
+
 ---
 
 # 1. 專案總覽

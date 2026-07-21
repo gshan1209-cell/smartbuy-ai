@@ -10,7 +10,6 @@
 |---|---|---|---|---|
 | `agri_price_daily` | 由行情更新與 repository SQL 隱含使用 | 是，近期行情查詢與每日更新 | 本次未連線驗證 | App 近期行情查詢資料表 |
 | `price_direction_predictions` | `scripts/create_price_direction_predictions_table.sql` 與 `src/data/price_direction_prediction_store.py` | 是，每日方向分類寫入與前端 API 查詢 | 本次未連線驗證 | 正式 MVP 預測結果表 |
-| `price_reports` | `scripts/create_price_reports_table.sql` 與 report store/repository | 是，買貴通報 | 本次未連線驗證 | 使用者通報資料 |
 | `data_update_logs` | 部分批次腳本寫入 | 是，行情更新與舊 baseline 日誌 | 本次未連線驗證 | 批次執行紀錄 |
 | `prediction_results` | `scripts/create_prediction_results_table.sql` 與 deprecated store/repository | 僅 deprecated 舊版五日流程 | 本次未連線驗證 | 非 MVP，舊版待停用 |
 
@@ -65,23 +64,6 @@
 - 近期線上查詢可讀 Supabase `agri_price_daily`。
 - 完整歷史行情與 ML 訓練/正式方向推論應優先讀 Parquet 資料湖，不得大量查詢 `agri_price_daily`。
 
-## 4. 買貴通報表：`price_reports`
-
-用途：使用者回報市場實際交易價格，並與官方行情比對。
-
-已定義欄位包含：
-
-- `report_id`, `report_date`
-- `crop_name`, `product_name`, `market_name`
-- `user_price`, `unit`
-- `reference_price`, `price_gap`, `price_gap_percent`
-- `report_note`, `write_destination`, `created_at`
-
-程式路徑：
-
-- 建表 SQL：`scripts/create_price_reports_table.sql`
-- 寫入/查詢：`src/data/report_store.py`, `src/data/report_repository.py`
-
 ## 5. 舊版非 MVP 表：`prediction_results`
 
 `prediction_results` 是舊版五日數值價格回歸 / Baseline 設計，欄位包含 `predicted_price` 與 `predicted_status`。它已退出正式 MVP 範圍：
@@ -96,5 +78,4 @@
 
 - `data/history_parquet/`: 完整歷史行情資料湖，本機目錄可與 Cloudflare R2 同步。
 - `data/processed/market_prices.csv`: 價格查詢離線 fallback。
-- `data/reports/price_reports.csv`: 通報離線 fallback。
 - `data/processed/prediction_results.csv`: 舊版五日 baseline 測試/封存資料，不是正式 MVP fallback。
