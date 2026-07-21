@@ -10,7 +10,6 @@ from backend.cache import price_cache
 from src.data.price_repository import load_price_history, get_db_engine, get_latest_crop_features
 from src.anomaly.price_status import get_all_price_statuses
 from src.recommendation.purchase_advisor import get_purchase_advice
-from src.weather.weather_impact import get_weather_impact
 from src.ml.direction_predictor import predict_direction
 
 logger = logging.getLogger(__name__)
@@ -25,8 +24,7 @@ def list_products(q: str = Query(default=""), market: str = Query(default="")):
         all_statuses = price_cache.get("all_statuses") or get_all_price_statuses()
     if q.strip():
         all_statuses = [s for s in all_statuses if q.strip() in s["product_name"]]
-    weather_risks = price_cache.get("weather_risks", {})
-    return [{**s, "weather_risk": weather_risks.get(s["product_name"])} for s in all_statuses]
+    return all_statuses
 
 
 @router.get("/api/products/{name}/direction")
@@ -123,7 +121,6 @@ def get_product_detail(name: str, market: str = Query(default="")):
     result = get_purchase_advice(name, prices=price_cache.get("prices"), market_name=market or None)
     if result["price_detail"]["status"] == "資料不足" and not result["today_price"]:
         raise HTTPException(status_code=404, detail="查無此品項資料")
-    result["weather_impact"] = get_weather_impact(name)
 
     # 附加 z_score 與 MA 欄位（從 agri_price_features_daily 取最新一筆）
     result["z_score"] = None

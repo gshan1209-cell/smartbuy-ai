@@ -35,24 +35,11 @@ sys.modules.setdefault("src.data.price_repository", fake_price_repository)
 fake_cache = types.ModuleType("backend.cache")
 fake_cache.price_cache = {}
 fake_cache.compute_market_intel = lambda: {}
-fake_cache.build_product_weather_risks = lambda: []
 sys.modules.setdefault("backend.cache", fake_cache)
 
 fake_solar_terms = types.ModuleType("src.calendar.solar_terms")
 fake_solar_terms.get_current_solar_term = lambda: {}
 sys.modules.setdefault("src.calendar.solar_terms", fake_solar_terms)
-
-fake_typhoon_alert = types.ModuleType("src.weather.typhoon_alert")
-fake_typhoon_alert.get_typhoon_alert = lambda: {}
-sys.modules.setdefault("src.weather.typhoon_alert", fake_typhoon_alert)
-
-fake_origin_weather_risk = types.ModuleType("src.weather.origin_weather_risk")
-fake_origin_weather_risk.get_origin_weather_risk = lambda name: {"risk_level": "資料不足"}
-sys.modules.setdefault("src.weather.origin_weather_risk", fake_origin_weather_risk)
-
-fake_weather_impact = types.ModuleType("src.weather.weather_impact")
-fake_weather_impact.get_weather_summary = lambda: {}
-sys.modules.setdefault("src.weather.weather_impact", fake_weather_impact)
 
 for router_module_name in [
     "backend.routers.auth",

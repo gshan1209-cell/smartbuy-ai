@@ -5,7 +5,6 @@ import statistics
 
 from sqlalchemy import text
 from src.data.price_repository import get_db_engine
-from src.weather.weather_impact import get_weather_summary
 
 logger = logging.getLogger(__name__)
 
@@ -153,22 +152,3 @@ def compute_market_intel() -> dict:
         "losers": losers,
         "alerts": alerts,
     }
-
-
-def build_product_weather_risks() -> dict[str, str]:
-    """product_name → event_type，啟動時預算，供列表 API 注入。"""
-    from src.data.data_loader import load_product_origins
-    summary = get_weather_summary()
-    if not summary:
-        return {}
-    alert_counties = {item["county"]: item["event_type"] for item in summary}
-    df = load_product_origins()
-    risks: dict[str, str] = {}
-    for _, row in df.iterrows():
-        name = row["product_name"]
-        for county in str(row["main_origins"]).split(";"):
-            county = county.strip()
-            if county in alert_counties:
-                risks[name] = alert_counties[county]
-                break
-    return risks

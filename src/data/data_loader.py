@@ -29,16 +29,6 @@ def load_market_prices() -> pd.DataFrame:
     return data.sort_values(["product_name", "trans_date"]).reset_index(drop=True)
 
 
-def load_weather_forecast() -> pd.DataFrame:
-    data = _read_csv("data/processed/weather_forecast.csv")
-    data["forecast_date"] = pd.to_datetime(data["forecast_date"])
-    return data
-
-
-def load_product_origins() -> pd.DataFrame:
-    return _read_csv("data/mapping/product_origin_mapping.csv")
-
-
 def load_solar_terms() -> pd.DataFrame:
     return _read_csv("data/calendar/solar_terms.csv")
 

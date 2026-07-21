@@ -6,9 +6,6 @@ from fastapi import APIRouter, Query, HTTPException
 from backend.cache import price_cache
 from src.recommendation.purchase_advisor import get_bargain_recommendations, get_purchase_advice
 from src.calendar.solar_terms import get_current_solar_term
-from src.weather.typhoon_alert import get_typhoon_alert
-from src.weather.origin_weather_risk import get_origin_weather_risk
-from src.weather.weather_impact import get_weather_summary
 from src.data.agri_news_repository import query_agri_news, query_agri_news_count, query_news_sources
 from src.data.price_repository import load_latest_prices
 
@@ -36,22 +33,9 @@ router = APIRouter()
 
 @router.get("/api/home")
 def home():
-    typhoon = get_typhoon_alert()
     recommendations = price_cache.get("recommendations") or get_bargain_recommendations()
-    # 取前三品項的天氣風險
-    weather_alerts = []
-    seen: set[str] = set()
-    for item in recommendations[:3]:
-        name = item["product_name"]
-        if name not in seen:
-            risk = get_origin_weather_risk(name)
-            if risk["risk_level"] not in {"低", "資料不足"}:
-                weather_alerts.append(risk)
-            seen.add(name)
     return {
         "solar_term": get_current_solar_term(),
-        "typhoon": typhoon,
-        "weather_alerts": weather_alerts,
         "recommendations": recommendations,
     }
 
@@ -113,11 +97,6 @@ def get_news_sources():
         return {"sources": sources}
     except RuntimeError:
         raise HTTPException(status_code=503, detail="來源資料暫時無法取得。")
-
-
-@router.get("/api/weather-summary")
-def weather_summary():
-    return get_weather_summary()
 
 
 @router.get("/api/solar-term")
