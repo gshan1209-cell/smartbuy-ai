@@ -756,7 +756,7 @@ function DiscussionBoard() {
                     >
                       {post.is_liked ? '♥' : '♡'} {post.like_count}
                     </button>
-                    <span>💬 留言</span>
+                    <span>💬 留言 {post.comment_count ?? 0}</span>
                   </span>
                 </div>
               </div>

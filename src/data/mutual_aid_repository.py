@@ -57,6 +57,7 @@ def _post_response(row) -> dict:
         "images": list(row["images"] or []),
         "status": row["status"],
         "like_count": row["like_count"],
+        "comment_count": row["comment_count"] if row.get("comment_count") is not None else 0,
         "created_at": row["created_at"].isoformat() if row["created_at"] else None,
         "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
         "is_liked": bool(row["is_liked"]) if row.get("is_liked") is not None else None,
@@ -116,11 +117,13 @@ def list_posts(
     where_clause = f"WHERE {' AND '.join(where_parts)}" if where_parts else ""
 
     sql = f"""
-        SELECT p.*, m.name AS author_name, {is_liked_expr}, {is_saved_expr}
+        SELECT p.*, m.name AS author_name, {is_liked_expr}, {is_saved_expr},
+               COALESCE(cc.cnt, 0) AS comment_count
         FROM mutual_aid_posts p
         JOIN members m ON m.id = p.member_id
         {liked_join}
         {saved_join}
+        LEFT JOIN (SELECT post_id, COUNT(*) AS cnt FROM mutual_aid_comments GROUP BY post_id) cc ON cc.post_id = p.id
         {where_clause}
         ORDER BY {order_by}
         LIMIT :limit OFFSET :offset;
@@ -151,11 +154,13 @@ def get_post(post_id: int, member_id: Optional[int] = None) -> Optional[dict]:
         post_row = conn.execute(
             text(
                 f"""
-                SELECT p.*, m.name AS author_name, {is_liked_expr}, {is_saved_expr}
+                SELECT p.*, m.name AS author_name, {is_liked_expr}, {is_saved_expr},
+                       COALESCE(cc.cnt, 0) AS comment_count
                 FROM mutual_aid_posts p
                 JOIN members m ON m.id = p.member_id
                 {liked_join}
                 {saved_join}
+                LEFT JOIN (SELECT post_id, COUNT(*) AS cnt FROM mutual_aid_comments GROUP BY post_id) cc ON cc.post_id = p.id
                 WHERE p.id = :post_id
                 LIMIT 1;
                 """
@@ -449,11 +454,13 @@ def list_saved_posts(member_id: int) -> list[dict]:
             text(
                 """
                 SELECT p.*, m.name AS author_name,
-                       (l.member_id IS NOT NULL) AS is_liked
+                       (l.member_id IS NOT NULL) AS is_liked,
+                       COALESCE(cc.cnt, 0) AS comment_count
                 FROM mutual_aid_saved s
                 JOIN mutual_aid_posts p ON p.id = s.post_id
                 JOIN members m ON m.id = p.member_id
                 LEFT JOIN mutual_aid_likes l ON l.post_id = p.id AND l.member_id = :member_id
+                LEFT JOIN (SELECT post_id, COUNT(*) AS cnt FROM mutual_aid_comments GROUP BY post_id) cc ON cc.post_id = p.id
                 WHERE s.member_id = :member_id
                 ORDER BY p.created_at DESC;
                 """
