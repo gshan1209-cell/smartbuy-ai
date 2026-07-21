@@ -16,7 +16,7 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   return (
-    <header style={{ background: '#fff', borderBottom: '1px solid var(--yz-bdr)', height: 58, display: 'flex', alignItems: 'center', padding: '0 36px' }}>
+    <header style={{ position: 'sticky', top: 0, zIndex: 100, background: '#fff', borderBottom: '1px solid var(--yz-bdr)', height: 58, display: 'flex', alignItems: 'center', padding: '0 36px' }}>
       <NavLink to="/" style={{ fontSize: 17, fontWeight: 900, color: 'var(--yz-g)', marginRight: 28, letterSpacing: '-.01em', whiteSpace: 'nowrap' }}>
         🌿 優值生鮮情報站
       </NavLink>

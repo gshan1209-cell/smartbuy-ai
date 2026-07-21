@@ -3,8 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi, get } from '../hooks/useApi';
 import Chart from 'chart.js/auto';
 import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
+import './PriceSearch.css';
 
 const FEATURED_COUNT = 20;
+const PRICE_MIN = 0;
+const PRICE_MAX = 1000;
 const STATUS_RANK = { '便宜': 0, '正常': 1, '偏貴': 2, '資料不足': 3 };
 
 const STATUS_BADGE = {
@@ -56,7 +59,7 @@ function MarketSelector({ markets, market, onChange }) {
           minWidth: 220,
         }}
       >
-        <span style={{ flex: 1, textAlign: 'left' }}>{market || '選擇市場'}</span>
+        <span style={{ flex: 1, textAlign: 'left' }}>{market || '全部市場'}</span>
         <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>{open ? '▴' : '▾'}</span>
       </button>
       {open && (
@@ -76,6 +79,18 @@ function MarketSelector({ markets, market, onChange }) {
             />
           </div>
           <div style={{ padding: '10px 12px', maxHeight: 280, overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--yz-bdr)' }}>
+              <button
+                onMouseDown={() => select('')}
+                style={{
+                  padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', border: '1.5px solid',
+                  background: !market ? 'var(--yz-g)' : 'transparent',
+                  color: !market ? '#fff' : 'var(--yz-mut)',
+                  borderColor: !market ? 'var(--yz-g)' : 'var(--yz-bdr)',
+                }}
+              >全部市場</button>
+            </div>
             {filtered.length === 0 && (
               <div style={{ fontSize: 13, color: 'var(--yz-mut)', padding: '4px 2px' }}>無符合市場</div>
             )}
@@ -439,6 +454,49 @@ function SolarTermStrip() {
   );
 }
 
+// ── 雙端價格範圍滑桿 ───────────────────────────────────────────────────────────
+
+function DualRangeSlider({ min, max, step = 10, value, onChange }) {
+  const [active, setActive] = useState(null);
+  const [minVal, maxVal] = value;
+
+  const minPct = ((minVal - min) / (max - min)) * 100;
+  const maxPct = ((maxVal - min) / (max - min)) * 100;
+
+  return (
+    <div className="yz-range-slider">
+      <div className="yz-range-track" />
+      <div className="yz-range-fill" style={{ left: `${minPct}%`, width: `${maxPct - minPct}%` }} />
+      <input
+        type="range"
+        className="yz-range-input"
+        min={min}
+        max={max}
+        step={step}
+        value={minVal}
+        onChange={e => onChange([Math.min(Number(e.target.value), maxVal), maxVal])}
+        onMouseDown={() => setActive('min')}
+        onTouchStart={() => setActive('min')}
+        style={{ zIndex: active === 'min' ? 5 : 3 }}
+        aria-label="最低價格"
+      />
+      <input
+        type="range"
+        className="yz-range-input"
+        min={min}
+        max={max}
+        step={step}
+        value={maxVal}
+        onChange={e => onChange([minVal, Math.max(Number(e.target.value), minVal)])}
+        onMouseDown={() => setActive('max')}
+        onTouchStart={() => setActive('max')}
+        style={{ zIndex: active === 'max' ? 5 : 4 }}
+        aria-label="最高價格"
+      />
+    </div>
+  );
+}
+
 // ── 列表頁主體 ─────────────────────────────────────────────────────────────────
 
 export default function PriceSearch() {
@@ -449,12 +507,12 @@ export default function PriceSearch() {
   const filterStatus = searchParams.get('filter') || '';
   const sortBy = searchParams.get('sort') || 'default';
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => searchParams.get('q') || '');
   const [markets, setMarkets] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
-  const [priceRange, setPriceRange] = useState([0, 500]);
+  const [priceRange, setPriceRange] = useState([PRICE_MIN, PRICE_MAX]);
   const [savedProductNames, setSavedProductNames] = useState([]);
 
   useEffect(() => {
@@ -568,42 +626,48 @@ export default function PriceSearch() {
           <MarketIntelPanel />
         </div>
 
-        {/* 市場選擇器 */}
-        <MarketSelector markets={markets} market={market} onChange={m => updateParam('market', m)} />
+        {/* 篩選控制區（Sticky，固定於 Navbar 下方） */}
+        <div style={{
+          position: 'sticky', top: 58, zIndex: 30,
+          background: 'var(--yz-bg)', margin: '0 -40px', padding: '14px 40px 10px',
+          boxShadow: '0 4px 10px rgba(0,0,0,.05)', borderBottom: '1px solid var(--yz-bdr)',
+        }}>
+          {/* 市場選擇器 */}
+          <MarketSelector markets={markets} market={market} onChange={m => updateParam('market', m)} />
 
-        {/* 篩選 + 搜尋 控制列 */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
-          <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', gap: 6 }}>
-            <input
-              className="yz-input"
-              placeholder="搜尋品項..."
-              value={query}
-              onChange={e => { setQuery(e.target.value); setShowAll(false); }}
-              style={{ width: 160 }}
-            />
-          </form>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {[['', '全部'], ['便宜', '↓ 便宜'], ['正常', '→ 正常'], ['偏貴', '↑ 偏貴']].map(([val, label]) => (
-              <button key={val} onClick={() => { updateParam('filter', val); setShowAll(false); }}
-                style={{
-                  padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid',
-                  background: filterStatus === val ? 'var(--yz-g)' : '#F7F4EF',
-                  color: filterStatus === val ? '#fff' : 'var(--yz-mut)',
-                  borderColor: filterStatus === val ? 'var(--yz-g)' : 'var(--yz-bdr)',
-                }}
-              >{label}</button>
-            ))}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--yz-mut)' }}>
-            <span>價格</span>
-            <input type="range" min={0} max={500} step={5} value={priceRange[0]}
-              onChange={e => setPriceRange([Math.min(Number(e.target.value), priceRange[1] - 5), priceRange[1]])}
-              style={{ width: 80, accentColor: 'var(--yz-g)' }} />
-            <span>{priceRange[0]}–{priceRange[1]}</span>
-            <input type="range" min={0} max={500} step={5} value={priceRange[1]}
-              onChange={e => setPriceRange([priceRange[0], Math.max(Number(e.target.value), priceRange[0] + 5)])}
-              style={{ width: 80, accentColor: 'var(--yz-g)' }} />
-            <span>元</span>
+          {/* 篩選 + 搜尋 控制列 */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+            <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', gap: 6 }}>
+              <input
+                className="yz-input"
+                placeholder="搜尋品項..."
+                value={query}
+                onChange={e => { setQuery(e.target.value); setShowAll(false); }}
+                style={{ width: 160 }}
+              />
+            </form>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[['', '全部'], ['便宜', '↓ 便宜'], ['正常', '→ 正常'], ['偏貴', '↑ 偏貴']].map(([val, label]) => (
+                <button key={val} onClick={() => { updateParam('filter', val); setShowAll(false); }}
+                  style={{
+                    padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid',
+                    background: filterStatus === val ? 'var(--yz-g)' : '#F7F4EF',
+                    color: filterStatus === val ? '#fff' : 'var(--yz-mut)',
+                    borderColor: filterStatus === val ? 'var(--yz-g)' : 'var(--yz-bdr)',
+                  }}
+                >{label}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--yz-mut)' }}>
+              <span>價格 {priceRange[0]}–{priceRange[1]} 元</span>
+              <DualRangeSlider
+                min={PRICE_MIN}
+                max={PRICE_MAX}
+                step={10}
+                value={priceRange}
+                onChange={setPriceRange}
+              />
+            </div>
           </div>
         </div>
 
@@ -628,19 +692,19 @@ export default function PriceSearch() {
           {!loading && visibleItems.length > 0 && (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr 1fr 40px',
+              gridTemplateColumns: '1.4fr 1fr 1fr 0.8fr 0.8fr 1fr 1fr 40px',
               padding: '8px 16px',
               borderBottom: '2px solid var(--yz-bdr)',
               background: 'var(--yz-gl)',
             }}>
               {[
                 { label: '品項名稱', col: null },
+                { label: '市場',     col: null },
                 { label: '今日均價', col: 'price' },
                 { label: '上價',     col: 'upper' },
                 { label: '下價',     col: 'lower' },
                 { label: '交易量',   col: 'volume' },
                 { label: '7 日漲跌', col: 'diff7' },
-                { label: '市場',     col: null },
                 { label: '收藏',     col: null },
               ].map(({ label, col }) => (
                 <span
@@ -672,7 +736,7 @@ export default function PriceSearch() {
                 onClick={() => handleItemClick(item.product_name)}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.4fr 1fr 0.8fr 0.8fr 1fr 1fr 1fr 40px',
+                  gridTemplateColumns: '1.4fr 1fr 1fr 0.8fr 0.8fr 1fr 1fr 40px',
                   padding: '11px 16px', cursor: 'pointer', alignItems: 'center',
                   borderBottom: idx < visibleItems.length - 1 ? '1px solid #F0ECE5' : 'none',
                   transition: 'background .12s',
@@ -684,6 +748,9 @@ export default function PriceSearch() {
                   <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--yz-txt)' }}>{item.product_name}</span>
                   <span style={{ fontSize: 10, fontWeight: 600, color, marginLeft: 6 }}>{arrow} {item.status}</span>
                 </div>
+                <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>
+                  {item.market_name || market || '—'}
+                </span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--yz-dim)' }}>
                   {item.today_price != null ? `${item.today_price} 元` : '—'}
                 </span>
@@ -698,9 +765,6 @@ export default function PriceSearch() {
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: dc }}>
                   {d != null ? `${dArrow} ${d > 0 ? '+' : ''}${d}%` : '—'}
-                </span>
-                <span style={{ fontSize: 11, color: 'var(--yz-mut)' }}>
-                  {market || '全台'}
                 </span>
                 <button
                   onClick={e => {

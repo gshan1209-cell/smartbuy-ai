@@ -114,33 +114,6 @@ function PriceInsightCard({ detail, todayPrice }) {
   );
 }
 
-// ── 行情解析文字卡 ────────────────────────────────────────────────────────────
-
-function PriceReasonCard({ detail }) {
-  const reason = detail?.price_detail?.reason;
-  const advice = detail?.advice;
-  const suggestion = detail?.price_detail?.suggestion;
-  const priceStatus = detail?.price_status;
-  const priceEmoji = priceStatus === '便宜' ? '📉' : priceStatus === '偏貴' ? '📈' : '📊';
-
-  if (!reason && !advice) return null;
-
-  return (
-    <div className="yz-card" style={{ padding: '16px 20px', marginBottom: 16 }}>
-      <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>行情解析</p>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-        <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.3 }}>{priceEmoji}</span>
-        <div>
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--yz-txt)', lineHeight: 1.6, marginBottom: advice || suggestion ? 6 : 0 }}>{reason}</p>
-          {(advice || suggestion) && (
-            <p style={{ fontSize: 12, color: 'var(--yz-mut)', lineHeight: 1.65 }}>{advice}{advice && suggestion ? ' ' : ''}{suggestion}</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── AI 方向預測卡 ─────────────────────────────────────────────────────────────
 
 function _normalizeBatchPrediction(d) {
@@ -1111,9 +1084,6 @@ function DetailContent({ productName, market, detail }) {
         )}
       </div>
 
-
-      {/* 5b. 行情解析文字 */}
-      <PriceReasonCard detail={detail} />
 
       {/* 6. AI 方向預測卡 */}
       <DirectionCard productName={productName} market={market} />

@@ -5,6 +5,7 @@ import {
   Users, Building2, RefreshCw, BrainCircuit,
   Minus, MapPin, ArrowRight, BarChart2,
 } from 'lucide-react';
+import { get } from '../hooks/useApi';
 import './Home.css';
 
 const BG_IMG = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1600&q=80';
@@ -162,10 +163,22 @@ function PublishMockup() {
 export default function Home() {
   const navigate = useNavigate();
   const [searchQ, setSearchQ] = useState('');
+  const [searchMarket, setSearchMarket] = useState('');
+  const [markets, setMarkets] = useState([]);
+
+  useEffect(() => {
+    get('/api/markets')
+      .then(d => setMarkets(d.markets || []))
+      .catch(() => setMarkets([]));
+  }, []);
 
   function handleSearch(e) {
     e.preventDefault();
-    navigate(searchQ.trim() ? `/search?q=${encodeURIComponent(searchQ.trim())}` : '/search');
+    const params = new URLSearchParams();
+    if (searchQ.trim()) params.set('q', searchQ.trim());
+    if (searchMarket) params.set('market', searchMarket);
+    const qs = params.toString();
+    navigate(qs ? `/search?${qs}` : '/search');
   }
 
   return (
@@ -259,6 +272,17 @@ export default function Home() {
             查詢全台各批發市場今日行情、偏高偏低狀態與 30 天走勢，讓每一次採購都有數據支撐。
           </p>
           <form className="hm-search-bar" onSubmit={handleSearch}>
+            <select
+              className="yz-input hm-search-market"
+              value={searchMarket}
+              onChange={e => setSearchMarket(e.target.value)}
+              aria-label="選擇市場"
+            >
+              <option value="">全部市場</option>
+              {markets.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
             <input
               className="yz-input hm-search-input"
               type="text"
@@ -328,7 +352,6 @@ export default function Home() {
         </p>
         <div className="hm-footer-btns">
           <button className="hm-cta-pri" onClick={() => navigate('/register')}>免費立即加入</button>
-          <button className="hm-cta-sec" onClick={() => navigate('/search')}>了解更多功能</button>
         </div>
       </div>
 

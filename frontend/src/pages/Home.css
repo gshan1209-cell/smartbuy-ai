@@ -416,8 +416,9 @@
 }
 
 /* ── SEARCH BAR ── */
-.hm-search-bar { display: flex; gap: 10px; margin-top: 24px; margin-bottom: 16px; }
-.hm-search-input { flex: 1; }
+.hm-search-bar { display: flex; gap: 10px; margin-top: 24px; margin-bottom: 16px; flex-wrap: wrap; }
+.hm-search-market { flex: 0 0 140px; cursor: pointer; }
+.hm-search-input { flex: 1; min-width: 160px; }
 .hm-search-btn { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 
 /* ── LINK BUTTON ── */
@@ -488,19 +489,6 @@
   transition: opacity .15s;
 }
 .hm-cta-pri:hover { opacity: .92; }
-
-.hm-cta-sec {
-  padding: 12px 24px;
-  background: rgba(255,255,255,.12);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,.35);
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background .15s;
-}
-.hm-cta-sec:hover { background: rgba(255,255,255,.2); }
 
 /* ── PRICE CHART ── */
 .hm-chart-wrap { width: 100%; }
