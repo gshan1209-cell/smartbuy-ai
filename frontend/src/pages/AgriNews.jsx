@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 const PAGE_SIZE = 12;
@@ -23,6 +25,7 @@ export default function AgriNews() {
   const [total, setTotal] = useState(0);
   const [sources, setSources] = useState([]);
   const [sourceFilter, setSourceFilter] = useState('');
+  const [toastMsg, showToast] = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +96,12 @@ export default function AgriNews() {
     const id = String(article.id);
     if (savedIds.includes(id)) {
       setSavedIds(prev => prev.filter(x => x !== id));
-      removeFavorite('news', id).catch(() => {});
+      removeFavorite('news', id)
+        .then(() => showToast('已從我的菜籃移除'))
+        .catch(() => {
+          setSavedIds(prev => [...prev, id]);
+          showToast('操作失敗，請稍後再試');
+        });
     } else {
       setSavedIds(prev => [...prev, id]);
       addFavorite('news', id, {
@@ -102,7 +110,12 @@ export default function AgriNews() {
         source: article.source,
         url: article.url,
         date: article.date,
-      }).catch(() => {});
+      })
+        .then(() => showToast('已加入我的菜籃'))
+        .catch(() => {
+          setSavedIds(prev => prev.filter(x => x !== id));
+          showToast('操作失敗，請稍後再試');
+        });
     }
   }
 
@@ -334,6 +347,7 @@ export default function AgriNews() {
           </div>
         )}
       </div>
+      <Toast message={toastMsg} />
     </div>
   );
 }

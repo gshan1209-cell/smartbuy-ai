@@ -3,12 +3,24 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi, get } from '../hooks/useApi';
 import Chart from 'chart.js/auto';
 import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
 import './PriceSearch.css';
 
 const FEATURED_COUNT = 20;
 const PRICE_MIN = 0;
 const PRICE_MAX = 1000;
-const STATUS_RANK = { '便宜': 0, '正常': 1, '偏貴': 2, '資料不足': 3 };
+
+// 交易量排序：null/無效值一律排最後；交易量相同時以品項名稱升冪作穩定次排序
+function compareByVolume(a, b, asc) {
+  const av = typeof a.volume === 'number' && !Number.isNaN(a.volume) ? a.volume : null;
+  const bv = typeof b.volume === 'number' && !Number.isNaN(b.volume) ? b.volume : null;
+  if (av == null && bv == null) return a.product_name.localeCompare(b.product_name, 'zh-Hant');
+  if (av == null) return 1;
+  if (bv == null) return -1;
+  if (av !== bv) return asc ? av - bv : bv - av;
+  return a.product_name.localeCompare(b.product_name, 'zh-Hant');
+}
 
 const STATUS_BADGE = {
   '便宜': 'yz-bdg-g',
@@ -505,7 +517,7 @@ export default function PriceSearch() {
 
   const market = searchParams.get('market') || '';
   const filterStatus = searchParams.get('filter') || '';
-  const sortBy = searchParams.get('sort') || 'default';
+  const sortBy = searchParams.get('sort') || 'volume:desc';
 
   const [query, setQuery] = useState(() => searchParams.get('q') || '');
   const [markets, setMarkets] = useState([]);
@@ -514,6 +526,7 @@ export default function PriceSearch() {
   const [showAll, setShowAll] = useState(false);
   const [priceRange, setPriceRange] = useState([PRICE_MIN, PRICE_MAX]);
   const [savedProductNames, setSavedProductNames] = useState([]);
+  const [toastMsg, showToast] = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -526,10 +539,20 @@ export default function PriceSearch() {
   function handleToggleSavedProduct(name) {
     if (savedProductNames.includes(name)) {
       setSavedProductNames(prev => prev.filter(n => n !== name));
-      removeFavorite('product', name).catch(() => {});
+      removeFavorite('product', name)
+        .then(() => showToast('已從我的菜籃移除'))
+        .catch(() => {
+          setSavedProductNames(prev => [...prev, name]);
+          showToast('操作失敗，請稍後再試');
+        });
     } else {
       setSavedProductNames(prev => [...prev, name]);
-      addFavorite('product', name).catch(() => {});
+      addFavorite('product', name)
+        .then(() => showToast('已加入我的菜籃'))
+        .catch(() => {
+          setSavedProductNames(prev => prev.filter(n => n !== name));
+          showToast('操作失敗，請稍後再試');
+        });
     }
   }
 
@@ -579,7 +602,7 @@ export default function PriceSearch() {
     } else if (col === 'lower') {
       list = [...list].sort((a, b) => asc ? (a.lower_price ?? -1) - (b.lower_price ?? -1) : (b.lower_price ?? -1) - (a.lower_price ?? -1));
     } else if (col === 'volume') {
-      list = [...list].sort((a, b) => asc ? (a.volume ?? -1) - (b.volume ?? -1) : (b.volume ?? -1) - (a.volume ?? -1));
+      list = [...list].sort((a, b) => compareByVolume(a, b, asc));
     } else if (col === 'diff' || col === 'diff_desc') {
       list = [...list].sort((a, b) => (diffPct(b) ?? -999) - (diffPct(a) ?? -999));
     } else if (col === 'diff_asc') {
@@ -587,7 +610,7 @@ export default function PriceSearch() {
     } else if (col === 'diff7') {
       list = [...list].sort((a, b) => asc ? (diffPct(a) ?? -999) - (diffPct(b) ?? -999) : (diffPct(b) ?? -999) - (diffPct(a) ?? -999));
     } else {
-      list = [...list].sort((a, b) => (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9));
+      list = [...list].sort((a, b) => compareByVolume(a, b, false));
     }
     return list;
   })();
@@ -795,6 +818,7 @@ export default function PriceSearch() {
           </button>
         )}
       </div>
+      <Toast message={toastMsg} />
     </div>
   );
 }
