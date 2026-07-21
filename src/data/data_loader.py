@@ -43,10 +43,6 @@ def load_solar_terms() -> pd.DataFrame:
     return _read_csv("data/calendar/solar_terms.csv")
 
 
-def load_seasonal_products() -> pd.DataFrame:
-    return _read_csv("data/calendar/seasonal_products.csv")
-
-
 def latest_market_rows(prices: pd.DataFrame | None = None) -> pd.DataFrame:
     prices = load_market_prices() if prices is None else prices.copy()
     return (
