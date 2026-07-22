@@ -13,6 +13,9 @@ jobs:
   download:
     runs-on: ubuntu-latest
     steps:
+      - name: Install downloader dependencies
+        run: python -m pip install --quiet requests beautifulsoup4
+
       - name: Download SBIR official files
         shell: bash
         run: |
@@ -22,9 +25,10 @@ jobs:
           import re
           import time
           import urllib.parse
-          import urllib.request
-          from html.parser import HTMLParser
           from pathlib import Path
+
+          import requests
+          from bs4 import BeautifulSoup
 
           BASE = 'https://sbir.org.tw'
           STAGES = {
@@ -34,33 +38,13 @@ jobs:
           }
           EXTENSIONS = ('.pdf', '.doc', '.docx', '.odt', '.ppt', '.pptx', '.odp', '.xls', '.xlsx', '.ods', '.zip')
           OUT = Path('sbir_official_documents')
-          OUT.mkdir(exist_ok=True)
+          OUT.mkdir(parents=True, exist_ok=True)
 
-          class LinkParser(HTMLParser):
-              def __init__(self):
-                  super().__init__()
-                  self.links = []
-                  self.href = None
-                  self.text = []
-              def handle_starttag(self, tag, attrs):
-                  if tag.lower() == 'a':
-                      self.href = dict(attrs).get('href')
-                      self.text = []
-              def handle_data(self, data):
-                  if self.href is not None:
-                      self.text.append(data)
-              def handle_endtag(self, tag):
-                  if tag.lower() == 'a' and self.href is not None:
-                      self.links.append((self.href, ''.join(self.text).strip()))
-                      self.href = None
-                      self.text = []
-
-          def request(url):
-              req = urllib.request.Request(url, headers={
-                  'User-Agent': 'Mozilla/5.0 (compatible; SBIR-Archive/1.0)',
-                  'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
-              })
-              return urllib.request.urlopen(req, timeout=60)
+          session = requests.Session()
+          session.headers.update({
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150 Safari/537.36',
+              'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+          })
 
           def safe_name(name):
               name = urllib.parse.unquote(name).strip()
@@ -68,72 +52,96 @@ jobs:
               name = re.sub(r'\s+', ' ', name)
               return name[:180] or 'unnamed_file'
 
+          def filename_from_response(response, fallback):
+              disposition = response.headers.get('content-disposition', '')
+              match = re.search(r"filename\*=UTF-8''([^;]+)", disposition, re.I)
+              if match:
+                  return safe_name(match.group(1))
+              match = re.search(r'filename="?([^";]+)', disposition, re.I)
+              if match:
+                  try:
+                      return safe_name(match.group(1).encode('latin1').decode('utf-8'))
+                  except Exception:
+                      return safe_name(match.group(1))
+              return safe_name(fallback)
+
           all_manifest = []
           for stage, page_url in STAGES.items():
               stage_dir = OUT / stage
-              stage_dir.mkdir(exist_ok=True)
-              html = request(page_url).read().decode('utf-8', errors='replace')
-              parser = LinkParser()
-              parser.feed(html)
-              seen = set()
+              stage_dir.mkdir(parents=True, exist_ok=True)
               rows = []
-              for href, text in parser.links:
+              try:
+                  page = session.get(page_url, timeout=60)
+                  page.raise_for_status()
+                  page.encoding = page.apparent_encoding or 'utf-8'
+                  soup = BeautifulSoup(page.text, 'html.parser')
+                  links = soup.find_all('a', href=True)
+              except Exception as exc:
+                  row = [stage, '', page_url, 'page_failed', 0, str(exc)]
+                  rows.append(row)
+                  all_manifest.append(row)
+                  links = []
+
+              seen = set()
+              for link in links:
+                  href = link.get('href', '').strip()
                   full = urllib.parse.urljoin(page_url, href)
-                  path = urllib.parse.urlparse(full).path.lower()
+                  path = urllib.parse.unquote(urllib.parse.urlparse(full).path).lower()
                   if '/download/' not in path or not path.endswith(EXTENSIONS):
                       continue
                   if full in seen:
                       continue
                   seen.add(full)
+
+                  anchor_name = link.get_text(' ', strip=True)
                   url_name = os.path.basename(urllib.parse.urlparse(full).path)
-                  text_name = text.strip()
-                  ext = os.path.splitext(urllib.parse.unquote(url_name))[1]
-                  filename = safe_name(text_name if os.path.splitext(text_name)[1].lower() in EXTENSIONS else urllib.parse.unquote(url_name))
-                  if not os.path.splitext(filename)[1] and ext:
-                      filename += ext
-                  destination = stage_dir / filename
-                  counter = 2
-                  while destination.exists():
-                      stem, suffix = os.path.splitext(filename)
-                      destination = stage_dir / f'{stem}_{counter}{suffix}'
-                      counter += 1
+                  fallback = anchor_name if os.path.splitext(anchor_name)[1].lower() in EXTENSIONS else urllib.parse.unquote(url_name)
                   status = 'success'
                   error = ''
                   size = 0
+                  destination = None
                   try:
-                      with request(full) as response, open(destination, 'wb') as output:
-                          data = response.read()
-                          output.write(data)
-                          size = len(data)
+                      response = session.get(full, timeout=120, allow_redirects=True)
+                      response.raise_for_status()
+                      filename = filename_from_response(response, fallback)
+                      if not os.path.splitext(filename)[1]:
+                          ext = os.path.splitext(urllib.parse.unquote(url_name))[1]
+                          filename += ext
+                      destination = stage_dir / filename
+                      counter = 2
+                      while destination.exists():
+                          stem, suffix = os.path.splitext(filename)
+                          destination = stage_dir / f'{stem}_{counter}{suffix}'
+                          counter += 1
+                      destination.write_bytes(response.content)
+                      size = destination.stat().st_size
                       if size == 0:
                           raise RuntimeError('empty file')
                   except Exception as exc:
                       status = 'failed'
                       error = str(exc)
-                      if destination.exists():
+                      if destination and destination.exists():
                           destination.unlink()
-                  row = [stage, destination.name, full, status, size, error]
+                  final_name = destination.name if destination else safe_name(fallback)
+                  row = [stage, final_name, full, status, size, error]
                   rows.append(row)
                   all_manifest.append(row)
-                  print(stage, status, destination.name, size)
-                  time.sleep(0.15)
+                  print(stage, status, final_name, size)
+                  time.sleep(0.1)
+
               with open(stage_dir / 'manifest.csv', 'w', newline='', encoding='utf-8-sig') as f:
                   writer = csv.writer(f)
                   writer.writerow(['stage', 'filename', 'source_url', 'status', 'size_bytes', 'error'])
                   writer.writerows(rows)
               with open(stage_dir / 'README.txt', 'w', encoding='utf-8') as f:
                   ok = sum(1 for r in rows if r[3] == 'success')
-                  fail = sum(1 for r in rows if r[3] == 'failed')
+                  fail = sum(1 for r in rows if r[3] != 'success')
                   f.write(f'SBIR 官方文件自動封存\n來源：{page_url}\n成功：{ok}\n失敗：{fail}\n下載日期：2026-07-22\n')
 
           with open(OUT / 'manifest_all.csv', 'w', newline='', encoding='utf-8-sig') as f:
               writer = csv.writer(f)
               writer.writerow(['stage', 'filename', 'source_url', 'status', 'size_bytes', 'error'])
               writer.writerows(all_manifest)
-
-          failures = [r for r in all_manifest if r[3] != 'success']
-          if failures:
-              print(f'WARNING: {len(failures)} downloads failed; manifests retained for review.')
           PY
 
       - name: Upload application-stage archive
