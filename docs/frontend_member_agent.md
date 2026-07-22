@@ -2,12 +2,12 @@
 
 > **適用範圍**：此文件由後端 / 資料工程交付給前端工程師，說明 `members` 資料表的欄位規格、API 合約，以及各頁面需實作的畫面與串接細節。
 
+> [!IMPORTANT]
+> **此任務已於 2026-07-22 全部完成並部署**（`/register`、`/login`、`/settings`、`AuthContext.jsx` 均已對接真實後端）。本文件已依實際程式碼（`backend/routers/auth.py`、`frontend/src/context/AuthContext.jsx`、`Login.jsx`、`Register.jsx`、`Settings.jsx`）校正過，僅作為現況參考，**不要再依早期草稿版本（token 存 localStorage、`/auth` 路徑、`PUT /preferences` 等）重做**。若與 [API_SPEC.md](API_SPEC.md) 或 [SPEC.md](SPEC.md) 有出入，一律以程式碼與 `API_SPEC.md` 為準。
+
 ---
 
 ## 1. 資料庫欄位說明
-
-> [!NOTE]
-> 此任務已於 2026-07-13 完成並部署。前端設定頁目前會透過 `/auth/preferences` 同步讀寫 `public.user_preferences`，請勿再把推播與顯示偏好當成未串接項目重做。
 
 ### 1.1 `public.members`
 
@@ -29,11 +29,12 @@
 | 欄位 | 型別 | 必填 | 預設值 | 說明 |
 |------|------|------|--------|------|
 | `member_id` | INTEGER | ✅ | 無 | 會員 ID，外鍵連到 `public.members(id)`，`ON DELETE CASCADE` |
-| `price_alert` | BOOLEAN | ✅ | `true` | 品項降價通知 |
-| `weather_alert` | BOOLEAN | ✅ | `true` | 產地天氣異常警示 |
-| `mutual_aid_reply` | BOOLEAN | ✅ | `false` | 互助網回應通知 |
-| `font_size` | TEXT | ✅ | `md` | `sm`、`md`、`lg` |
-| `layout_mode` | TEXT | ✅ | `simple` | `simple`、`detailed` |
+| `price_alert` | BOOLEAN | ✅ | `true` | 品項降價通知（目前設定頁未提供切換 UI） |
+| `weather_alert` | BOOLEAN | ✅ | `true` | 產地天氣異常警示（目前設定頁未提供切換 UI） |
+| `mutual_aid_reply` | BOOLEAN | ✅ | `true` | 互助網回應通知 |
+| `mutual_aid_like` | BOOLEAN | ✅ | `true` | 互助網按讚通知 |
+| `font_size` | TEXT | ✅ | `md` | `sm`、`md`、`lg`（目前設定頁未提供切換 UI） |
+| `layout_mode` | TEXT | ✅ | `simple` | `simple`、`detailed`（目前設定頁未提供切換 UI） |
 | `theme` | TEXT | ✅ | `light` | `light`、`dark` |
 | `created_at` | TIMESTAMPTZ | 自動 | `NOW()` | 建立時間 |
 | `updated_at` | TIMESTAMPTZ | 自動 | `NOW()` | 更新時間，自動 trigger |
@@ -42,7 +43,7 @@
 
 ## 2. 後端 API 合約
 
-> 目前前端實際使用的 auth base path 是 `/auth`。下列 `/api/auth/*` 是早期文件保留的舊合約，若新增功能請優先對齊現行 `backend/routers/auth.py` 的 `/auth/*` route。
+> Base path 固定為 `/api/auth`（`backend/routers/auth.py` 的 `APIRouter(prefix="/api/auth")`）。認證方式是 **httpOnly cookie**（`access_token`），不是 `Authorization: Bearer` header，前端 fetch 一律要帶 `credentials: 'include'`。
 
 ### 2.1 POST `/api/auth/register` — 會員註冊
 
@@ -56,33 +57,39 @@
 }
 ```
 
-**欄位驗證規則（前端須先做 Client-side 驗證）**
+**欄位驗證規則（前端須先做 Client-side 驗證，與後端 `register_member()` 一致）**
 
 | 欄位 | 規則 |
 |------|------|
 | `email` | 必填、合法 Email 格式 |
-| `password` | 必填、長度 8 位以上 |
-| `name` | 必填、長度 1~100 字 |
+| `password` | 必填、長度 **8 位以上**（後端強制檢查；`Register.jsx` 目前 `minLength` 設為 6，與後端不一致，前端待修正） |
+| `name` | 必填、不可空白 |
 
 **成功回應 `201 Created`**
+
+同時設定 httpOnly cookie（`access_token`），並回傳：
 
 ```json
 {
   "success": true,
-  "member_id": 1,
-  "email": "farmer@example.com",
-  "name": "王大明"
+  "member": {
+    "id": 1,
+    "email": "farmer@example.com",
+    "name": "王大明"
+  }
 }
 ```
 
 **失敗回應 `400 Bad Request`（Email 已被使用）**
 
 ```json
-{
-  "success": false,
-  "error": "email_already_exists",
-  "message": "此電子郵件已被使用，請直接登入或使用其他信箱。"
-}
+{ "detail": "此電子郵件已被使用，請直接登入或使用其他信箱。" }
+```
+
+**失敗回應 `422 Unprocessable Entity`（欄位驗證失敗，如密碼長度不足）**
+
+```json
+{ "detail": "密碼長度至少需要 8 個字元。" }
 ```
 
 ---
@@ -100,10 +107,11 @@
 
 **成功回應 `200 OK`**
 
+同時設定 httpOnly cookie（`access_token`）。回應**不含 token**，只回傳會員公開資訊：
+
 ```json
 {
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "member": {
     "id": 1,
     "email": "farmer@example.com",
@@ -116,35 +124,35 @@
 **失敗回應 `401 Unauthorized`**
 
 ```json
-{
-  "success": false,
-  "error": "invalid_credentials",
-  "message": "電子郵件或密碼錯誤，請重新輸入。"
-}
+{ "detail": "電子郵件或密碼錯誤，請重新輸入。" }
 ```
 
 ---
 
-### 2.3 PATCH `/api/auth/profile` — 更新會員資料（需登入）
+### 2.3 POST `/api/auth/logout` — 登出
 
-**Request Headers**
+清除 `access_token` cookie，回傳 `{ "success": true }`。
 
-```
-Authorization: Bearer <token>
-```
+---
+
+### 2.4 GET `/api/auth/me` — 取得目前登入會員資訊（需登入）
+
+依 cookie 內的 token 解析出 `member_id`，回傳該會員公開資訊（`id`、`email`、`name`、`plan`）。未登入或 token 失效回傳 `401`。
+
+---
+
+### 2.5 PATCH `/api/auth/profile` — 更新會員資料（需登入）
 
 **Request Body（JSON）— 只傳需要變更的欄位**
 
 ```json
-{
-  "name": "王大明（新名稱）"
-}
+{ "name": "王大明（新名稱）" }
 ```
 
 > [!NOTE]
 > - `email` 不允許在此端點修改
 > - `plan` 不允許透過此端點修改（由後端升級流程處理）
-> - `password` 如需修改，請設計獨立的 `/api/auth/change-password` 端點
+> - 密碼變更請改用 `PATCH /api/auth/password`（見 2.8）
 
 **成功回應 `200 OK`**
 
@@ -162,13 +170,9 @@ Authorization: Bearer <token>
 
 ---
 
-### 2.4 GET `/auth/preferences` — 讀取設定偏好（需登入）
+### 2.6 GET `/api/auth/preferences` — 讀取設定偏好（需登入）
 
-**Request Headers**
-
-```text
-Authorization: Bearer <token>
-```
+若該會員尚無偏好資料，後端會自動以預設值建立一筆。
 
 **成功回應 `200 OK`**
 
@@ -176,7 +180,8 @@ Authorization: Bearer <token>
 {
   "priceAlert": true,
   "weatherAlert": true,
-  "mutualAidReply": false,
+  "mutualAidReply": true,
+  "mutualAidLike": true,
   "fontSize": "md",
   "layout": "simple",
   "theme": "light"
@@ -185,107 +190,68 @@ Authorization: Bearer <token>
 
 ---
 
-### 2.5 PUT `/auth/preferences` — 更新設定偏好（需登入）
+### 2.7 PATCH `/api/auth/preferences` — 更新設定偏好（需登入）
 
-**Request Headers**
-
-```text
-Authorization: Bearer <token>
-```
+> 注意：method 是 **PATCH**，不是 PUT；只需傳要變更的欄位（`exclude_unset`），未傳的欄位不會被覆蓋。
 
 **Request Body（JSON，可只傳需要變更的欄位）**
 
 ```json
-{
-  "priceAlert": false,
-  "weatherAlert": true,
-  "mutualAidReply": false,
-  "fontSize": "lg",
-  "layout": "detailed",
-  "theme": "dark"
-}
+{ "theme": "dark" }
 ```
 
-**成功回應 `200 OK`**
+**成功回應 `200 OK`**（回傳更新後的完整偏好物件，格式同 2.6）
+
+---
+
+### 2.8 PATCH `/api/auth/password` — 變更密碼（需登入）
+
+**Request Body（JSON）**
 
 ```json
-{
-  "priceAlert": false,
-  "weatherAlert": true,
-  "mutualAidReply": false,
-  "fontSize": "lg",
-  "layout": "detailed",
-  "theme": "dark"
-}
+{ "old_password": "old_pw", "new_password": "new_pw" }
 ```
 
-## 3. 需要實作的頁面
+**驗證規則**
 
-### 3.1 `/register` — 會員申請頁（全新頁面）
+| 欄位 | 規則 |
+|------|------|
+| `new_password` | 長度至少 6 個字元；不可與舊密碼相同 |
 
-**UI 需求**
-
-- 表單欄位：
-  1. **電子郵件**（email）— 必填，即時 Email 格式驗證
-  2. **密碼**（password）— 必填，長度至少 8 位，顯示/隱藏切換按鈕
-  3. **確認密碼**（password_confirm）— 必填，兩次輸入相符才可送出
-  4. **顯示名稱**（name）— 必填
-
-- `plan` 欄位**不得出現**在此表單。
-
-- 送出按鈕文字：「立即加入」
-- 送出後顯示成功訊息並導向 `/login` 頁
-
-**錯誤處理**
-
-| 情境 | 顯示訊息 |
-|------|---------|
-| Email 已被使用 | 「此電子郵件已被使用，請直接登入或使用其他信箱。」 |
-| 密碼不一致 | 「兩次輸入的密碼不相符，請重新確認。」 |
-| 伺服器錯誤 | 「目前系統繁忙，請稍後再試。」 |
+**成功回應 `200 OK`**：`{ "success": true }`
+**失敗回應 `422`**：舊密碼錯誤、新密碼與舊密碼相同、或新密碼太短時，`detail` 會帶出對應中文訊息。
 
 ---
 
-### 3.2 `/login` — 會員登入頁（已串接真實登入）
+## 3. 頁面現況（`frontend/src/pages/`、`frontend/src/context/AuthContext.jsx`）
 
-**UI 需求**
+### 3.1 `/register` — 會員申請頁（`Register.jsx`，已完成）
 
-- 表單欄位：
-  1. **電子郵件**（email）— 必填
-  2. **密碼**（password）— 必填，顯示/隱藏切換
+- 表單欄位：**顯示名稱**、**Email**、**密碼**（無「確認密碼」欄位，與早期草稿設計不同）
+- 送出按鈕文字：「建立中…」/「建立帳號」
+- 呼叫 `POST /api/auth/register`（`credentials: 'include'`），成功後直接用回傳的 `member` 呼叫 `setAuthData()` 登入並導向 `/settings`（不會先導去 `/login`）
+- `plan` 欄位不出現在表單中，符合規格
 
-- 送出按鈕文字：「登入」
-- 登入成功後：
-  - 將 API 回傳的 `token` 存入 `localStorage`（key：`yz_auth_token`）
-  - 將 `member` 資料（不含密碼）存入 `localStorage`（key：`yz_auth_user`）
-  - 導向首頁 `/`
-- 頁面下方加上「還沒有帳號？立即申請」的連結，跳至 `/register`
+### 3.2 `/login` — 會員登入頁（`Login.jsx`，已完成）
 
-**AuthContext.jsx 現行狀態**
+- 表單欄位：**Email**、**密碼**
+- 送出按鈕文字：「登入中…」/「登入」
+- 登入成功後導向 `/settings`
+- 頁面下方有「還沒有帳號？前往註冊」連結，跳至 `/register`
 
-- 假登入已移除，`login(email, password)` 已改為非同步（async）呼叫真實 API
-- `logout()` 函式須同時清除 `yz_auth_token` 與 `yz_auth_user`
-- 介面（`user`、`isAuthenticated`、`login`、`logout`、`updateProfile`）保持不變，下游元件不須改動
+**`AuthContext.jsx` 現行狀態**
 
----
+- `login(email, password)`：呼叫 `POST /api/auth/login`（`credentials: 'include'`），成功後把回傳的 `member` 存入 `localStorage`（key：`yz_auth_user`），**不存 token**（token 由 httpOnly cookie 保管，JS 存取不到也不需要存取）
+- `logout()`：呼叫 `POST /api/auth/logout` 清除 cookie，並移除 `localStorage` 的 `yz_auth_user`
+- `updateProfile(patch)`：呼叫 `PATCH /api/auth/profile`，成功後同步更新 `localStorage`
+- 介面（`user`、`isAuthenticated`、`login`、`logout`、`updateProfile`、`setAuthData`）供下游元件使用
 
-### 3.3 `/settings` — 設定頁（修改現有頁面）
+### 3.3 `/settings` — 設定頁（`Settings.jsx`，已完成）
 
-**UI 需求**
-
-- **帳號資料區塊**（已存在，需更新）：
-  - 顯示：顯示名稱（可編輯）、Email（不可編輯，唯讀顯示）
-  - 儲存時呼叫 `PATCH /api/auth/profile`，傳入 `{ name }`
-  - 儲存成功後更新 `localStorage` 的 `yz_auth_user`
-
-- **訂閱計畫區塊**（唯讀展示，不可由使用者修改）：
-  - 顯示目前計畫名稱（`user.plan`），例如「免費會員」或「訂閱夥伴」
-  - 可加上「升級計畫」按鈕（按下後暫時顯示「敬請期待」），不需串接升級流程
-
-- **推播與顯示偏好區塊**（已串接）：
-  - 進入設定頁時呼叫 `GET /auth/preferences`
-  - 修改三個通知開關、字體大小、版面模式與主題時呼叫 `PUT /auth/preferences`
-  - `localStorage` 僅作為前端快取與立即套用主題，不是唯一資料來源
+- **帳號資料區塊**：顯示名稱（可編輯，呼叫 `PATCH /api/auth/profile`）、Email（唯讀）、`plan` 徽章（唯讀展示，無「升級計畫」按鈕）、變更密碼（Modal，呼叫 `PATCH /api/auth/password`）、登出
+- **顯示與版面區塊**：目前僅提供「主題配色」（亮/暗）切換，呼叫 `PATCH /api/auth/preferences`；`fontSize`／`layout` 欄位資料庫已支援，但目前無對應 UI
+- **推播偏好區塊**：目前僅提供「互助網回應通知」「互助網按讚通知」兩個開關；`priceAlert`／`weatherAlert` 資料庫已支援，但目前無對應 UI（此區塊標註「尚未串接實際推播」，代表通知本身尚未實作，設定值已確實同步後端）
+- 進入頁面時呼叫 `GET /api/auth/preferences` 取得目前設定，並同步寫入 `localStorage`（`smartbuy_notif_prefs`、`smartbuy_display_prefs`）作前端快取
 
 ---
 
@@ -293,25 +259,24 @@ Authorization: Bearer <token>
 
 | Key | 用途 | 型別 |
 |-----|------|------|
-| `yz_auth_token` | JWT Token，每次 API 需要鑑權的請求帶入 `Authorization: Bearer` Header | string |
 | `yz_auth_user` | 已登入會員的公開資訊（`id`, `email`, `name`, `plan`） | JSON object |
 | `smartbuy_notif_prefs` | 通知偏好的前端快取；實際資料來源為 `user_preferences` | JSON object |
 | `smartbuy_display_prefs` | 顯示偏好的前端快取；實際資料來源為 `user_preferences` | JSON object |
 
+> 沒有 `yz_auth_token`：登入憑證是 httpOnly cookie，JS 無法也不需要讀寫它；所有需登入的請求只要帶 `credentials: 'include'` 即可。
+
 ---
 
-## 5. 實作順序建議
+## 5. 已知落差 / 待辦
 
-1. **已完成**：`AuthContext.jsx` 已使用真實 API 呼叫
-2. **建立 `/register` 頁面**：表單 UI + 驗證 + 串接 `/api/auth/register`
-3. **更新 `/login` 頁面**：連結到真實 API，加上「前往申請」入口
-4. **更新 `/settings` 頁面**：保留顯示名稱編輯 + 新增訂閱計畫唯讀區塊
-5. **已完成項目請勿重做**：`/auth/preferences` 與 `user_preferences` 同步已上線
+1. `Register.jsx` 密碼欄位 `minLength={6}`，但後端 `register_member()` 實際要求 8 位以上 → 使用者輸入 6~7 位會通過前端驗證但被後端 422 拒絕，應把前端 `minLength` 改成 8。
+2. 設定頁尚未提供 `priceAlert`／`weatherAlert`／`fontSize`／`layout` 的切換 UI，資料庫欄位與 API 已支援，僅缺前端畫面。
+3. `Register.jsx` 沒有「確認密碼」欄位，若產品需求仍要雙重確認，需另外補上。
 
 ---
 
 ## 6. 備注與限制
 
 - **密碼雜湊**：前端傳送明文密碼即可，後端統一使用 bcrypt 加密存入 `password_hash` 欄位。
-- **JWT 實作**：Token 的產生與驗證由後端負責，前端只負責儲存與帶入 Header。
+- **JWT 實作**：Token 的產生、驗證與儲存（httpOnly cookie）皆由後端負責，前端不接觸 token 本身，只需在請求中帶 `credentials: 'include'`。
 - **`plan` 欄位限制**：前端所有表單（含設定頁）均不得提供使用者修改 `plan`，只能讀取顯示。

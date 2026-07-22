@@ -6,6 +6,59 @@
 
 目前正式 MVP 預測定義以本文件與現行方向分類程式為準：使用截至 `base_date = t` 已知的歷史資料，預測同一市場、同一作物「下一個實際交易日」的平均價格方向：跌、持平、漲。所有對外資料呈現皆須標示「僅供參考」。
 
+## 系統架構總覽
+
+```text
+React 19 + Vite 6 前端
+    ↓ REST API（credentials: 'include'，httpOnly cookie）
+FastAPI 後端
+    ↓
+Supabase PostgreSQL（近期資料）＋ Cloudflare R2 Parquet 資料湖（歷史資料）
+```
+
+- **前端**：React 19 + Vite 6 + React Router v6 + Tailwind CSS；圖表用 Chart.js 4，部分儀表板（RiskGauge、Sparkline、BollingerGauge 等）為手寫 SVG，不依賴外部圖表庫
+- **後端**：FastAPI + SQLAlchemy + psycopg2，依功能拆成多個 router（`backend/routers/*.py`），完整端點見 [docs/API_SPEC.md](API_SPEC.md)
+- **資料庫**：Supabase PostgreSQL，僅保留近期資料（`agri_price_daily` 預設 365 天），會員／收藏／通知／互助網等即時互動資料也在此
+- **ML**：LightGBM 下一交易日方向分類，模型檔 `models/07_lightgbm_selected_final.joblib`
+- **認證**：自建 JWT（bcrypt 雜湊 + python-jose），以 httpOnly cookie 傳遞，不是 Supabase Auth
+- **部署**：前端 Vercel、後端 Render Free tier；`push to main` 觸發自動部署
+
+## 頁面與功能規格
+
+以下依 [README.md](../README.md) 功能總覽表逐項展開現行架構與資料狀態：
+
+### 首頁（`/`，`Home.jsx`）
+
+純展示 landing page：Hero 區、售價動態／農產新知／互助網三大功能卡、頁尾 CTA。頁面內嵌的價格走勢圖、新聞摘要、互助網發文示意目前皆為 mock 資料，尚未串接真實 API。詳細架構見 memory `project_homepage.md`。
+
+### 售價動態（`/search`，`PriceSearch.jsx`）
+
+市場下拉選單 + 本週市場情報面板（風險指數、多空偏向、漲跌幅排行、異常警報，由 `GET /api/market-intel` 提供）+ 品項列表（搜尋、狀態篩選、排序、價格區間篩選）。市場情報以 z-score 判斷偏離程度（`|z| > 1.5` 且 7 日漲跌 `> 15%` 觸發異常警報），伺服器啟動時預先計算快取。詳細架構見 memory `price-pages-architecture.md`。
+
+### 品項詳細（`/product/:name`，`ProductDetail.jsx`）
+
+走勢圖（含 MA7/MA30/MA90 切換、正常區間色帶、十字線浮動標籤）、成交量圖、布林通道位置卡（`PriceInsightCard`）、AI 下一交易日方向預測卡（`DirectionCard`）。串接 `GET /api/products/{name}`、`/history`、`/direction` 與 `GET /api/predictions/direction/latest`。
+
+### 我的收藏（`/basket`，`MyBasket.jsx`）
+
+2026-07-17 重構為純收藏頁：收藏品項清單 + 收藏文章清單。登入後透過 `favoritesService.js` 呼叫 `GET/POST/DELETE /api/favorites`，寫入 Supabase `user_favorites` 表；未登入時 fallback 至 localStorage。舊版菜籃清單、採買建議整合、菜籃比對功能已移除。
+
+### 農產新知（`/news`，`AgriNews.jsx`）
+
+目前為 6 篇寫死的 mock 文章，尚待後端 proxy 農業部 API 取得真實資料。可透過 `GET/POST/DELETE /api/favorites?type=news` 收藏文章。
+
+### 互助網（`/mutual-aid`，`MutualAid.jsx`）
+
+單一 `DiscussionBoard` 元件：發文（滯銷急售／求助／資訊分享）、留言、按讚、收藏、狀態流程（待處理／處理中／已結案）、最多 3 張圖片上傳。2026-07-20～21 已改接真實後端 `backend/routers/mutual_aid.py`（`/api/mutual-aid/*`），圖片以 Pillow 轉 webp 後 base64 存入 `mutual_aid_posts.images`，不依賴任何物件儲存服務。原「買貴通報」分頁與相關後端模組已於 2026-07-21 整批移除。詳細架構見 memory `project_mutualaid.md`。
+
+### 會員設定（`/settings`，`Settings.jsx`）
+
+帳號資料（顯示名稱、變更密碼）、顯示偏好（字體大小／版面／主題）、推播偏好（降價通知／互助網回應通知）、FAQ。串接 `GET /api/auth/me`、`PATCH /profile`、`/password`、`GET/PATCH /preferences`。顯示與推播偏好同時寫入 localStorage 快取與 Supabase `user_preferences` 表。詳細架構見 memory `project_settings.md`。
+
+### 登入／註冊（`/login`、`/register`，`Login.jsx`、`Register.jsx`）
+
+自建帳號系統：`POST /api/auth/register`、`/login`、`/logout`，bcrypt 雜湊密碼、JWT 存於 httpOnly cookie，非 Supabase Auth。
+
 ## 正式 MVP 預測資料流
 
 ```text
