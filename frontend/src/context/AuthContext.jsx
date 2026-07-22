@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE = import.meta.env.VITE_API_URL ?? '';
 const LS_USER = 'yz_auth_user';
 
 function loadUser() {

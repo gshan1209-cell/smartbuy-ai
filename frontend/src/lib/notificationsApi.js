@@ -1,5 +1,5 @@
 // 站內通知 API 封裝：所有請求帶 cookie（credentials: 'include'）以配合後端 JWT cookie 認證。
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, { credentials: 'include', ...options });

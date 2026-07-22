@@ -3,7 +3,7 @@
 import { loadSavedNews, toggleSavedNews } from './savedNews';
 import { loadSavedProducts, toggleSavedProduct, removeSavedProduct } from './savedProducts';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 let loginCheck = null;
 

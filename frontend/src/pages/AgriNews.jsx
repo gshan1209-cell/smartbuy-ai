@@ -3,7 +3,7 @@ import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesSer
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const PAGE_SIZE = 12;
 
 function formatDate(raw) {

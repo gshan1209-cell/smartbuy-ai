@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE = import.meta.env.VITE_API_URL ?? '';
 const LS_KEY = 'smartbuy_notif_prefs';
 const DEFAULT_PREFS = { weatherAlert: true, mutualAidReply: true, mutualAidLike: true };
 
