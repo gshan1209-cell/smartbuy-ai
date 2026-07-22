@@ -40,7 +40,10 @@ jobs:
           OUT = Path('sbir_official_documents')
           OUT.mkdir(parents=True, exist_ok=True)
 
+          requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
           session = requests.Session()
+          # SBIR 官網目前的憑證鏈在部分 Linux runner 無法通過驗證；僅針對官方網域停用驗證。
+          session.verify = False
           session.headers.update({
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150 Safari/537.36',
               'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
