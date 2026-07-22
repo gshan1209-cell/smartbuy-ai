@@ -1,7 +1,7 @@
 # SmartBuy AI — Memory Index
 
-- [首頁設計（Home.jsx）](project_homepage.md) — 商業農產品 landing page 結構、API 串接、樣式策略與 Unsplash 背景圖
-- [帳號與設定（Settings.jsx）](project_settings.md) — 帳號資料、顯示偏好、推播設定、變更密碼，及後端 auth API 總覽
-- [我的收藏（MyBasket.jsx）](project_mybasket.md) — 純收藏頁結構、favoritesService 雲端同步（/api/favorites + user_favorites 表）與 localStorage fallback
-- [售價動態架構（PriceSearch/ProductDetail）](price-pages-architecture.md) — 雙頁設計、API、元件樹、資料流
-- [互助網（MutualAid.jsx）](project_mutualaid.md) — 社群討論串真實 API 串接、按讚/收藏/圖片上傳/狀態切換、401 處理慣例
+- [首頁（Home.jsx）](project_homepage.md) — 首頁全部 mock，尚未串接 API
+- [設定頁（Settings.jsx）](project_settings.md) — 雙層儲存慣例、weatherAlert 無 UI、新增偏好欄位四處同步清單
+- [我的收藏（MyBasket.jsx）](project_mybasket.md) — 兩套獨立收藏系統、id 型別陷阱、cookie auth 限制
+- [售價動態（PriceSearch/ProductDetail）](price-pages-architecture.md) — 拆頁決策、Chart.js 慣例、已移除功能
+- [互助網（MutualAid.jsx）](project_mutualaid.md) — 圖片 base64 原因、cookie auth 限制、401 橫幅慣例、表不在 migration
