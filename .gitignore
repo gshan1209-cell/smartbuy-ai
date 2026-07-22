@@ -26,3 +26,6 @@ cookies.txt
 /setup-env.ps1
 /start-dev.ps1
 /documents/
+
+# Claude Code local permission settings (machine-specific, not shared)
+.claude/settings.local.json
