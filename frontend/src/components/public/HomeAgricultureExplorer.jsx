@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Calendar, MapPin, RefreshCw, Sparkles } from 'lucide-react';
+import { Calendar, ExternalLink, Info, MapPin, RefreshCw, Sparkles } from 'lucide-react';
 import AgricultureExplorerTabs from './AgricultureExplorerTabs';
 import CountySelector from './CountySelector';
 import HomeSectionHeader from './HomeSectionHeader';
@@ -24,8 +24,8 @@ export default function HomeAgricultureExplorer() {
     setError(null);
 
     try {
-      const res = await loadHomeAgricultureExplorer(county, data);
-      setData(res);
+      const response = await loadHomeAgricultureExplorer(county, data);
+      setData(response);
     } catch (err) {
       setError(err?.message || '農產探索資料整理失敗。');
     } finally {
@@ -40,14 +40,17 @@ export default function HomeAgricultureExplorer() {
   }, [selectedCounty]);
 
   const pricesStatus = data?.sources?.prices?.status;
+  const countySource = data?.sources?.countyProduce;
   const isPartialError = pricesStatus === 'error' || pricesStatus === 'stale';
+  const publicationUrl = data?.officialCountySources?.publication?.url;
+  const openDataUrl = data?.officialCountySources?.openData?.url;
 
   return (
     <section className="home-agri-explorer-section" aria-label="農產探索">
       <HomeSectionHeader
         eyebrow="Agricultural Produce Explorer"
         title="農產探索"
-        description="發現臺灣在地農特產品、本月當季盛產與生產地分佈。"
+        description="發現臺灣在地農特產品、本月當季推薦與農產來源。"
       >
         {isPartialError && (
           <span className="dashboard-partial-badge">行情 API 部分異常</span>
@@ -70,7 +73,6 @@ export default function HomeAgricultureExplorer() {
       />
 
       <div className="agri-explorer-content-box">
-        {/* TAB 1: 在地特色 */}
         {activeTab === 'local' && (
           <div
             id="agri-tabpanel-local"
@@ -83,7 +85,16 @@ export default function HomeAgricultureExplorer() {
                 <MapPin className="text-emerald-700" size={22} />
                 <h3>{selectedCounty} · 在地特色農產</h3>
               </div>
-              <SourceBadge type="Unavailable" label="縣市資料: 正式 API 尚未接入" />
+              <div className="explorer-source-group">
+                <SourceBadge
+                  type="Official Publication"
+                  label="官方來源已確認"
+                />
+                <SourceBadge
+                  type={countySource?.type || 'Unavailable'}
+                  label={countySource?.status === 'demo' ? '目前內容：示範' : '資料介接中'}
+                />
+              </div>
             </div>
 
             <CountySelector
@@ -101,12 +112,21 @@ export default function HomeAgricultureExplorer() {
 
               <div className="local-specialties-container">
                 {loading && !data && (
-                  <div className="explorer-loading">正在載入 {selectedCounty} 特色農產…</div>
+                  <div className="explorer-loading">正在整理 {selectedCounty} 農產資料…</div>
                 )}
                 {error && !data && (
                   <div className="explorer-error">
                     <p>{error}</p>
                     <button type="button" onClick={() => loadData(selectedCounty)}>重新載入</button>
+                  </div>
+                )}
+                {!loading && !error && !data?.localSpecialties?.length && (
+                  <div className="explorer-unavailable-card">
+                    <Info size={22} aria-hidden="true" />
+                    <div>
+                      <strong>{selectedCounty} 正式農產資料介接中</strong>
+                      <p>官方統計來源已確認；待完成資料清理與 ETL 後，才會顯示縣市代表品項、面積、產量與排名。</p>
+                    </div>
                   </div>
                 )}
                 {data?.localSpecialties?.length > 0 && (
@@ -118,10 +138,29 @@ export default function HomeAgricultureExplorer() {
                 )}
               </div>
             </div>
+
+            <div className="official-agri-source-note">
+              <Info size={17} aria-hidden="true" />
+              <div>
+                <strong>官方資料來源</strong>
+                <p>縣市農產、生產面積、產量與排名將以農業部農業統計書刊及農情調查開放資料為準。</p>
+                <div className="official-source-links">
+                  {publicationUrl && (
+                    <a href={publicationUrl} target="_blank" rel="noreferrer">
+                      農業統計書刊 <ExternalLink size={14} aria-hidden="true" />
+                    </a>
+                  )}
+                  {openDataUrl && (
+                    <a href={openDataUrl} target="_blank" rel="noreferrer">
+                      農情調查開放資料 <ExternalLink size={14} aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* TAB 2: 本月尚青 */}
         {activeTab === 'monthly' && (
           <div
             id="agri-tabpanel-monthly"
@@ -132,7 +171,7 @@ export default function HomeAgricultureExplorer() {
             <div className="monthly-explorer-heading">
               <div className="flex items-center gap-2">
                 <Calendar className="text-emerald-700" size={22} />
-                <h3>{data?.selectedMonth || '本月'}尚青 · 當季盛產品項</h3>
+                <h3>{data?.selectedMonth || '本月'}尚青 · 當季推薦品項</h3>
               </div>
               {data?.currentSolarTerm?.term_name && (
                 <span className="monthly-term-tag">
@@ -142,18 +181,17 @@ export default function HomeAgricultureExplorer() {
             </div>
 
             <div className="monthly-produce-grid">
-              {data?.monthlyProduce?.map((produce, idx) => (
+              {data?.monthlyProduce?.map((produce, index) => (
                 <MonthlyProduceCard
                   key={produce.name}
                   produceItem={produce}
-                  cookingSuggestion={data?.cookingSuggestions?.[idx] || data?.cookingSuggestions?.[0]}
+                  cookingSuggestion={data?.cookingSuggestions?.[index] || data?.cookingSuggestions?.[0]}
                 />
               ))}
             </div>
           </div>
         )}
 
-        {/* TAB 3: 農產在哪 */}
         {activeTab === 'origin' && (
           <div
             id="agri-tabpanel-origin"
@@ -161,14 +199,20 @@ export default function HomeAgricultureExplorer() {
             aria-labelledby="agri-tab-origin"
             className="agri-tabpanel"
           >
-            <ProduceOriginPanel />
+            <ProduceOriginPanel
+              publicationUrl={publicationUrl}
+              openDataUrl={openDataUrl}
+            />
           </div>
         )}
       </div>
 
       <div className="explorer-footer-meta">
         <Sparkles size={14} className="text-emerald-600 inline mr-1" />
-        <span>資料來源：SmartBuy AI 即時行情與節氣 Engine · 檢查時間：{data?.fetchedAt ? new Date(data.fetchedAt).toLocaleString('zh-TW') : '未提供'}</span>
+        <span>
+          即時行情與節氣使用 SmartBuy AI 正式 API；縣市農產統計來源已確認但尚未完成 ETL。檢查時間：
+          {data?.fetchedAt ? new Date(data.fetchedAt).toLocaleString('zh-TW') : '未提供'}
+        </span>
       </div>
     </section>
   );
