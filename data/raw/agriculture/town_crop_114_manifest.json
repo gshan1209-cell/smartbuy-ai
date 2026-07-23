@@ -1,0 +1,79 @@
+{
+  "dataset": "農業部農情調查",
+  "year": "114",
+  "downloaded_at": "2026-07-23",
+  "source": "https://data.moa.gov.tw/Service/OpenData/FromM/TownCropData.aspx",
+  "query": {
+    "year": "114",
+    "IsTransData": "1",
+    "UnitId": "038",
+    "$top": 10000
+  },
+  "total_rows": 43538,
+  "county_count": 20,
+  "counties": [
+    "台中市",
+    "台北市",
+    "台東縣",
+    "台南市",
+    "宜蘭縣",
+    "花蓮縣",
+    "南投縣",
+    "屏東縣",
+    "苗栗縣",
+    "桃園市",
+    "高雄市",
+    "基隆市",
+    "雲林縣",
+    "新北市",
+    "新竹市",
+    "新竹縣",
+    "嘉義市",
+    "嘉義縣",
+    "彰化縣",
+    "澎湖縣"
+  ],
+  "complete_file": {
+    "name": "town_crop_114_complete.json",
+    "rows": 43538,
+    "bytes": 10283759,
+    "sha256": "9fbfc36529dda71235cbf344ec85f21f6ce83ac0f33afe5fa5709e3508504a4c"
+  },
+  "parts": [
+    {
+      "name": "town_crop_114_part_000.json",
+      "skip": 0,
+      "rows": 10000,
+      "bytes": 3140523,
+      "sha256": "9547a66a953e53fcb6bb6279ac530e59fee6dfa23e02a41003b658478cf65a12"
+    },
+    {
+      "name": "town_crop_114_part_001.json",
+      "skip": 10000,
+      "rows": 10000,
+      "bytes": 3139626,
+      "sha256": "3fd5c3bc00f8e618a69483c754dad5ecf34be1fab76814f56729f230a2b3bb73"
+    },
+    {
+      "name": "town_crop_114_part_002.json",
+      "skip": 20000,
+      "rows": 10000,
+      "bytes": 3140530,
+      "sha256": "40a33888b78370d55f0f5b584ec633ae8ffe091fb7eaeb3937c5221123532560"
+    },
+    {
+      "name": "town_crop_114_part_003.json",
+      "skip": 30000,
+      "rows": 10000,
+      "bytes": 3146416,
+      "sha256": "931df38e278b85bcc46fd55ed3da07abd1851ad18aff68c3f87b1cc0f445bb18"
+    },
+    {
+      "name": "town_crop_114_part_004.json",
+      "skip": 40000,
+      "rows": 3538,
+      "bytes": 1112642,
+      "sha256": "e98e1b474735922392a6a37b5d9f1c0c6be87f2f6efd5e335df9634b86e1a5ce"
+    }
+  ]
+}

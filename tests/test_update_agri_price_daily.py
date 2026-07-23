@@ -6,9 +6,12 @@
 from __future__ import annotations
 
 import os
+from datetime import date
+
+import pandas as pd
 import pytest
 
-from scripts.update_agri_price_daily import get_retention_days
+from scripts.update_agri_price_daily import get_retention_days, save_local_price_csv
 
 
 def test_get_retention_days_default(monkeypatch):
@@ -42,3 +45,38 @@ def test_get_retention_days_less_than_one(monkeypatch):
     with pytest.raises(ValueError) as excinfo:
         get_retention_days()
     assert "必須大於或等於 1" in str(excinfo.value)
+
+
+def test_save_local_price_csv_merges_deduplicates_and_prunes(tmp_path):
+    path = tmp_path / "market_prices.csv"
+    path.write_text(
+        "trans_date,product_name,market_name,avg_price,volume\n"
+        "2026-06-01,高麗菜,台北一,30,100\n"
+        "2026-07-22,高麗菜,台北一,40,200\n",
+        encoding="utf-8",
+    )
+    incoming = pd.DataFrame(
+        [
+            {
+                "trans_date": date(2026, 7, 22),
+                "crop_name": "高麗菜",
+                "market_name": "台北一",
+                "avg_price": 45,
+                "volume": 250,
+            },
+            {
+                "trans_date": date(2026, 7, 23),
+                "crop_name": "香蕉",
+                "market_name": "台北一",
+                "avg_price": 35,
+                "volume": 300,
+            },
+        ]
+    )
+
+    saved_rows = save_local_price_csv(incoming, path=path, retention_days=30)
+    saved = pd.read_csv(path)
+
+    assert saved_rows == 2
+    assert set(saved["product_name"]) == {"高麗菜", "香蕉"}
+    assert saved.loc[saved["product_name"] == "高麗菜", "avg_price"].item() == 45

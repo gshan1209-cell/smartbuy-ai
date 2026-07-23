@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import os
 
+import pandas as pd
 from sqlalchemy import create_engine, text
 
 
@@ -20,6 +21,61 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.data.fetch_agri_prices import fetch_agri_prices  # noqa: E402
 from src.data.parquet_store import save_df_to_monthly_parquet  # noqa: E402
+
+
+LOCAL_PRICE_CSV_PATH = PROJECT_ROOT / "data" / "processed" / "market_prices.csv"
+
+
+def save_local_price_csv(
+    df: pd.DataFrame,
+    path: Path | None = None,
+    retention_days: int = 30,
+) -> int:
+    """合併更新本機行情備援 CSV，供沒有 Supabase 時的 API 使用。"""
+    if df.empty:
+        return 0
+    if retention_days < 1:
+        raise ValueError("local CSV retention_days 必須大於或等於 1")
+
+    target_path = path or LOCAL_PRICE_CSV_PATH
+    columns = ["trans_date", "product_name", "market_name", "avg_price", "volume"]
+    incoming = (
+        df.rename(columns={"crop_name": "product_name"})
+        .reindex(columns=columns)
+        .copy()
+    )
+    incoming["trans_date"] = pd.to_datetime(incoming["trans_date"], errors="coerce")
+    incoming = incoming.dropna(subset=["trans_date", "product_name", "market_name"])
+
+    frames = [incoming]
+    if target_path.exists():
+        existing = pd.read_csv(target_path)
+        existing = existing.reindex(columns=columns)
+        existing["trans_date"] = pd.to_datetime(existing["trans_date"], errors="coerce")
+        frames.insert(0, existing.dropna(subset=["trans_date", "product_name", "market_name"]))
+
+    combined = pd.concat(frames, ignore_index=True)
+    combined = combined.drop_duplicates(
+        subset=["trans_date", "product_name", "market_name"],
+        keep="last",
+    )
+    latest_date = combined["trans_date"].max()
+    cutoff_date = latest_date - pd.Timedelta(days=retention_days)
+    combined = combined[combined["trans_date"] >= cutoff_date]
+    combined = combined.sort_values(
+        ["trans_date", "product_name", "market_name"]
+    ).reset_index(drop=True)
+    combined["trans_date"] = combined["trans_date"].dt.strftime("%Y-%m-%d")
+
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = target_path.with_suffix(f"{target_path.suffix}.tmp")
+    try:
+        combined.to_csv(temp_path, index=False, encoding="utf-8")
+        temp_path.replace(target_path)
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+    return len(combined)
 
 
 def load_database_url(raise_on_missing: bool = True) -> str | None:
@@ -190,6 +246,12 @@ def run_pipeline() -> None:
 
         print("沒有可寫入資料。")
         return
+
+    local_csv_rows = save_local_price_csv(df)
+    print(
+        f"本機行情備援 CSV 更新完成，目前保留 {local_csv_rows} 筆。",
+        flush=True,
+    )
 
     # 5. 寫入本地 Parquet 合併去重
     print("開始寫入本機 Parquet 歷史資料...", flush=True)

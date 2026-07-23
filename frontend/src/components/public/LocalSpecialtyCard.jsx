@@ -14,6 +14,7 @@ const statusIcons = {
   正常: ShoppingBasket,
   偏貴: TrendingUp,
   資料不足: Search,
+  尚無行情: Search,
   載入失敗: Search,
 };
 
@@ -32,7 +33,9 @@ export default function LocalSpecialtyCard({ item }) {
     正常: 'specialty-status--normal',
     偏貴: 'specialty-status--expensive',
   }[item.status] || 'specialty-status--unknown';
-  const priceSourceLabel = item.priceSourceStatus === 'stale'
+  const priceSourceLabel = item.isHistoricalPrice
+    ? '行情：歷史資料'
+    : item.priceSourceStatus === 'stale'
     ? '行情：上次資料'
     : item.priceSourceType === 'Official API'
       ? '行情：正式 API'

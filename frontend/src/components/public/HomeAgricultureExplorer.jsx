@@ -24,7 +24,7 @@ export default function HomeAgricultureExplorer() {
     setError(null);
 
     try {
-      const response = await loadHomeAgricultureExplorer(county, data);
+      const response = await loadHomeAgricultureExplorer(county, data, isRefresh);
       setData(response);
     } catch (err) {
       setError(err?.message || '農產探索資料整理失敗。');

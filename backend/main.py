@@ -26,6 +26,7 @@ from backend.routers.favorites  import router as favorites_router
 from backend.routers.mutual_aid import router as mutual_aid_router
 from backend.routers.notifications import router as notifications_router
 from backend.routers.admin import router as admin_router
+from backend.routers import agriculture
 from backend.routers.agriculture import router as agriculture_router
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,9 @@ async def lifespan(app: FastAPI):
     price_cache["prices"]          = prices
     price_cache["all_statuses"]    = await asyncio.to_thread(get_all_price_statuses, prices=prices)
     price_cache["market_intel"]    = await asyncio.to_thread(compute_market_intel)
+    await agriculture.preload()
     yield
+    await agriculture.shutdown()
     price_cache.clear()
 
 

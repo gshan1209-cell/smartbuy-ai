@@ -35,6 +35,9 @@ def get_price_status(
     prices: pd.DataFrame | None = None,
 ) -> dict:
     data = load_price_history(days=30) if prices is None else prices.copy()
+    data_source = data.attrs.get("source")
+    age_days = data.attrs.get("age_days")
+    is_historical = bool(data.attrs.get("is_historical"))
     selected = data[data["product_name"] == product_name]
     if market_name:
         selected = selected[selected["market_name"] == market_name]
@@ -52,6 +55,9 @@ def get_price_status(
             "middle_price": None,
             "lower_price": None,
             "volume": None,
+            "data_source": data_source,
+            "age_days": age_days,
+            "is_historical": is_historical,
         }
 
     selected = selected.sort_values("trans_date")
@@ -77,6 +83,9 @@ def get_price_status(
         "middle_price": _safe_round(latest.get("middle_price")),
         "lower_price": _safe_round(latest.get("lower_price")),
         "volume": _safe_round(latest.get("volume"), 0),
+        "data_source": data_source,
+        "age_days": age_days,
+        "is_historical": is_historical,
     }
 
 

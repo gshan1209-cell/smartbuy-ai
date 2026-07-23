@@ -48,8 +48,27 @@ export async function put(path, body) {
   return res.json();
 }
 
-export async function get(path) {
-  const res = await fetch(BASE + path, { headers: authHeaders() });
-  if (!res.ok) throw new Error(res.statusText);
-  return res.json();
+export async function get(path, { timeoutMs = 8000 } = {}) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(BASE + path, {
+      headers: authHeaders(),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const error = new Error(res.statusText || `HTTP ${res.status}`);
+      error.status = res.status;
+      throw error;
+    }
+    return res.json();
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`資料來源超過 ${Math.ceil(timeoutMs / 1000)} 秒未回應`);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }

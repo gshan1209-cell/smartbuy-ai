@@ -14,6 +14,57 @@ export const COUNTY_AGRICULTURE_SOURCES = {
   },
 };
 
+const SHARED_CACHE_TTL_MS = 5 * 60 * 1000;
+const COUNTY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const SHARED_REQUEST_TIMEOUT_MS = 4000;
+const COUNTY_REQUEST_TIMEOUT_MS = 6000;
+const requestCache = new Map();
+
+function cachedGet(path, ttlMs, forceRefresh = false, timeoutMs = SHARED_REQUEST_TIMEOUT_MS) {
+  const now = Date.now();
+  const cached = requestCache.get(path);
+
+  if (!forceRefresh && cached?.value !== undefined && cached.expiresAt > now) {
+    return Promise.resolve(cached.value);
+  }
+  if (!forceRefresh && cached?.promise) {
+    return cached.promise;
+  }
+
+  const promise = get(path, { timeoutMs })
+    .then((value) => {
+      if (requestCache.get(path)?.promise === promise) {
+        requestCache.set(path, {
+          value,
+          expiresAt: Date.now() + ttlMs,
+          promise: null,
+        });
+      }
+      return value;
+    })
+    .catch((error) => {
+      if (requestCache.get(path)?.promise === promise) {
+        if (cached?.value !== undefined) {
+          requestCache.set(path, { ...cached, promise: null });
+        } else {
+          requestCache.delete(path);
+        }
+      }
+      throw error;
+    });
+
+  requestCache.set(path, {
+    value: cached?.value,
+    expiresAt: cached?.expiresAt || 0,
+    promise,
+  });
+  return promise;
+}
+
+export function clearHomeAgricultureExplorerCache() {
+  requestCache.clear();
+}
+
 // Only a very small, explicitly labelled demo set is kept to demonstrate the
 // layout before a formal county-produce ETL/API is connected. Other counties
 // show an honest unavailable state instead of fabricated local specialties.
@@ -63,10 +114,34 @@ function getProductName(product) {
   return product?.product_name || product?.crop_name || '';
 }
 
+const PRODUCT_NAME_ALIASES = {
+  甘藍: '高麗菜',
+  結球甘藍: '高麗菜',
+  高麗菜: '高麗菜',
+  青蔥: '蔥',
+  蔥: '蔥',
+  食用玉米: '玉米',
+  甜玉米: '玉米',
+  番石榴: '芭樂',
+  芭樂: '芭樂',
+};
+
+function normalizeProductName(name = '') {
+  const compactName = String(name).replace(/\s+/g, '').trim();
+  const baseName = compactName.split(/[-－–—(（]/, 1)[0];
+  return PRODUCT_NAME_ALIASES[compactName]
+    || PRODUCT_NAME_ALIASES[baseName]
+    || baseName;
+}
+
 function findProduct(products, targetName) {
+  const normalizedTarget = normalizeProductName(targetName);
   return products.find((product) => {
-    const productName = getProductName(product);
-    return productName === targetName || productName.includes(targetName);
+    const productName = normalizeProductName(getProductName(product));
+    if (productName === normalizedTarget) return true;
+    if (Math.min(productName.length, normalizedTarget.length) < 2) return false;
+    return productName.includes(normalizedTarget)
+      || normalizedTarget.includes(productName);
   });
 }
 
@@ -83,7 +158,7 @@ function normalizePriceFields(product, productsSource) {
         || '資料不足'
       : productsSource.status === 'error'
         ? '載入失敗'
-        : '資料不足',
+        : '尚無行情',
     transDate: product?.trans_date
       || product?.latest_trade_date
       || product?.updated_at
@@ -92,17 +167,36 @@ function normalizePriceFields(product, productsSource) {
       || '—',
     priceSourceType: matched && sourceAvailable ? 'Official API' : 'Unavailable',
     priceSourceStatus: productsSource.status,
+    isHistoricalPrice: Boolean(product?.is_historical),
+    priceAgeDays: product?.age_days ?? null,
   };
 }
 
 export async function loadHomeAgricultureExplorer(
   selectedCounty = '宜蘭縣',
   previous = null,
+  forceRefresh = false,
 ) {
+  const countyPath = `/api/agriculture/county-crops?county=${encodeURIComponent(selectedCounty)}&limit=24`;
   const [solarTermResult, productsResult, countyCropsResult] = await Promise.allSettled([
-    get('/api/solar-term'),
-    get('/api/products'),
-    get(`/api/agriculture/county-crops?county=${encodeURIComponent(selectedCounty)}&limit=24`),
+    cachedGet(
+      '/api/solar-term',
+      SHARED_CACHE_TTL_MS,
+      forceRefresh,
+      SHARED_REQUEST_TIMEOUT_MS,
+    ),
+    cachedGet(
+      '/api/products',
+      SHARED_CACHE_TTL_MS,
+      forceRefresh,
+      SHARED_REQUEST_TIMEOUT_MS,
+    ),
+    cachedGet(
+      countyPath,
+      COUNTY_CACHE_TTL_MS,
+      forceRefresh,
+      COUNTY_REQUEST_TIMEOUT_MS,
+    ),
   ]);
 
   const solarTermSource = sourceState(
@@ -115,7 +209,9 @@ export async function loadHomeAgricultureExplorer(
   );
   const countyCropsSource = sourceState(
     countyCropsResult,
-    previous?.sources?.countyProduce?.value,
+    previous?.selectedCounty === selectedCounty
+      ? previous?.sources?.countyProduce?.value
+      : null,
   );
 
   const solarTermData = solarTermSource.value;

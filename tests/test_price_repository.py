@@ -33,6 +33,39 @@ def test_fallback_to_csv_when_db_missing(monkeypatch):
     assert source == "本機 CSV"
 
 
+def test_history_fallback_uses_latest_available_csv_date(monkeypatch):
+    """未指定基準日時，舊 CSV 仍應以資料最新日回推，而不是被系統日期全數排除。"""
+    monkeypatch.setattr(repo, "_load_database_url", lambda: None)
+    monkeypatch.setattr(
+        "src.data.data_loader.load_market_prices",
+        lambda: pd.DataFrame(
+            [
+                {
+                    "trans_date": pd.Timestamp("2026-06-01"),
+                    "product_name": "高麗菜",
+                    "market_name": "台北一",
+                    "avg_price": 30,
+                    "volume": 100,
+                },
+                {
+                    "trans_date": pd.Timestamp("2026-06-20"),
+                    "product_name": "高麗菜",
+                    "market_name": "台北一",
+                    "avg_price": 40,
+                    "volume": 200,
+                },
+            ]
+        ),
+    )
+
+    df = repo.load_price_history(days=30)
+
+    assert not df.empty
+    assert df.attrs["source"] == "本機 CSV"
+    assert df.attrs["reference_date"] == "2026-06-20"
+    assert df["trans_date"].max().strftime("%Y-%m-%d") == "2026-06-20"
+
+
 def test_db_query_success_with_sqlite_mock(monkeypatch):
     """使用 SQLite 記憶體資料庫模擬 Supabase 查詢成功之流程。"""
     # 1. 建立記憶體 SQLite 並寫入測試資料

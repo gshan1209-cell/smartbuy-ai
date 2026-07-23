@@ -201,15 +201,25 @@ def load_price_history(
     回傳:
         pd.DataFrame: 歷史價格走勢，含 attrs["source"] 來源標記。
     """
-    if reference_date is None:
-        reference_date = datetime.now().date()
-    elif isinstance(reference_date, datetime):
+    explicit_reference_date = reference_date is not None
+    if isinstance(reference_date, datetime):
         reference_date = reference_date.date()
+    system_date = datetime.now().date()
+    query_reference_date = reference_date or system_date
 
-    start_date = reference_date - timedelta(days=days)
     engine = _get_engine()
     if engine:
         try:
+            if not explicit_reference_date:
+                with engine.connect() as conn:
+                    max_date_row = conn.execute(
+                        text("SELECT MAX(trans_date) FROM agri_price_daily;")
+                    ).first()
+                max_date = max_date_row[0] if max_date_row else None
+                if max_date is not None:
+                    query_reference_date = pd.to_datetime(max_date).date()
+
+            start_date = query_reference_date - timedelta(days=days)
             sql = (
                 "SELECT trans_date, crop_code, crop_name, market_code, market_name, "
                 "       upper_price, middle_price, lower_price, avg_price, volume "
@@ -236,7 +246,11 @@ def load_price_history(
             df = pd.read_sql(text(sql), engine, params=params)
             df["product_name"] = df["crop_name"]
             df.attrs["source"] = "Supabase"
-            return df
+            df.attrs["reference_date"] = str(query_reference_date)
+            df.attrs["age_days"] = max(0, (system_date - query_reference_date).days)
+            df.attrs["is_historical"] = df.attrs["age_days"] > 7
+            if not df.empty:
+                return df
         except Exception as e:
             print(f"Supabase load_price_history 失敗，將 fallback 到本機 CSV。錯誤: {e}")
 
@@ -249,7 +263,20 @@ def load_price_history(
         df[col] = None
 
     # 本機過濾
+    if df.empty:
+        df.attrs["source"] = "本機 CSV"
+        df.attrs["reference_date"] = None
+        df.attrs["age_days"] = None
+        df.attrs["is_historical"] = False
+        return df
+
     df["trans_date_dt"] = pd.to_datetime(df["trans_date"])
+    fallback_reference_date = (
+        reference_date
+        if explicit_reference_date
+        else df["trans_date_dt"].max().date()
+    )
+    start_date = fallback_reference_date - timedelta(days=days)
     df = df[df["trans_date_dt"].dt.date >= start_date]
 
     if crop_name:
@@ -259,6 +286,9 @@ def load_price_history(
 
     df = df.sort_values("trans_date").drop(columns=["trans_date_dt"]).copy()
     df.attrs["source"] = "本機 CSV"
+    df.attrs["reference_date"] = str(fallback_reference_date)
+    df.attrs["age_days"] = max(0, (system_date - fallback_reference_date).days)
+    df.attrs["is_historical"] = df.attrs["age_days"] > 7
     return df
 
 
