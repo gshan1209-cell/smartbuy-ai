@@ -1,10 +1,17 @@
-import { useNavigate } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Leaf, Soup } from 'lucide-react';
 import Card from '../shared/Card';
 import SourceBadge from './SourceBadge';
 
 export default function MonthlyProduceCard({ produceItem, cookingSuggestion }) {
   const navigate = useNavigate();
+  const priceLabel = produceItem.priceSourceStatus === 'stale'
+    ? '行情：上次資料'
+    : produceItem.priceSourceType === 'Official API'
+      ? '行情：正式 API'
+      : produceItem.priceSourceStatus === 'error'
+        ? '行情：載入失敗'
+        : '行情：資料不足';
 
   return (
     <Card className="monthly-produce-card">
@@ -13,9 +20,15 @@ export default function MonthlyProduceCard({ produceItem, cookingSuggestion }) {
           <Leaf className="text-emerald-600" size={20} aria-hidden="true" />
           <h3>{produceItem.name}</h3>
         </div>
-        <div className="flex gap-1">
-          <SourceBadge type="Official API" label="行情: 正式 API" />
-          <SourceBadge type="Static Seed" label="推薦: Static Seed" />
+        <div className="specialty-source-badges">
+          <SourceBadge
+            type={produceItem.priceSourceType || 'Unavailable'}
+            label={priceLabel}
+          />
+          <SourceBadge
+            type={produceItem.recommendationSourceType || 'Static Seed'}
+            label="推薦：Static Seed"
+          />
         </div>
       </div>
 
@@ -24,7 +37,10 @@ export default function MonthlyProduceCard({ produceItem, cookingSuggestion }) {
           {produceItem.status}
         </span>
         <span className="price-value">
-          今日均價：<strong>{produceItem.todayPrice == null ? '—' : `${produceItem.todayPrice} 元`}</strong>
+          今日均價：
+          <strong>
+            {produceItem.todayPrice == null ? '—' : `${produceItem.todayPrice} 元`}
+          </strong>
         </span>
       </div>
 
@@ -36,7 +52,7 @@ export default function MonthlyProduceCard({ produceItem, cookingSuggestion }) {
       )}
 
       <div className="produce-footer">
-        <span className="text-xs text-gray-500">更新時間：{produceItem.transDate || '—'}</span>
+        <span className="text-xs text-gray-500">交易日：{produceItem.transDate || '—'}</span>
         <button
           type="button"
           className="consumer-link"
