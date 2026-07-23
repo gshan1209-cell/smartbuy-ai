@@ -146,6 +146,7 @@ misc
 favorites
 mutual_aid
 notifications
+admin
 ```
 
 ### 3.3 AI 與資料
@@ -192,14 +193,35 @@ frontend/src/
 - 手機底部導覽固定五項：首頁、查菜價、菜籃、提醒、我的
 - 內容以消費者可理解的白話資訊為主
 
-### 4.2 DashboardLayout
+### 4.2 消費者首頁視覺基準
+
+所有首頁改版、農產探索、臺灣地圖、縣市與月份推薦功能，必須先閱讀：
+
+```text
+docs/uiux/PUBLIC_HOME_VISUAL_STYLE_REFERENCE.md
+```
+
+參考來源為農業部食農教育資訊整合平臺「臺灣農產地圖」，只吸收資訊架構與互動邏輯，不複製原網站品牌、素材或程式碼。
+
+正式首頁方向：
+
+- 第一屏保留「今天買什麼」、查價、節氣與採買建議
+- 第二層增加「在地特色／本月尚青／農產在哪」探索入口
+- 臺灣地圖不得阻礙首屏快速查價
+- Mobile 必須提供縣市 Chips／下拉選單，地圖不可成為唯一操作方式
+- 縣市特色、盛產月份與產地資訊需標示資料來源
+- Official API、Static Seed、Demo、Unavailable 必須清楚區分
+- 不得直接爬取或複製參考網站 HTML、CSS、圖片與 Logo
+- 不得因新增地圖移除搜尋、今日採買、收藏、提醒、新知或互助功能
+
+### 4.3 DashboardLayout
 
 - 桌機：固定 Sidebar + Topbar
 - 平板：可縮合 Sidebar
 - 手機：Sidebar 改 Drawer
 - 主要內容採 KPI、圖表、表格、篩選器與警示清單
 
-### 4.3 Dashboard 視覺基準
+### 4.4 Dashboard 視覺基準
 
 所有後台頁面必須閱讀並遵循：
 
