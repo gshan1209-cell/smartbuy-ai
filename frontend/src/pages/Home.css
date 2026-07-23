@@ -1,17 +1,18 @@
 .consumer-home {
   min-height: 100%;
   color: var(--yz-txt);
-  background: var(--yz-bg);
+  background: #f6f8f3;
 }
 
 .consumer-hero {
   color: #fff;
-  background: linear-gradient(135deg, var(--yz-gd), var(--yz-g));
+  background: linear-gradient(120deg, #0f4b35 0%, #176445 58%, #2e8760 100%);
+  border-bottom: 8px solid #dbe9d8;
 }
 
 .consumer-hero-inner,
 .consumer-content {
-  width: min(1200px, 100%);
+  width: min(1280px, 100%);
   margin: 0 auto;
   padding: 48px 32px;
 }
@@ -19,7 +20,8 @@
 .consumer-hero-inner {
   display: grid;
   grid-template-columns: 1fr minmax(380px, 500px);
-  gap: 48px;
+  gap: 64px;
+  min-height: 350px;
   align-items: center;
 }
 
@@ -72,7 +74,8 @@
   padding: 20px;
   color: var(--yz-txt);
   background: var(--yz-card-bg);
-  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 6px;
   box-shadow: var(--yz-shd);
 }
 
@@ -118,7 +121,7 @@
 }
 
 .today-section {
-  padding: 12px 0 36px;
+  padding: 28px 0 44px;
 }
 
 .section-heading {
@@ -131,6 +134,12 @@
 .section-heading h2 {
   margin-top: 4px;
   font-size: 28px;
+}
+
+.today-section .section-heading,
+.home-agri-explorer-section .home-section-header {
+  padding-bottom: 14px;
+  border-bottom: 3px solid #2d7654;
 }
 
 .demo-note {
@@ -150,6 +159,8 @@
 .recommendation-card {
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
+  border-top: 5px solid #73aa85;
+  border-radius: 6px;
 }
 
 .recommendation-card:hover {
