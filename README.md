@@ -4,7 +4,6 @@
 
 - 🌐 線上體驗：https://smartbuy-ai-alpha.vercel.app/
 
-
 ## 系統架構
 
 ![SmartBuy AI 系統架構圖](docs/assets/architecture.svg)
@@ -41,3 +40,11 @@
 - **每日價格方向預測**：GitHub Actions 每日排程讀取 Parquet 資料湖，以 LightGBM 模型產生「下一交易日跌／持平／漲」方向分類，寫回 `price_direction_predictions`（正式 MVP 預測路徑；舊版五日數值預測 `prediction_results` 已棄用，不作為 fallback）。
 
 完整資料架構規格（欄位、SQL、去重與安全機制）見 [docs/SPEC.md](docs/SPEC.md)；完整原始規格請見根目錄的 `SmartBuy_AI_便宜買AI_MVP完整開發規格書_v1.1_含任務中心與24節氣.md`（部分內容已隨開發調整，實際行為以 `docs/SPEC.md` 為準）。
+
+## UI/UX 前台／後台改版文件
+
+本次改版採用「消費者前台 + 儀表板後台」雙介面，並支援手機、平板、桌機三種尺寸：
+
+- [前台／後台 UI/UX 與三尺寸 RWD 開發規格書](docs/uiux/SMARTBUY_UIUX_FRONT_BACK_RWD_SPEC.md)
+- [分階段開發任務清單](docs/uiux/SMARTBUY_UIUX_TASKS.md)
+- [Codex PR-1：UI/UX 基礎工程執行指令](docs/uiux/CODEX_PROMPT_PR1_UIUX_FOUNDATION.md)
