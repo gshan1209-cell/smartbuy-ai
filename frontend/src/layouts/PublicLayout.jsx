@@ -2,17 +2,40 @@ import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import MobileBottomNav from '../components/public/MobileBottomNav';
 import PublicHeader from '../components/public/PublicHeader';
+import Drawer from '../components/shared/Drawer';
+
+const mobileMenuLinks = [
+  ['/news', '農產新知'],
+  ['/mutual-aid', '互助網'],
+  ['/settings', '個人設定'],
+];
 
 export default function PublicLayout() {
-  const [menu, setMenu] = useState(false);
-  return <div className="public-layout">
-    <PublicHeader onMenu={() => setMenu((value) => !value)} />
-    {menu && <div className="mobile-menu" role="menu">
-      <NavLink to="/news" onClick={() => setMenu(false)}>農產新知</NavLink>
-      <NavLink to="/mutual-aid" onClick={() => setMenu(false)}>互助網</NavLink>
-      <NavLink to="/settings" onClick={() => setMenu(false)}>個人設定</NavLink>
-    </div>}
-    <main className="app-main"><Outlet /></main>
-    <MobileBottomNav />
-  </div>;
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div className="public-layout">
+      <PublicHeader onMenu={() => setMenuOpen(true)} />
+
+      <Drawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title="SmartBuy AI 選單"
+      >
+        <nav className="public-drawer-nav" aria-label="手機版主要選單">
+          {mobileMenuLinks.map(([to, label]) => (
+            <NavLink key={to} to={to} onClick={() => setMenuOpen(false)}>
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+      </Drawer>
+
+      <main className="app-main">
+        <Outlet />
+      </main>
+
+      <MobileBottomNav />
+    </div>
+  );
 }
