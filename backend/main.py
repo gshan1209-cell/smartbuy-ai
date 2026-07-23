@@ -25,6 +25,7 @@ from backend.routers.misc       import router as misc_router
 from backend.routers.favorites  import router as favorites_router
 from backend.routers.mutual_aid import router as mutual_aid_router
 from backend.routers.notifications import router as notifications_router
+from backend.routers.admin import router as admin_router
 
 logger = logging.getLogger(__name__)
 
@@ -70,3 +71,4 @@ app.include_router(misc_router)
 app.include_router(favorites_router)
 app.include_router(mutual_aid_router)
 app.include_router(notifications_router)
+app.include_router(admin_router)

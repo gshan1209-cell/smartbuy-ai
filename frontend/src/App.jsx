@@ -2,11 +2,15 @@ import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from './components/shared/ProtectedRoute';
+import PermissionGuard from './components/shared/PermissionGuard';
 import DashboardLayout from './layouts/DashboardLayout';
 import PublicLayout from './layouts/PublicLayout';
 import AgriNews from './pages/AgriNews';
+import ForbiddenPage from './pages/ForbiddenPage';
 import Alerts from './pages/Alerts';
 import DashboardOverview from './pages/dashboard/DashboardOverview';
+import DashboardPrices from './pages/dashboard/DashboardPrices';
+import { PERMISSIONS } from './config/permissions';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import MutualAid from './pages/MutualAid';
@@ -19,7 +23,6 @@ import Settings from './pages/Settings';
 import Season from './pages/Season';
 
 const dashboardModules = {
-  prices: '行情管理',
   products: '商品管理',
   predictions: 'AI 預測監控',
   weather: '天氣風險',
@@ -63,12 +66,14 @@ export default function App() {
           <Route path="/season" element={<Season />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/403" element={<ForbiddenPage />} />
         </Route>
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<DashboardOverview />} />
+            <Route path="prices" element={<PermissionGuard permission={PERMISSIONS.PRICES_VIEW}><DashboardPrices /></PermissionGuard>} />
             {Object.entries(dashboardModules).map(([key, title]) => (
               <Route
                 key={key}

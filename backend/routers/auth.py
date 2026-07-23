@@ -118,9 +118,9 @@ def auth_register(payload: RegisterRequest, response: Response):
             )
         raise HTTPException(status_code=500, detail="資料庫錯誤，請稍後再試。")
     token = create_access_token(member_id=result["member_id"], email=result["email"])
-    member = {"id": result["member_id"], "email": result["email"], "name": result["name"]}
+    member = {"id": result["member_id"], "email": result["email"], "name": result["name"], "role": result.get("role", "consumer")}
     _set_auth_cookie(response, token)
-    return {"success": True, "member": member}
+    return {"success": True, "member": {**member, "role": member.get("role", "consumer")}}
 
 
 @router.post("/login")

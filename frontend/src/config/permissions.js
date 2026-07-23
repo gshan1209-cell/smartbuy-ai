@@ -1,0 +1,1 @@
+export const PERMISSIONS = { dashboard: 'dashboard.view', prices: 'prices.view', products: 'products.view', predictions: 'predictions.view', weather: 'weather.view', seasonal: 'seasonal.view', content: 'content.manage', mutualAid: 'mutualAid.manage', members: 'members.manage', notifications: 'notifications.manage', dataJobs: 'dataJobs.view', system: 'system.manage' };

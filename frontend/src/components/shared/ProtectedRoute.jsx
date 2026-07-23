@@ -1,14 +1,9 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-const DEMO_ADMIN_ACCESS = import.meta.env.VITE_ENABLE_DEMO_ADMIN === 'true';
-const DASHBOARD_ROLES = ['farmer', 'merchant', 'operator', 'admin', 'staff'];
-
 export default function ProtectedRoute() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, authLoading, dashboardAccess, accessError, refreshSession } = useAuth();
   const location = useLocation();
-  const hasDashboardRole = DASHBOARD_ROLES.includes(user?.role);
-
   if (!isAuthenticated) {
     return (
       <Navigate
@@ -19,9 +14,9 @@ export default function ProtectedRoute() {
     );
   }
 
-  if (!hasDashboardRole && !DEMO_ADMIN_ACCESS) {
-    return <Navigate to="/" replace />;
-  }
+  if (authLoading) return <div className="dashboard-loading">正在確認權限…</div>;
+  if (accessError) return <div className="dashboard-loading"><p>權限服務暫時無法取得。</p><button onClick={refreshSession}>重試</button></div>;
+  if (!dashboardAccess?.dashboardAccess) return <Navigate to="/403" replace />;
 
   return <Outlet />;
 }

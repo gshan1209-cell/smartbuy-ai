@@ -88,24 +88,18 @@ def register_member(
     engine = _get_engine()
     try:
         with engine.begin() as conn:
-            result = conn.execute(
-                text(
-                    """
-                    INSERT INTO members (email, password_hash, name)
-                    VALUES (:email, :password_hash, :name)
-                    RETURNING id, email, name;
-                    """
-                ),
-                {
-                    "email": email.strip().lower(),
-                    "password_hash": password_hash,
-                    "name": name.strip(),
-                },
-            ).mappings().first()
+            params = {"email": email.strip().lower(), "password_hash": password_hash, "name": name.strip()}
+            try:
+                result = conn.execute(text("INSERT INTO members (email, password_hash, name, role) VALUES (:email, :password_hash, :name, 'consumer') RETURNING id, email, name;"), params).mappings().first()
+            except Exception as exc:
+                if 'role' not in str(exc).lower() or 'column' not in str(exc).lower():
+                    raise
+                result = conn.execute(text("INSERT INTO members (email, password_hash, name) VALUES (:email, :password_hash, :name) RETURNING id, email, name;"), params).mappings().first()
         return {
             "member_id": result["id"],
             "email": result["email"],
             "name": result["name"],
+            "role": "consumer",
         }
     except IntegrityError:
         # UNIQUE 約束衝突 → Email 已存在
@@ -131,17 +125,12 @@ def login_member(email: str, password: str) -> Optional[dict]:
 
     engine = _get_engine()
     with engine.connect() as conn:
-        row = conn.execute(
-            text(
-                """
-                SELECT id, email, name, plan, password_hash
-                FROM members
-                WHERE email = :email
-                LIMIT 1;
-                """
-            ),
-            {"email": email.strip().lower()},
-        ).mappings().first()
+        try:
+            row = conn.execute(text("SELECT id, email, name, plan, role, password_hash FROM members WHERE email = :email LIMIT 1;"), {"email": email.strip().lower()}).mappings().first()
+        except Exception as exc:
+            if 'role' not in str(exc).lower() or 'column' not in str(exc).lower():
+                raise
+            row = conn.execute(text("SELECT id, email, name, plan, password_hash FROM members WHERE email = :email LIMIT 1;"), {"email": email.strip().lower()}).mappings().first()
 
     if row is None:
         return None
@@ -153,6 +142,7 @@ def login_member(email: str, password: str) -> Optional[dict]:
         "email": row["email"],
         "name": row["name"],
         "plan": row["plan"],
+        "role": row.get("role") or "consumer",
     }
 
 
@@ -192,7 +182,7 @@ def update_member_profile(
         UPDATE members
         SET {', '.join(set_parts)}
         WHERE id = :member_id
-        RETURNING id, email, name, plan;
+        RETURNING id, email, name, plan, role;
     """
 
     engine = _get_engine()
@@ -207,6 +197,7 @@ def update_member_profile(
         "email": row["email"],
         "name": row["name"],
         "plan": row["plan"],
+        "role": row.get("role") or "consumer",
     }
 
 
@@ -373,18 +364,15 @@ def get_member_by_id(member_id: int) -> Optional[dict]:
     """
     engine = _get_engine()
     with engine.connect() as conn:
-        row = conn.execute(
-            text(
-                """
-                SELECT id, email, name, plan
-                FROM members
-                WHERE id = :member_id
-                LIMIT 1;
-                """
-            ),
-            {"member_id": member_id},
-        ).mappings().first()
+        try:
+            row = conn.execute(text("SELECT id, email, name, plan, role FROM members WHERE id = :member_id LIMIT 1;"), {"member_id": member_id}).mappings().first()
+        except Exception as exc:
+            if 'role' not in str(exc).lower() or 'column' not in str(exc).lower():
+                raise
+            row = conn.execute(text("SELECT id, email, name, plan FROM members WHERE id = :member_id LIMIT 1;"), {"member_id": member_id}).mappings().first()
 
     if row is None:
         return None
-    return dict(row)
+    result = dict(row)
+    result['role'] = result.get('role') or 'consumer'
+    return result

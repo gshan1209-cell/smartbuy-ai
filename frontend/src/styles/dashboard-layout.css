@@ -1,4 +1,8 @@
 .dashboard-layout { min-height: 100vh; background: var(--yz-bg); color: var(--yz-txt); }
+.dashboard-sidebar { background: #153b2e; border-right-color: #245543; color: #f4fbf6; }
+.dashboard-brand { color: #d9f2df; }
+.dashboard-sidebar a { color: #c9dfd0; }
+.dashboard-sidebar a.active { background: #2d7050; color: #fff; }
 .dashboard-sidebar { position: fixed; inset: 0 auto 0 0; width: var(--sidebar-width); background: var(--yz-card-bg); border-right: 1px solid var(--yz-bdr); padding: 20px 12px; z-index: 15; }
 .dashboard-brand { font-weight: 800; color: var(--yz-g); padding: 10px 12px 24px; }
 .dashboard-sidebar a { display: flex; gap: 12px; align-items: center; padding: 12px; color: var(--yz-mut); border-radius: 8px; }
