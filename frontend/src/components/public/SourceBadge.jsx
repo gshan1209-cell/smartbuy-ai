@@ -1,3 +1,5 @@
+import './HomeAgricultureExplorer.css';
+
 export default function SourceBadge({ type = 'Official API', label }) {
   const badgeConfig = {
     'Official API': { text: '正式 API', className: 'source-badge--official' },
