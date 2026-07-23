@@ -21,7 +21,9 @@ import {
   normalizeHomeItem,
   selectConsumerHomeItems,
 } from '../lib/consumerHomeAdapter';
+import HomeAgricultureExplorer from '../components/public/HomeAgricultureExplorer';
 import './Home.css';
+
 
 const statusIcons = {
   便宜: TrendingDown,
@@ -227,6 +229,8 @@ export default function Home() {
             </div>
           )}
         </section>
+
+        <HomeAgricultureExplorer />
 
         <section className="home-quick-links" aria-label="其他服務">
           <QuickLinkCard

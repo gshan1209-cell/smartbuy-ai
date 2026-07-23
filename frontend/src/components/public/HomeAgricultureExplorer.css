@@ -1,0 +1,97 @@
+.source-badge--publication {
+  background: #e8f5e9;
+  color: #166534;
+}
+
+.explorer-source-group,
+.specialty-source-badges,
+.official-source-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.specialty-source-badges {
+  justify-content: flex-end;
+}
+
+.explorer-unavailable-card,
+.official-agri-source-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--yz-gl);
+  color: var(--yz-mut);
+}
+
+.explorer-unavailable-card strong,
+.official-agri-source-note strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--yz-txt);
+}
+
+.explorer-unavailable-card p,
+.official-agri-source-note p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.official-agri-source-note {
+  margin-top: 18px;
+}
+
+.official-source-links {
+  margin-top: 10px;
+}
+
+.official-source-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: var(--yz-card-bg);
+  color: var(--yz-g);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.specialty-status--unknown .price-tag,
+.status-pill--資料不足,
+.status-pill--載入失敗 {
+  color: var(--yz-mut);
+}
+
+.status-pill--資料不足,
+.status-pill--載入失敗 {
+  background: var(--yz-bgs);
+}
+
+@media (max-width: 767px) {
+  .local-explorer-heading,
+  .monthly-explorer-heading,
+  .panel-header {
+    align-items: stretch;
+  }
+
+  .explorer-source-group,
+  .specialty-source-badges {
+    justify-content: flex-start;
+  }
+
+  .official-source-links {
+    display: grid;
+  }
+
+  .official-source-links a {
+    width: 100%;
+    justify-content: center;
+  }
+}
