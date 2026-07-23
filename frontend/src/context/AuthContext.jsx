@@ -29,7 +29,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(loadUser);
-  const [authLoading, setAuthLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(() => Boolean(loadUser()));
   const [dashboardAccess, setDashboardAccess] = useState(null);
   const [accessDenied, setAccessDenied] = useState(false);
   const [accessError, setAccessError] = useState(null);
@@ -47,6 +47,7 @@ export function AuthProvider({ children }) {
       setDashboardAccess(null);
       setAccessDenied(false);
       setAccessError(null);
+      setAuthLoading(false);
       return;
     }
 
@@ -118,6 +119,7 @@ export function AuthProvider({ children }) {
     setDashboardAccess(null);
     setAccessDenied(false);
     setAccessError(null);
+    setAuthLoading(true);
     setUser(persistUser(member));
   }
 
@@ -127,12 +129,14 @@ export function AuthProvider({ children }) {
       credentials: 'include',
     }).catch(() => {});
     clearSessionState();
+    setAuthLoading(false);
   }
 
   function setAuthData(nextUser) {
     setDashboardAccess(null);
     setAccessDenied(false);
     setAccessError(null);
+    setAuthLoading(Boolean(nextUser));
     setUser(persistUser(nextUser));
   }
 
