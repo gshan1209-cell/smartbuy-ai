@@ -1,6 +1,5 @@
-@import './tokens.css';
 html, body, #root { min-height: 100%; }
 body { overflow-x: hidden; }
-.app-main { max-width: var(--content-max); margin: 0 auto; padding: var(--space-6) var(--space-5) 48px; }
+.app-main { padding: var(--space-6) var(--space-5) 48px; }
 .placeholder { min-height: 50vh; display:grid; place-items:center; text-align:center; color:var(--yz-mut); }
 @media (max-width: 767px) { .app-main { padding: 20px 16px 96px; } }

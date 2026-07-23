@@ -1,2 +1,18 @@
-import { Outlet } from 'react-router-dom'; import { useState } from 'react'; import PublicHeader from '../components/public/PublicHeader'; import MobileBottomNav from '../components/public/MobileBottomNav';
-export default function PublicLayout(){const [menu,setMenu]=useState(false); return <div className="public-layout"><PublicHeader onMenu={()=>setMenu(v=>!v)}/>{menu&&<div className="mobile-menu"><a href="/news">農產新知</a><a href="/mutual-aid">互助網</a><a href="/settings">個人設定</a></div>}<main className="app-main"><Outlet/></main><MobileBottomNav/></div>}
+import { useState } from 'react';
+import { NavLink, Outlet } from 'react-router-dom';
+import MobileBottomNav from '../components/public/MobileBottomNav';
+import PublicHeader from '../components/public/PublicHeader';
+
+export default function PublicLayout() {
+  const [menu, setMenu] = useState(false);
+  return <div className="public-layout">
+    <PublicHeader onMenu={() => setMenu((value) => !value)} />
+    {menu && <div className="mobile-menu" role="menu">
+      <NavLink to="/news" onClick={() => setMenu(false)}>農產新知</NavLink>
+      <NavLink to="/mutual-aid" onClick={() => setMenu(false)}>互助網</NavLink>
+      <NavLink to="/settings" onClick={() => setMenu(false)}>個人設定</NavLink>
+    </div>}
+    <main className="app-main"><Outlet /></main>
+    <MobileBottomNav />
+  </div>;
+}

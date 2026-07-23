@@ -78,7 +78,7 @@
 
 - [x] 建立 `PublicLayout.jsx`
 - [ ] 拆分 `PublicHeader.jsx`
-- [ ] 建立 `MobileBottomNav.jsx`
+- [x] 建立 `MobileBottomNav.jsx`
 - [ ] 桌機／平板保留頂部導覽
 - [ ] 手機底部導覽：首頁、查菜價、菜籃、提醒、我的
 - [ ] 通知與登入狀態功能移植，不得失效
@@ -94,9 +94,9 @@
 **優先級：P0**
 
 - [x] 建立 `DashboardLayout.jsx`
-- [ ] 建立 `DashboardSidebar.jsx`
-- [ ] 建立 `DashboardTopbar.jsx`
-- [ ] 建立手機版 `DashboardDrawer.jsx`
+- [x] 建立 `DashboardSidebar.jsx`
+- [x] 建立 `DashboardTopbar.jsx`
+- [x] 建立手機版 `DashboardDrawer.jsx`
 - [ ] 桌機固定 Sidebar
 - [ ] 平板 Sidebar 可縮合
 - [ ] 手機 Sidebar 改 Drawer
