@@ -1,9 +1,22 @@
 import { seasonalRecommendations } from '../data/seasonalRecommendations';
 import { get } from '../hooks/useApi';
 
+export const COUNTY_AGRICULTURE_SOURCES = {
+  publication: {
+    name: '農業部農業統計書刊',
+    type: 'Official Publication',
+    url: 'https://agrstat.moa.gov.tw/sdweb/public/book/Book.aspx',
+  },
+  openData: {
+    name: '農業部農情調查開放資料',
+    type: 'Official API',
+    url: 'https://data.gov.tw/dataset/7302',
+  },
+};
+
 // Only a very small, explicitly labelled demo set is kept to demonstrate the
-// layout before a formal county-produce API is connected. Other counties show
-// an honest unavailable state instead of fabricated local specialties.
+// layout before a formal county-produce ETL/API is connected. Other counties
+// show an honest unavailable state instead of fabricated local specialties.
 const COUNTY_SPECIALTIES_DEMO = {
   宜蘭縣: [
     { name: '青蔥', desc: '示範內容：用來呈現縣市特色卡片版型。' },
@@ -138,6 +151,7 @@ export async function loadHomeAgricultureExplorer(
     localSpecialties,
     monthlyProduce,
     cookingSuggestions: seed.cookingSuggestions || [],
+    officialCountySources: COUNTY_AGRICULTURE_SOURCES,
     sources: {
       solarTerm: {
         status: solarTermSource.status,
@@ -156,10 +170,13 @@ export async function loadHomeAgricultureExplorer(
       countyProduce: {
         status: countySourceAvailable ? 'demo' : 'unavailable',
         type: countySourceAvailable ? 'Demo' : 'Unavailable',
+        referenceType: 'Official Publication',
+        referenceUrl: COUNTY_AGRICULTURE_SOURCES.publication.url,
+        openDataUrl: COUNTY_AGRICULTURE_SOURCES.openData.url,
         updatedAt: checkedAt,
         error: countySourceAvailable
-          ? '此縣市目前僅提供少量示範內容，非正式縣市農產資料。'
-          : '正式縣市農產資料 API 尚未接入。',
+          ? '官方資料來源已確認；此縣市目前僅為少量版型示範，尚未完成正式 ETL。'
+          : '官方資料來源已確認，但縣市農產 ETL/API 尚未接入。',
       },
     },
     fetchedAt: checkedAt,
