@@ -1,0 +1,128 @@
+.dashboard-prices-page {
+  display: grid;
+  gap: 20px;
+}
+
+.dashboard-partial-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  border: 1px solid var(--color-warning);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #fef4dc;
+  color: #7c4b00;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dashboard-price-filter-row {
+  align-items: end;
+}
+
+.price-status-distribution {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.price-status-distribution > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 68px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--yz-gl);
+}
+
+.price-status-distribution span {
+  color: var(--yz-mut);
+}
+
+.price-status-distribution strong {
+  font-size: 24px;
+}
+
+.price-detail-drawer {
+  display: grid;
+  gap: 14px;
+}
+
+.price-detail-drawer h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.price-detail-main-value {
+  font-size: 30px;
+  color: var(--yz-g);
+}
+
+.price-detail-drawer dl {
+  display: grid;
+  grid-template-columns: minmax(90px, auto) 1fr;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 10px;
+  background: var(--yz-gl);
+}
+
+.price-detail-drawer dt {
+  color: var(--yz-mut);
+}
+
+.price-detail-drawer dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+}
+
+.price-history-summary {
+  display: grid;
+  gap: 5px;
+  border-left: 4px solid var(--yz-g);
+  padding: 10px 12px;
+  background: var(--yz-gl);
+}
+
+.price-history-summary span,
+.price-detail-error {
+  color: var(--yz-mut);
+  font-size: 14px;
+}
+
+.price-detail-error {
+  color: var(--color-danger);
+}
+
+.price-detail-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 9px;
+  padding: 10px 14px;
+  background: var(--yz-g);
+  color: #fff;
+  font-weight: 700;
+}
+
+@media (max-width: 767px) {
+  .dashboard-prices-page {
+    gap: 16px;
+  }
+
+  .price-status-distribution {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-partial-badge {
+    width: 100%;
+    justify-content: center;
+  }
+}

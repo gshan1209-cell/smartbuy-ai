@@ -53,6 +53,18 @@ def _get_engine():
     return create_engine(db_url, pool_pre_ping=True)
 
 
+def _normalized_role_sql(alias: str = "m") -> str:
+    """
+    Read role without directly referencing the column.
+
+    `to_jsonb(row)` works before and after the role migration. This avoids the
+    PostgreSQL transaction-aborted problem caused by first issuing a query that
+    references a missing column and then attempting a fallback query in the
+    same transaction.
+    """
+    return f"COALESCE(to_jsonb({alias})->>'role', 'consumer') AS role"
+
+
 # ── 公開函式 ──────────────────────────────────────────────────────────────────
 
 def register_member(
@@ -63,19 +75,10 @@ def register_member(
     """
     註冊新會員。
 
-    參數:
-        email:    電子郵件（必填，唯一）
-        password: 明文密碼（必填，長度 >= 8）
-        name:     顯示名稱（必填）
-
-    回傳:
-        dict: { member_id, email, name }
-
-    例外:
-        ValueError:  欄位驗證失敗
-        RuntimeError: Email 已被使用或 DB 連線問題
+    新舊 schema 都使用不指定 role 的 INSERT：
+    - migration 前：members 尚無 role 欄位，正常建立會員。
+    - migration 後：role 由資料庫 DEFAULT 'consumer' 套用。
     """
-    # ── 欄位驗證 ──
     if not email or not _validate_email(email):
         raise ValueError("請輸入有效的電子郵件地址。")
     if not password or len(password) < 8:
@@ -84,8 +87,8 @@ def register_member(
         raise ValueError("顯示名稱不可空白。")
 
     password_hash = _hash_password(password)
-
     engine = _get_engine()
+
     try:
         with engine.begin() as conn:
             result = conn.execute(
@@ -102,41 +105,34 @@ def register_member(
                     "name": name.strip(),
                 },
             ).mappings().first()
+
         return {
             "member_id": result["id"],
             "email": result["email"],
             "name": result["name"],
+            "role": "consumer",
         }
     except IntegrityError:
-        # UNIQUE 約束衝突 → Email 已存在
         raise RuntimeError("email_already_exists")
     except Exception as exc:
         raise RuntimeError(f"資料庫錯誤：{exc}") from exc
 
 
 def login_member(email: str, password: str) -> Optional[dict]:
-    """
-    驗證會員登入。
-
-    參數:
-        email:    電子郵件
-        password: 明文密碼
-
-    回傳:
-        dict: { id, email, name, plan } 若驗證成功
-        None: 若帳號不存在或密碼錯誤
-    """
+    """驗證會員登入；未知或尚未建立的角色一律回傳 consumer。"""
     if not email or not password:
         return None
 
     engine = _get_engine()
+    role_sql = _normalized_role_sql("m")
     with engine.connect() as conn:
         row = conn.execute(
             text(
-                """
-                SELECT id, email, name, plan, password_hash
-                FROM members
-                WHERE email = :email
+                f"""
+                SELECT m.id, m.email, m.name, m.plan, m.password_hash,
+                       {role_sql}
+                FROM members AS m
+                WHERE m.email = :email
                 LIMIT 1;
                 """
             ),
@@ -153,6 +149,7 @@ def login_member(email: str, password: str) -> Optional[dict]:
         "email": row["email"],
         "name": row["name"],
         "plan": row["plan"],
+        "role": row.get("role") or "consumer",
     }
 
 
@@ -160,25 +157,10 @@ def update_member_profile(
     member_id: int,
     name: Optional[str] = None,
 ) -> dict:
-    """
-    更新會員的顯示名稱。
-    只傳入需要修改的欄位；未傳入欄位維持原值。
-
-    參數:
-        member_id: 會員 ID
-        name:      新的顯示名稱（選填）
-
-    回傳:
-        dict: 更新後的會員資料 { id, email, name, plan }
-
-    例外:
-        ValueError:  欄位驗證失敗
-        RuntimeError: 找不到該會員
-    """
+    """更新目前會員顯示名稱；角色不可由此函式修改。"""
     if name is not None and not name.strip():
         raise ValueError("顯示名稱不可空白。")
 
-    # 動態組合 SET 子句（只更新有傳入的欄位）
     set_parts = []
     params: dict = {"member_id": member_id}
     if name is not None:
@@ -192,7 +174,7 @@ def update_member_profile(
         UPDATE members
         SET {', '.join(set_parts)}
         WHERE id = :member_id
-        RETURNING id, email, name, plan;
+        RETURNING id;
     """
 
     engine = _get_engine()
@@ -202,12 +184,10 @@ def update_member_profile(
     if row is None:
         raise RuntimeError("找不到對應的會員資料。")
 
-    return {
-        "id": row["id"],
-        "email": row["email"],
-        "name": row["name"],
-        "plan": row["plan"],
-    }
+    updated = get_member_by_id(member_id)
+    if updated is None:
+        raise RuntimeError("找不到對應的會員資料。")
+    return updated
 
 
 _PREFS_FIELD_MAP = {
@@ -276,16 +256,7 @@ def get_preferences(member_id: int) -> dict:
 
 
 def update_preferences(member_id: int, patch: dict) -> dict:
-    """
-    更新會員的推播與顯示偏好（只更新有傳入的欄位）。
-
-    參數:
-        member_id: 會員 ID
-        patch:     欲更新欄位，key 為前端命名（priceAlert / fontSize ...）
-
-    例外:
-        ValueError: 欄位值不在允許範圍內
-    """
+    """更新會員推播與顯示偏好。"""
     for api_field, allowed in _PREFS_ALLOWED_VALUES.items():
         if api_field in patch and patch[api_field] not in allowed:
             raise ValueError(f"{api_field} 的值不在允許範圍內。")
@@ -314,7 +285,10 @@ def update_preferences(member_id: int, patch: dict) -> dict:
 
         if set_parts:
             conn.execute(
-                text(f"UPDATE user_preferences SET {', '.join(set_parts)} WHERE member_id = :member_id;"),
+                text(
+                    f"UPDATE user_preferences SET {', '.join(set_parts)} "
+                    "WHERE member_id = :member_id;"
+                ),
                 params,
             )
 
@@ -335,24 +309,21 @@ def update_preferences(member_id: int, patch: dict) -> dict:
 
 
 def change_password(member_id: int, old_password: str, new_password: str) -> None:
-    """
-    驗證舊密碼後更新為新密碼。
-    - 舊密碼錯誤 → raise ValueError("舊密碼不正確")
-    - 新密碼與舊密碼相同 → raise ValueError("新密碼不能與舊密碼相同")
-    - member_id 不存在 → raise RuntimeError("member_not_found")
-    """
+    """驗證舊密碼後更新為新密碼。"""
     engine = _get_engine()
     with engine.begin() as conn:
         row = conn.execute(
             text("SELECT password_hash FROM members WHERE id = :id LIMIT 1;"),
             {"id": member_id},
         ).mappings().first()
+
     if row is None:
         raise RuntimeError("member_not_found")
     if not _verify_password(old_password, row["password_hash"]):
         raise ValueError("舊密碼不正確")
     if _verify_password(new_password, row["password_hash"]):
         raise ValueError("新密碼不能與舊密碼相同")
+
     new_hash = _hash_password(new_password)
     with engine.begin() as conn:
         conn.execute(
@@ -362,23 +333,17 @@ def change_password(member_id: int, old_password: str, new_password: str) -> Non
 
 
 def get_member_by_id(member_id: int) -> Optional[dict]:
-    """
-    依 ID 查詢單一會員資料（不含密碼雜湊）。
-
-    參數:
-        member_id: 會員 ID
-
-    回傳:
-        dict 或 None
-    """
+    """依 ID 查詢單一會員資料（不含密碼雜湊）。"""
     engine = _get_engine()
+    role_sql = _normalized_role_sql("m")
     with engine.connect() as conn:
         row = conn.execute(
             text(
-                """
-                SELECT id, email, name, plan
-                FROM members
-                WHERE id = :member_id
+                f"""
+                SELECT m.id, m.email, m.name, m.plan,
+                       {role_sql}
+                FROM members AS m
+                WHERE m.id = :member_id
                 LIMIT 1;
                 """
             ),
@@ -387,4 +352,7 @@ def get_member_by_id(member_id: int) -> Optional[dict]:
 
     if row is None:
         return None
-    return dict(row)
+
+    result = dict(row)
+    result["role"] = result.get("role") or "consumer"
+    return result
