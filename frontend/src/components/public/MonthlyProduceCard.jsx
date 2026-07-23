@@ -3,6 +3,8 @@ import { ArrowRight, Leaf, Soup } from 'lucide-react';
 import Card from '../shared/Card';
 import SourceBadge from './SourceBadge';
 
+const produceIcons = { 高麗菜: '🥬', 番茄: '🍅', 青蔥: '🌿', 竹筍: '🎋', 蘿蔔: '🥕', 玉米: '🌽', 香蕉: '🍌', 芒果: '🥭', 西瓜: '🍉', 鳳梨: '🍍', 草莓: '🍓', 香菇: '🍄', 稻米: '🌾' };
+
 export default function MonthlyProduceCard({ produceItem, cookingSuggestion }) {
   const navigate = useNavigate();
   const priceLabel = produceItem.priceSourceStatus === 'stale'
@@ -15,6 +17,7 @@ export default function MonthlyProduceCard({ produceItem, cookingSuggestion }) {
 
   return (
     <Card className="monthly-produce-card">
+      <div className="produce-visual" aria-hidden="true"><span>{produceIcons[produceItem.name] || '🌱'}</span></div>
       <div className="produce-header">
         <div className="flex items-center gap-2">
           <Leaf className="text-emerald-600" size={20} aria-hidden="true" />

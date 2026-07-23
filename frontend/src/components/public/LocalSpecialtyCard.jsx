@@ -17,9 +17,16 @@ const statusIcons = {
   載入失敗: Search,
 };
 
+const produceIcons = {
+  高麗菜: '🥬', 番茄: '🍅', 青蔥: '🌿', 竹筍: '🎋', 蘿蔔: '🥕', 胡蘿蔔: '🥕',
+  玉米: '🌽', 香蕉: '🍌', 芒果: '🥭', 西瓜: '🍉', 鳳梨: '🍍', 草莓: '🍓',
+  香菇: '🍄', 茶: '🍵', 稻米: '🌾',
+};
+
 export default function LocalSpecialtyCard({ item }) {
   const navigate = useNavigate();
   const Icon = statusIcons[item.status] || Search;
+  const produceIcon = produceIcons[item.name] || '🌱';
   const statusClass = {
     便宜: 'specialty-status--cheap',
     正常: 'specialty-status--normal',
@@ -33,6 +40,7 @@ export default function LocalSpecialtyCard({ item }) {
 
   return (
     <Card className={`local-specialty-card ${statusClass}`}>
+      <div className="produce-visual" aria-hidden="true"><span>{produceIcon}</span></div>
       <div className="specialty-card-header">
         <span className="specialty-name">{item.name}</span>
         <div className="specialty-source-badges">
