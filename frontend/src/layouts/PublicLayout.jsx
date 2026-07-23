@@ -1,0 +1,2 @@
+import { Outlet } from 'react-router-dom'; import { useState } from 'react'; import PublicHeader from '../components/public/PublicHeader'; import MobileBottomNav from '../components/public/MobileBottomNav';
+export default function PublicLayout(){const [menu,setMenu]=useState(false); return <div className="public-layout"><PublicHeader onMenu={()=>setMenu(v=>!v)}/>{menu&&<div className="mobile-menu"><a href="/news">農產新知</a><a href="/mutual-aid">互助網</a><a href="/settings">個人設定</a></div>}<main className="app-main"><Outlet/></main><MobileBottomNav/></div>}

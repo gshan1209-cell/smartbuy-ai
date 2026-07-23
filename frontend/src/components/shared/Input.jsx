@@ -1,0 +1,1 @@
+export default function Input({ label, error, id, className='', ...props }) { return <label className="ui-field" htmlFor={id}>{label && <span>{label}</span>}<input id={id} className={`ui-input ${error?'has-error':''} ${className}`} aria-invalid={!!error} {...props}/>{error && <small>{error}</small>}</label>; }

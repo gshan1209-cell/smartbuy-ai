@@ -1,0 +1,1 @@
+export default function Placeholder({title}){return <div className="placeholder"><div><div className="placeholder-icon">🚧</div><h1>{title}</h1><p>此功能正在施工中，尚未接入正式 API。</p><span className="demo-label">Demo／施工中</span></div></div>}

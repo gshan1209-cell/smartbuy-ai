@@ -1,40 +1,6 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Navbar         from './components/Navbar';
-import ScrollToTop    from './components/ScrollToTop';
-import Home           from './pages/Home';
-import PriceSearch    from './pages/PriceSearch';
-import ProductDetail  from './pages/ProductDetail';
-import MyBasket       from './pages/MyBasket';
-import AgriNews       from './pages/AgriNews';
-import MutualAid      from './pages/MutualAid';
-import Settings       from './pages/Settings';
-import Login          from './pages/Login';
-import Register       from './pages/Register';
-
-export default function App() {
-  useEffect(() => {
-    try {
-      const p = JSON.parse(localStorage.getItem('smartbuy_display_prefs') || '{}');
-      document.documentElement.setAttribute('data-theme', p.theme || 'light');
-    } catch {}
-  }, []);
-
-  return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <Navbar />
-      <Routes>
-        <Route path="/"           element={<Home />} />
-        <Route path="/search"     element={<PriceSearch />} />
-        <Route path="/product/:name" element={<ProductDetail />} />
-        <Route path="/basket"     element={<MyBasket />} />
-        <Route path="/news"       element={<AgriNews />} />
-        <Route path="/mutual-aid" element={<MutualAid />} />
-        <Route path="/settings"   element={<Settings />} />
-        <Route path="/login"      element={<Login />} />
-        <Route path="/register"   element={<Register />} />
-      </Routes>
-    </BrowserRouter>
-  );
-}
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import ScrollToTop from './components/ScrollToTop'; import PublicLayout from './layouts/PublicLayout'; import DashboardLayout from './layouts/DashboardLayout'; import Placeholder from './pages/Placeholder'; import DashboardOverview from './pages/dashboard/DashboardOverview';
+import Home from './pages/Home'; import PriceSearch from './pages/PriceSearch'; import ProductDetail from './pages/ProductDetail'; import MyBasket from './pages/MyBasket'; import AgriNews from './pages/AgriNews'; import MutualAid from './pages/MutualAid'; import Settings from './pages/Settings'; import Login from './pages/Login'; import Register from './pages/Register';
+const dashboardModules={prices:'行情管理',products:'商品管理',predictions:'AI 預測監控',weather:'天氣風險',seasonal:'節氣推薦',content:'內容管理','mutual-aid':'互助網管理',members:'會員管理',notifications:'通知管理','data-jobs':'資料任務監控',settings:'系統設定'};
+export default function App(){useEffect(()=>{try{const p=JSON.parse(localStorage.getItem('smartbuy_display_prefs')||'{}');document.documentElement.setAttribute('data-theme',p.theme||'light')}catch{}},[]);return <BrowserRouter><ScrollToTop/><Routes><Route element={<PublicLayout/>}><Route path="/" element={<Home/>}/><Route path="/search" element={<PriceSearch/>}/><Route path="/product/:name" element={<ProductDetail/>}/><Route path="/basket" element={<MyBasket/>}/><Route path="/news" element={<AgriNews/>}/><Route path="/mutual-aid" element={<MutualAid/>}/><Route path="/settings" element={<Settings/>}/><Route path="/alerts" element={<Placeholder title="提醒中心"/>}/><Route path="/season" element={<Placeholder title="節氣與當季推薦"/>}/><Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/></Route><Route path="/dashboard" element={<DashboardLayout/>}><Route index element={<Navigate to="overview" replace/>}/><Route path="overview" element={<DashboardOverview/>}/>{Object.entries(dashboardModules).map(([key,title])=><Route key={key} path={key} element={<Placeholder title={title}/>}/>)}</Route></Routes></BrowserRouter>}

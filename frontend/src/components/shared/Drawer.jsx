@@ -1,0 +1,2 @@
+import { useEffect } from 'react';
+export default function Drawer({ open, onClose, title, children }) { useEffect(()=>{ const fn=e=>e.key==='Escape'&&onClose(); if(open) document.addEventListener('keydown',fn); return()=>document.removeEventListener('keydown',fn); },[open,onClose]); if(!open)return null; return <div className="ui-drawer-overlay" onMouseDown={onClose}><aside className="ui-drawer" onMouseDown={e=>e.stopPropagation()}><header><h2>{title}</h2><button aria-label="關閉" onClick={onClose}>×</button></header>{children}</aside></div>; }

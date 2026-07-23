@@ -1,0 +1,5 @@
+import { NavLink } from 'react-router-dom';
+import { Search, Menu } from 'lucide-react';
+import { NotificationBell } from '../Navbar';
+import { useAuth } from '../../context/AuthContext';
+export default function PublicHeader({ onMenu }) { const {isAuthenticated}=useAuth(); return <header className="public-header"><NavLink className="brand" to="/">🌿 SmartBuy AI</NavLink><nav className="public-nav">{[['/','首頁'],['/search','查菜價'],['/basket','我的菜籃'],['/news','農產新知'],['/mutual-aid','互助網']].map(([to,label])=><NavLink key={to} to={to} end={to==='/' }>{label}</NavLink>)}</nav><div className="header-actions"><NavLink className="mobile-icon" aria-label="搜尋" to="/search"><Search size={20}/></NavLink>{isAuthenticated&&<NotificationBell/>}<NavLink className="settings-link" to={isAuthenticated?'/settings':'/login'}>{isAuthenticated?'我的':'登入'}</NavLink><button className="mobile-icon menu-button" aria-label="開啟選單" onClick={onMenu}><Menu size={22}/></button></div></header>; }

@@ -1,0 +1,1 @@
+export default function DashboardTopbar({onMenu}){return <header className="dashboard-topbar"><button className="dashboard-menu" aria-label="開啟後台選單" onClick={onMenu}>☰</button><div><strong>營運總覽</strong><span>管理中心 / Dashboard</span></div><span className="demo-label">Demo 環境</span></header>}

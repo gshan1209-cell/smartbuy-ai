@@ -1,0 +1,14 @@
+:root {
+  --color-brand: #1d9e75; --color-brand-dark: #0f6649; --color-brand-soft: #e4f5ee;
+  --color-bg: #f7f4ef; --color-surface: #fff; --color-text: #1a1a18; --color-muted: #6c6b60;
+  --color-border: #e2ddd2; --color-danger: #a32d2d; --color-warning: #ba7517;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.05), 0 4px 18px rgba(0,0,0,.07);
+  --header-height: 64px; --sidebar-width: 240px; --content-max: 1200px;
+  --font-body: 16px;
+  --yz-g: var(--color-brand); --yz-gd: var(--color-brand-dark); --yz-gl: var(--color-brand-soft);
+  --yz-bg: var(--color-bg); --yz-bdr: var(--color-border); --yz-txt: var(--color-text); --yz-mut: var(--color-muted);
+  --yz-card-bg: var(--color-surface); --yz-shd: var(--shadow-sm); --yz-red: var(--color-danger);
+}
+[data-theme="dark"] { --color-bg:#1a1a1a; --color-surface:#2a2a2a; --color-text:#f0f0f0; --color-muted:#aaa; --color-border:#3a3a3a; --yz-bg:var(--color-bg); --yz-card-bg:var(--color-surface); --yz-txt:var(--color-text); --yz-mut:var(--color-muted); --yz-bdr:var(--color-border); }

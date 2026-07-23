@@ -1,0 +1,3 @@
+import Card from '../../components/shared/Card'; import Badge from '../../components/shared/Badge';
+const metrics=['今日行情資料筆數','最後更新時間','價格異常品項數','AI 預測完成率','新增會員','收藏熱門品項','待處理互助貼文','系統錯誤與排程警告'];
+export default function DashboardOverview(){return <div><div className="page-heading"><div><p className="eyebrow">Dashboard Overview</p><h1>營運總覽</h1><p>目前為 Demo 顯示，尚未接入管理 API。</p></div><Badge tone="warning">Demo／Mock</Badge></div><div className="metric-grid">{metrics.map((m,i)=><Card className="metric-card" key={m}><Badge tone="neutral">Demo</Badge><h2>{['—','尚未接入','—','—','—','—','—','—'][i]}</h2><strong>{m}</strong><small>資料日期：尚未提供</small></Card>)}</div></div>}
