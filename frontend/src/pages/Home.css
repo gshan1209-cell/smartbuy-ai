@@ -600,6 +600,27 @@
   max-height: 460px;
 }
 
+.taiwan-leaflet-map {
+  width: 100%;
+  height: 460px;
+  background: #fdfbf7;
+}
+
+.county-map-label {
+  padding: 2px 4px !important;
+  color: #174c35 !important;
+  font-size: 11px !important;
+  font-weight: 700;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.county-map-label::before { display: none !important; }
+
+.map-load-error { margin: 8px 0; color: #a32d2d; font-size: 13px; }
+.map-attribution { display: block; margin-top: 6px; color: var(--yz-dim); font-size: 11px; text-align: right; }
+
 .county-path-group {
   cursor: pointer;
   outline: none;
@@ -948,8 +969,10 @@
   }
 
   .desktop-map-container {
-    display: none;
+    display: block;
   }
+
+  .taiwan-leaflet-map { height: 390px; }
 
   .county-selector-top {
     flex-direction: column;
