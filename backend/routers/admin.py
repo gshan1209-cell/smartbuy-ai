@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends
 
-from backend.security.roles import permissions_for_role, require_roles
+from backend.security.roles import permissions_for_role, require_permissions
 
-router = APIRouter()
+router = APIRouter(prefix="/api/admin", tags=["admin"])
 
-@router.get('/api/admin/access')
-def admin_access(member = Depends(require_roles('farmer', 'merchant', 'admin'))):
+
+@router.get("/access")
+def admin_access(member: dict = Depends(require_permissions("dashboard.view"))):
     return {
-        'role': member['role'],
-        'permissions': permissions_for_role(member['role']),
-        'dashboardAccess': True,
+        "role": member["role"],
+        "permissions": permissions_for_role(member["role"]),
+        "dashboardAccess": True,
     }
