@@ -99,9 +99,10 @@ export async function loadHomeAgricultureExplorer(
   selectedCounty = '宜蘭縣',
   previous = null,
 ) {
-  const [solarTermResult, productsResult] = await Promise.allSettled([
+  const [solarTermResult, productsResult, countyCropsResult] = await Promise.allSettled([
     get('/api/solar-term'),
     get('/api/products'),
+    get(`/api/agriculture/county-crops?county=${encodeURIComponent(selectedCounty)}&limit=24`),
   ]);
 
   const solarTermSource = sourceState(
@@ -112,6 +113,10 @@ export async function loadHomeAgricultureExplorer(
     productsResult,
     previous?.sources?.prices?.value,
   );
+  const countyCropsSource = sourceState(
+    countyCropsResult,
+    previous?.sources?.countyProduce?.value,
+  );
 
   const solarTermData = solarTermSource.value;
   const products = unwrapProducts(productsSource.value);
@@ -120,13 +125,13 @@ export async function loadHomeAgricultureExplorer(
     || seasonalRecommendations.default
     || { recommendedProducts: [], cookingSuggestions: [] };
 
-  const specialtiesDemo = COUNTY_SPECIALTIES_DEMO[selectedCounty] || [];
-  const localSpecialties = specialtiesDemo.map((specialty) => {
+  const officialCrops = countyCropsSource.value?.items || [];
+  const localSpecialties = officialCrops.map((specialty) => {
     const matched = findProduct(products, specialty.name);
     return {
       name: specialty.name,
-      description: specialty.desc,
-      metadataSourceType: 'Demo',
+      description: `${specialty.township || selectedCounty} · ${specialty.year || '年度資料'}，種植面積 ${specialty.plantingArea ?? '—'} 公頃。`,
+      metadataSourceType: 'Official API',
       ...normalizePriceFields(matched, productsSource),
     };
   });
@@ -141,7 +146,7 @@ export async function loadHomeAgricultureExplorer(
   });
 
   const currentMonth = new Date().getMonth() + 1;
-  const countySourceAvailable = specialtiesDemo.length > 0;
+  const countySourceAvailable = countyCropsSource.status === 'ready' && officialCrops.length > 0;
   const checkedAt = new Date().toISOString();
 
   return {
@@ -168,15 +173,16 @@ export async function loadHomeAgricultureExplorer(
         value: productsSource.value,
       },
       countyProduce: {
-        status: countySourceAvailable ? 'demo' : 'unavailable',
-        type: countySourceAvailable ? 'Demo' : 'Unavailable',
-        referenceType: 'Official Publication',
-        referenceUrl: COUNTY_AGRICULTURE_SOURCES.publication.url,
+        status: countyCropsSource.status,
+        type: countySourceAvailable ? 'Official API' : 'Unavailable',
+        referenceType: 'Official API',
+        referenceUrl: COUNTY_AGRICULTURE_SOURCES.openData.url,
+        value: countyCropsSource.value,
         openDataUrl: COUNTY_AGRICULTURE_SOURCES.openData.url,
         updatedAt: checkedAt,
         error: countySourceAvailable
-          ? '官方資料來源已確認；此縣市目前僅為少量版型示範，尚未完成正式 ETL。'
-          : '官方資料來源已確認，但縣市農產 ETL/API 尚未接入。',
+          ? null
+          : countyCropsSource.error || '此縣市目前沒有可用的農情調查資料。',
       },
     },
     fetchedAt: checkedAt,
