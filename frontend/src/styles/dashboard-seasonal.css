@@ -1,0 +1,112 @@
+.dashboard-seasonal-page {
+  display: grid;
+  gap: 20px;
+}
+
+.seasonal-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-left: 4px solid var(--yz-g);
+  padding: 20px 24px;
+  background: var(--yz-gl);
+  border-radius: 12px;
+}
+
+.seasonal-hero-info h2 {
+  margin: 0 0 6px 0;
+  font-size: 26px;
+  color: var(--yz-dark-g, #1b3d2f);
+}
+
+.seasonal-hero-info p {
+  margin: 0;
+  color: var(--yz-mut);
+  font-size: 15px;
+}
+
+.seasonal-recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.seasonal-item-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+}
+
+.seasonal-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.seasonal-item-header strong {
+  font-size: 18px;
+}
+
+.seasonal-item-body {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.seasonal-item-body span {
+  color: var(--yz-mut);
+}
+
+.seasonal-info-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.seasonal-placeholder-box {
+  display: grid;
+  gap: 8px;
+  border: 1px dashed var(--yz-bdr);
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--yz-gl);
+}
+
+.seasonal-placeholder-box strong {
+  color: var(--yz-mut);
+  font-size: 15px;
+}
+
+.seasonal-placeholder-box p {
+  margin: 0;
+  color: var(--yz-mut);
+  font-size: 13px;
+}
+
+@media (max-width: 1199px) {
+  .seasonal-recommendations-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .dashboard-seasonal-page {
+    gap: 16px;
+  }
+
+  .seasonal-hero-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .seasonal-recommendations-grid,
+  .seasonal-info-section {
+    grid-template-columns: 1fr;
+  }
+}

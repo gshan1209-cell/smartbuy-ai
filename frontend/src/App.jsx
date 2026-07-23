@@ -11,6 +11,9 @@ import AgriNews from './pages/AgriNews';
 import Alerts from './pages/Alerts';
 import DashboardOverview from './pages/dashboard/DashboardOverview';
 import DashboardPrices from './pages/dashboard/DashboardPrices';
+import DashboardPredictions from './pages/dashboard/DashboardPredictions';
+import DashboardWeather from './pages/dashboard/DashboardWeather';
+import DashboardSeasonal from './pages/dashboard/DashboardSeasonal';
 import ForbiddenPage from './pages/ForbiddenPage';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -25,9 +28,6 @@ import Settings from './pages/Settings';
 
 const dashboardModules = {
   products: { title: '商品管理', permission: PERMISSIONS.PRODUCTS_VIEW },
-  predictions: { title: 'AI 預測監控', permission: PERMISSIONS.PREDICTIONS_VIEW },
-  weather: { title: '天氣風險', permission: PERMISSIONS.WEATHER_VIEW },
-  seasonal: { title: '節氣推薦', permission: PERMISSIONS.SEASONAL_VIEW },
   content: { title: '內容管理', permission: PERMISSIONS.CONTENT_MANAGE },
   'mutual-aid': { title: '互助網管理', permission: PERMISSIONS.MUTUAL_AID_MANAGE },
   members: { title: '會員管理', permission: PERMISSIONS.MEMBERS_MANAGE },
@@ -90,6 +90,30 @@ export default function App() {
               element={(
                 <GuardedModule permission={PERMISSIONS.PRICES_VIEW}>
                   <DashboardPrices />
+                </GuardedModule>
+              )}
+            />
+            <Route
+              path="predictions"
+              element={(
+                <GuardedModule permission={PERMISSIONS.PREDICTIONS_VIEW}>
+                  <DashboardPredictions />
+                </GuardedModule>
+              )}
+            />
+            <Route
+              path="weather"
+              element={(
+                <GuardedModule permission={PERMISSIONS.WEATHER_VIEW}>
+                  <DashboardWeather />
+                </GuardedModule>
+              )}
+            />
+            <Route
+              path="seasonal"
+              element={(
+                <GuardedModule permission={PERMISSIONS.SEASONAL_VIEW}>
+                  <DashboardSeasonal />
                 </GuardedModule>
               )}
             />

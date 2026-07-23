@@ -68,3 +68,19 @@ def test_authorized_roles_receive_permissions(role: str):
     assert payload["role"] == role
     assert payload["dashboardAccess"] is True
     assert payload["permissions"] == permissions_for_role(role)
+
+
+@pytest.mark.parametrize("role", ["farmer", "admin"])
+def test_weather_status_endpoint_allowed_for_farmer_and_admin(role: str):
+    response = _client_for_role(role).get("/api/admin/weather/status")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["available"] is False
+    assert payload["status"] == "unavailable"
+    assert "capabilities" in payload
+
+
+@pytest.mark.parametrize("role", ["consumer", "merchant"])
+def test_weather_status_endpoint_forbidden_for_consumer_and_merchant(role: str):
+    response = _client_for_role(role).get("/api/admin/weather/status")
+    assert response.status_code == 403
