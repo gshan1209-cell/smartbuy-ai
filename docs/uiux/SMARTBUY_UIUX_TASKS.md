@@ -1,9 +1,8 @@
 # SmartBuy AI｜前台／後台 UI/UX 開發任務清單
 
 > 對應規格：`docs/uiux/SMARTBUY_UIUX_FRONT_BACK_RWD_SPEC.md`  
+> 後台視覺：`docs/uiux/DASHBOARD_VISUAL_STYLE_REFERENCE.md`  
 > 任務原則：一階段一個 PR；先骨架、再頁面、最後權限與後台功能。
-
----
 
 ## 任務狀態
 
@@ -18,307 +17,248 @@
 
 ## SB-UIUX-P0-001｜建立改版基線
 
-**優先級：P0**
-
-- [x] 記錄目前前端路由與頁面清單
-- [ ] 記錄目前共用元件與 CSS 入口
-- [ ] 確認 `npm run build` 在改版前可成功
-- [ ] 建立主要頁面手動驗收清單
-- [ ] 不修改 API contract
-
-**驗收：**
-
-- 有清楚的 before 狀態
-- 改版後可逐項確認功能沒有退化
+- [x] 記錄前端路由與頁面清單
+- [x] 建立 `AGENT.md`
+- [x] 禁止 UI 重構任意刪除既有程式碼與功能
+- [ ] 補齊共用元件與 CSS 入口清單
+- [ ] 建立主要頁面手動回歸清單
+- [ ] 建立正式三尺寸截圖基線
 
 ---
 
 # Phase 1｜Design System 與雙 Layout 骨架
 
-## SB-UIUX-P1-001｜統一設計 Token
-
-**優先級：P0**
+## SB-UIUX-P1-001｜統一 Design Token
 
 - [x] 新增 `frontend/src/styles/tokens.css`
-- [ ] 整併 `index.css` 與 `theme.css` 的顏色、陰影、圓角、字體與間距
-- [ ] 保留必要舊 token alias，避免現有頁面一次性失效
-- [ ] 定義 mobile/tablet/desktop breakpoint
-- [ ] 定義 content max-width 與 responsive spacing
+- [ ] 整併 `index.css` 與 `theme.css` 重複變數
+- [x] 定義 Mobile／Tablet／Desktop breakpoint
+- [x] 定義前台與後台 content spacing
+- [ ] 清理新增元件中的非必要硬編碼色碼
 
-**驗收：**
-
-- 所有新元件只使用統一 token
-- light / dark theme 基本文字可讀
-- 不新增重複色碼系統
-
-## SB-UIUX-P1-002｜建立共用 UI 元件
-
-**優先級：P0**
+## SB-UIUX-P1-002｜共用 UI 元件
 
 - [x] Button
-- [ ] Card
-- [ ] Badge
-- [ ] Input
-- [ ] EmptyState
-- [ ] LoadingState / Skeleton
-- [ ] Drawer
-- [ ] Modal / ConfirmDialog
+- [x] Card
+- [x] Badge
+- [x] EmptyState
+- [x] LoadingState
+- [x] Drawer
+- [x] DashboardMetricCard
+- [x] DashboardChartCard
+- [x] ResponsiveDataTable
+- [x] DashboardFilterBar
+- [ ] Input 統一
+- [ ] Modal／ConfirmDialog 統一
 - [ ] Toast 介面統一
 
-**驗收：**
-
-- 元件支援 className 與必要 props
-- 可鍵盤操作
-- Drawer / Modal 支援 ESC 與 overlay 關閉
-- 圖示按鈕有 aria-label
-
-## SB-UIUX-P1-003｜建立 PublicLayout
-
-**優先級：P0**
+## SB-UIUX-P1-003｜PublicLayout
 
 - [x] 建立 `PublicLayout.jsx`
-- [ ] 拆分 `PublicHeader.jsx`
-- [x] 建立 `MobileBottomNav.jsx`
-- [ ] 桌機／平板保留頂部導覽
-- [ ] 手機底部導覽：首頁、查菜價、菜籃、提醒、我的
-- [ ] 通知與登入狀態功能移植，不得失效
+- [x] 建立 Mobile Bottom Navigation
+- [x] 保留桌機／平板頂部導覽
+- [x] 前台主要路由套用 PublicLayout
+- [ ] 完成 PublicHeader 元件拆分與樣式清理
 
-**驗收：**
-
-- 前台所有既有頁面可使用 PublicLayout
-- 360px 不出現全頁水平捲軸
-- 手機底部導覽不遮住頁面內容
-
-## SB-UIUX-P1-004｜建立 DashboardLayout
-
-**優先級：P0**
+## SB-UIUX-P1-004｜DashboardLayout
 
 - [x] 建立 `DashboardLayout.jsx`
-- [x] 建立 `DashboardSidebar.jsx`
-- [x] 建立 `DashboardTopbar.jsx`
-- [x] 建立手機版 `DashboardDrawer.jsx`
-- [ ] 桌機固定 Sidebar
-- [ ] 平板 Sidebar 可縮合
-- [ ] 手機 Sidebar 改 Drawer
+- [x] 建立 Sidebar、Topbar、Mobile Drawer
+- [x] Desktop 固定 Sidebar
+- [x] Tablet 圖示 Sidebar
+- [x] Mobile Drawer
+- [x] 採用正式後台視覺參考文件
 
-**驗收：**
+## SB-UIUX-P1-005｜路由骨架
 
-- `/dashboard` 與前台使用不同導覽結構
-- 三種尺寸均可正常導覽
-- Sidebar active state 正確
-
-## SB-UIUX-P1-005｜重構 App 路由
-
-**優先級：P0**
-
-- [x] 使用 nested routes 或一致的 Layout route 架構
-- [ ] 前台路由套用 PublicLayout
-- [ ] 後台路由套用 DashboardLayout
-- [ ] 新增 `/alerts`、`/season`
-- [ ] 新增 `/dashboard/overview` 骨架
-- [ ] 保持既有路由相容
-
-**驗收：**
-
-- 重新整理任何主要路由不會白屏
-- 既有 route path 不被任意改名
+- [x] 前台 nested layout
+- [x] 後台 nested layout
+- [x] `/alerts`
+- [x] `/season`
+- [x] `/dashboard/overview`
+- [x] 後台模組 placeholder 路由
+- [x] 保留既有公開路由
 
 ---
 
-# Phase 2｜消費者前台改造
+# Phase 2｜消費者前台
 
 ## SB-UIUX-P2-001｜消費者首頁
 
-**優先級：P0**
-
 - [x] 首屏改為「今天買什麼」
-- [x] 提供快速品項搜尋與市場／地區入口
-- [x] 顯示便宜、正常、偏貴品項摘要
-- [x] 顯示一句白話採買建議
-- [x] 顯示收藏提醒摘要
-- [x] 顯示天氣／節氣提醒區塊
-- [ ] 保留農產新知與互助網入口，但降低首屏權重
+- [x] 快速品項與市場搜尋
+- [x] 便宜／正常／偏貴摘要
+- [x] 白話採買建議
+- [x] 收藏與提醒摘要
+- [x] 天氣／節氣入口
+- [x] 農產新知與互助網入口
 
-**內容規則：**
+## SB-UIUX-P2-002｜售價查詢
 
-- 不以「農民、研究人員」作為首頁主要對象
-- 不直接把專業波動率放在首屏
-- 不使用無來源的真實數字；mock 必須明確標示
+- [x] Mobile 篩選 Drawer
+- [x] 商品卡顯示價格、狀態、建議與時間
+- [x] 專業情報移至進階區
+- [x] Desktop／Tablet／Mobile 三尺寸
+- [x] 搜尋、排序、收藏與 Chart.js 功能保留
 
-**驗收：**
+## SB-UIUX-P2-003｜商品詳情
 
-- 手機首屏能看到至少一項今日採買建議
-- 主要 CTA 不超過兩個
-- 390 / 834 / 1440 三尺寸正常
-
-## SB-UIUX-P2-002｜售價查詢頁簡化
-
-**優先級：P0**
-
-- [x] 手機篩選器改 Drawer / Bottom Sheet
-- [x] 商品結果卡片顯示品名、今日價格、狀態、建議、更新時間
-- [x] 專業市場情報移至「進階資訊」摺疊區或後台
-- [x] 桌機保留效率較高的雙欄／表格模式
-- [x] 平板改兩欄，不得直接縮小桌機版
-- [x] 修正 MarketSelector 固定寬度造成的小螢幕問題
-
-**驗收：**
-
-- 360px 下篩選器與下拉選單不超出視窗
-- 搜尋、排序、收藏功能仍可使用
-- Chart.js instance 正常銷毀
-
-## SB-UIUX-P2-003｜商品詳情頁
-
-**優先級：P1**
-
-- [x] 頁首顯示價格狀態與採買建議
-- [x] 顯示近 7 日簡易走勢
-- [x] 顯示影響因素：天氣、節氣、市場變化
-- [x] 專業預測資訊放在第二層
-- [x] 加入收藏／取消收藏主按鈕
-- [x] 顯示資料日期與免責說明
+- [x] 價格狀態與採買建議
+- [x] 7／14／30 日走勢
+- [x] MA、行情位置、AI 方向與風險資訊保留
+- [x] 收藏與操作回饋
+- [x] 資料日期與免責說明
 
 ## SB-UIUX-P2-004｜我的菜籃
 
-**優先級：P1**
-
-- [x] 手機卡片清單
-- [x] 桌機表格／卡片切換
-- [x] 降價與漲價提醒狀態
-- [x] 空狀態引導搜尋品項
-- [x] 移除收藏需確認或可復原
+- [x] 收藏商品正式 API
+- [x] 商品與文章收藏分區
+- [x] Partial Error
+- [x] 移除收藏確認與失敗復原
+- [x] Mobile／Tablet／Desktop
 
 ## SB-UIUX-P2-005｜提醒中心
 
-**優先級：P1**
+- [x] `/alerts`
+- [x] 正式 notifications API
+- [x] 已讀／未讀與全部已讀
+- [x] 分類與空狀態
+- [x] 分頁與錯誤回復
 
-- [x] 新增 `/alerts`
-- [x] 分類：價格、天氣、節氣、互助網
-- [x] 已讀／未讀
-- [x] 篩選與空狀態
-- [x] 沿用既有 notifications API，可先以 adapter 統一格式
+## SB-UIUX-P2-006｜節氣推薦
 
-## SB-UIUX-P2-006｜節氣與當季推薦
-
-**優先級：P1**
-
-- [x] 新增 `/season`
-- [x] 顯示目前節氣
-- [x] 顯示適合購買品項
-- [x] 顯示可能受天氣影響品項
-- [x] 顯示節氣料理建議
-- [x] 資料尚未接 API 時以明確 mock / static seed 實作
+- [x] `/season`
+- [x] 正式 solar-term API
+- [x] 當季推薦、料理、風險與知識
+- [x] Static Seed 明確標示
 
 ---
 
-# Phase 3｜後台 Overview 與共用 Dashboard 元件
+# Phase 3｜Dashboard Overview 與共用元件
 
 ## SB-UIUX-P3-001｜Dashboard Overview
 
-**優先級：P0**
-
-- [x] 建立 `/dashboard/overview`
-- [x] KPI：行情筆數、最後更新、異常品項、預測完成率
-- [ ] KPI：新增會員、熱門收藏、待處理貼文、系統警告
-- [ ] 最近資料任務
-- [ ] 重要警示清單
-- [ ] 所有 mock 值明確標示 Demo
-
-**驗收：**
-
-- 桌機 4 欄、平板 2 欄、手機 1 欄
-- 每個數據有日期或更新時間
+- [x] 正式 API 優先
+- [x] KPI 與資料來源健康狀態
+- [x] 市場情報與 AI 分布
+- [x] 高風險預測表格
+- [x] 最近未結案互助貼文
+- [x] Loading／Empty／Error／Partial Error／Stale
+- [x] Desktop 四欄、Tablet 兩欄、Mobile 一欄
+- [ ] 會員、收藏、任務、錯誤正式管理 API
 
 ## SB-UIUX-P3-002｜ResponsiveDataTable
 
-**優先級：P0**
+- [x] Desktop 完整表格
+- [x] Tablet 隱藏次要欄位
+- [x] Mobile 卡片
+- [x] Loading／Empty／Error
+- [x] Pagination
+- [x] Sort callback 與 `aria-sort`
 
-- [ ] 桌機完整表格
-- [ ] 平板隱藏次要欄位
-- [ ] 手機轉卡片或水平捲動
-- [ ] loading / empty / error
-- [ ] pagination
-- [ ] sort callback
+## SB-UIUX-P3-003｜DashboardChartCard
 
-## SB-UIUX-P3-003｜Dashboard Chart Card
+- [x] 標題、說明、來源、時間與狀態
+- [x] 響應式容器
+- [x] 方向與風險分布
+- [ ] 後續正式 Chart.js Dashboard 圖表
 
-**優先級：P1**
+## SB-UIUX-P3-004｜DashboardFilterBar
 
-- [ ] 統一標題、說明、時間範圍與 loading
-- [ ] Chart.js responsive wrapper
-- [ ] Resize 與 destroy 處理
-- [ ] 手機精簡 labels
-
-## SB-UIUX-P3-004｜後台 Filter Bar
-
-**優先級：P1**
-
-- [ ] 關鍵字
-- [ ] 日期範圍
-- [ ] 狀態
-- [ ] 市場／品項
-- [ ] 手機 Drawer
-- [ ] 清除篩選
+- [x] 關鍵字
+- [x] 狀態
+- [x] 市場／品項介面
+- [x] 日期範圍介面
+- [x] Mobile Drawer 與套用流程
+- [x] 清除篩選
 
 ---
 
-# Phase 4｜角色與後台模組
+# Phase 4｜四角色權限與後台模組
 
-## SB-UIUX-P4-001｜前端權限骨架
+正式角色只有：
 
-**優先級：P0**
+```text
+consumer
+farmer
+merchant
+admin
+```
 
-- [ ] 定義 `consumer/farmer/merchant/operator/admin`
-- [ ] 建立 `ProtectedRoute`
-- [ ] 建立 `RoleGuard`
-- [ ] 集中管理 development mock role
-- [ ] 403 頁面
-- [ ] 不得只靠 Sidebar 隱藏
+`operator`、`staff` 或其他名稱不是正式角色。
 
-## SB-UIUX-P4-002｜後端角色欄位規格
+## SB-UIUX-P4-001｜四角色 RBAC 基礎
 
-**優先級：P1**
+**優先級：P0｜PR-5**
 
-- [ ] migration 設計
-- [ ] `members.role`
-- [ ] `/api/auth/me` 回傳 role
-- [ ] 管理 API role dependency
-- [ ] 預留 audit log
+- [-] 定義 `consumer/farmer/merchant/admin`
+- [-] `members.role` idempotent migration
+- [-] Auth API 回傳 normalized role
+- [-] 後端 `require_roles`／`require_permissions`
+- [-] `GET /api/admin/access`
+- [-] 前端 roles、permissions、dashboardNavigation
+- [-] 重構 ProtectedRoute
+- [-] 建立 RoleGuard／PermissionGuard
+- [-] 建立 `/403`
+- [-] Production 禁止 Demo Admin bypass
+- [-] 未知角色採最低權限
+- [-] 消費者禁止進入 Dashboard
 
-> 本任務需獨立 PR，不與純 UI PR 混合。
+## SB-UIUX-P4-002｜後台行情管理
 
-## SB-UIUX-P4-003｜行情管理
+**優先級：P0｜PR-5**
 
-- [ ] 行情列表
-- [ ] 異常品項篩選
-- [ ] 市場比較
-- [ ] 資料更新時間
-- [ ] 詳情 Drawer
+- [-] `/dashboard/prices`
+- [-] 正式 `/api/products`、`/api/markets`、`/api/market-intel`
+- [-] 行情 KPI
+- [-] 市場與狀態篩選
+- [-] 排序與分頁
+- [-] Desktop 表格、Tablet 精簡、Mobile 卡片
+- [-] 商品詳情 Drawer
+- [-] Loading／Empty／Error／Partial Error
+- [-] 符合後台視覺參考文件
+- [ ] 行情人工修改與刪除：本階段禁止實作
 
-## SB-UIUX-P4-004｜AI 預測監控
+## SB-UIUX-P4-003｜AI 預測監控
 
 - [ ] 預測日期
 - [ ] 跌／持平／漲分布
-- [ ] 完成率與缺漏
+- [ ] 風險與信心
 - [ ] 模型版本
-- [ ] 資料不足提示
+- [ ] 資料新鮮度與缺漏
+
+## SB-UIUX-P4-004｜天氣與節氣後台
+
+- [ ] 產地天氣風險
+- [ ] 節氣推薦規則
+- [ ] 品項風險規則
+- [ ] 農民與商家權限差異
 
 ## SB-UIUX-P4-005｜內容與互助網管理
 
 - [ ] 文章狀態
-- [ ] mock 與正式來源標記
-- [ ] 貼文檢舉／隱藏
-- [ ] 待處理清單
+- [ ] 互助貼文處理狀態
+- [ ] 檢舉／隱藏正式 API
 - [ ] 管理動作確認
+- [ ] 僅系統管理員可使用
 
 ## SB-UIUX-P4-006｜會員管理
 
 - [ ] 會員列表
-- [ ] 角色篩選
+- [ ] 四角色篩選
 - [ ] 帳號狀態
-- [ ] 角色修改（需後端權限）
-- [ ] 不顯示密碼或敏感 token
+- [ ] 角色修改正式管理 API
+- [ ] Audit Log
+- [ ] 不顯示密碼或 Token
+- [ ] 僅系統管理員可使用
+
+## SB-UIUX-P4-007｜通知、任務與系統設定
+
+- [ ] 通知管理
+- [ ] 資料任務監控
+- [ ] GitHub Actions／部署狀態 adapter
+- [ ] 系統設定
+- [ ] 僅系統管理員可使用
 
 ---
 
@@ -326,41 +266,46 @@
 
 ## SB-UIUX-P5-001｜三尺寸視覺驗收
 
+- [ ] 360 × 800
 - [ ] 390 × 844
+- [ ] 768 × 1024
 - [ ] 834 × 1112
+- [ ] 1200 × 800
 - [ ] 1440 × 900
-- [ ] 額外確認 360px
 - [ ] 無主要元素重疊
 - [ ] 無全頁水平捲軸
-- [ ] Sticky / fixed 元件不遮內容
+- [ ] Sticky／Fixed 元件不遮內容
 
 ## SB-UIUX-P5-002｜功能回歸
 
 - [ ] 註冊
 - [ ] 登入／登出
+- [ ] 四角色授權
 - [ ] 搜尋
 - [ ] 商品詳情
 - [ ] 收藏
 - [ ] 互助網
 - [ ] 通知
 - [ ] 設定與主題
+- [ ] Dashboard
 
 ## SB-UIUX-P5-003｜Accessibility
 
-- [ ] keyboard navigation
-- [ ] visible focus
-- [ ] aria-label
-- [ ] form label
-- [ ] contrast
-- [ ] reduced motion 基本支援
+- [ ] Keyboard Navigation
+- [ ] Visible Focus
+- [ ] aria-label／aria-sort
+- [ ] Form Label
+- [ ] Contrast
+- [ ] Reduced Motion
 
 ## SB-UIUX-P5-004｜Build 與文件
 
 - [ ] `npm run build`
-- [ ] 記錄修改檔案
-- [ ] 更新 README 或 docs 索引
-- [ ] 提供三尺寸截圖
-- [ ] PR 說明列出已知限制與未完成項目
+- [ ] `pytest`
+- [ ] `git diff --check`
+- [ ] PR 列出正式 API、Demo、Static Seed 與 Unavailable
+- [ ] 提供三尺寸截圖或誠實說明環境限制
+- [ ] 記錄已知限制與下一階段
 
 ---
 
@@ -368,23 +313,23 @@
 
 | PR | 範圍 |
 |---|---|
-| PR-1 | P0 + P1：Design System、PublicLayout、DashboardLayout、路由骨架 |
-| PR-2 | P2-001～P2-002：消費者首頁與售價查詢 |
-| PR-3 | P2-003～P2-006：詳情、菜籃、提醒、節氣 |
-| PR-4 | P3：Dashboard Overview 與共用後台元件 |
-| PR-5 | P4-001：前端權限骨架 |
-| PR-6 | P4-002：後端角色與權限 |
-| PR-7+ | 各後台業務模組逐一實作 |
-
----
+| PR-1 | Design System、雙 Layout、路由骨架 |
+| PR-2 | 消費者首頁與售價查詢 |
+| PR-3 | 商品詳情、菜籃、提醒、節氣 |
+| PR-4 | Dashboard Overview 與共用元件 |
+| PR-5 | 四角色 RBAC + 唯讀行情管理 |
+| PR-6 | AI 預測監控 + 天氣／節氣後台 |
+| PR-7 | 內容、互助網與通知管理 |
+| PR-8 | 會員、任務與系統設定 |
+| PR-9 | 全站品質、視覺與功能回歸 |
 
 # Codex 執行原則
 
-1. 一次只執行一個 PR 範圍。
-2. 開始前先讀規格書與本任務清單。
-3. 不得任意刪除現有功能。
-4. 不得在 UI 任務中重寫 API。
-5. 不得用大量 inline style 完成新元件。
-6. 每次完成需執行 build，並回報變更檔案、驗收結果與未完成項目。
-7. 遇到後端 API 尚未存在，使用集中 adapter / mock，並清楚加上 TODO 與 Demo 標記。
-8. 所有頁面至少驗證 mobile、tablet、desktop 三尺寸。
+1. 開始前先讀 `AGENT.md`、規格、視覺參考與當次任務文件。
+2. 一次只執行一個 PR 範圍。
+3. 不得任意刪除既有功能。
+4. 正式 API 存在時不得以 Demo 取代。
+5. 管理 API 必須後端驗證權限。
+6. 角色固定為四種，不得新增第五種角色。
+7. 每次完成需執行 build、測試、diff check，並回報已知限制。
+8. 所有頁面至少驗證 Mobile、Tablet、Desktop 三尺寸。
