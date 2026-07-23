@@ -32,7 +32,7 @@ SmartBuy AI
 ├─ 前台 Public App
 │  └─ 簡單、白話、手機優先，主要提供消費者使用
 └─ 後台 Dashboard
-   └─ 儀表板、表格、圖表與營運管理，提供農民、商家與管理者使用
+   └─ 儀表板、表格、圖表與營運管理，提供農民、商家與系統管理員使用
 ```
 
 前台與後台必須使用不同 Layout，不可只在同一個 Navbar 上持續增加功能。
@@ -241,323 +241,33 @@ frontend/src/
 
 ## 6. 角色與權限規劃
 
-預留角色：
+正式角色固定為四種：
 
 ```text
 consumer
 farmer
 merchant
-operator
 admin
 ```
 
-規則：
+中文名稱：
 
-- 前端統一透過 `ProtectedRoute` 與 `RoleGuard` 控制路由。
+| 角色值 | 中文名稱 | 主要介面 |
+|---|---|---|
+| `consumer` | 消費者 | 前台 |
+| `farmer` | 農民 | 前台 + 農民可用後台模組 |
+| `merchant` | 商家 | 前台 + 商家可用後台模組 |
+| `admin` | 系統管理員 | 全部前台與後台功能 |
+
+強制規則：
+
+- `operator`、`staff` 或其他名稱都不是正式角色，不得新增到新資料、migration、權限矩陣或介面選項。
+- 遇到未知或舊角色值時，必須以最低權限處理，不得自動提升成 `admin`。
+- 前端統一透過 `ProtectedRoute`、`RoleGuard` 或 `PermissionGuard` 控制路由與功能顯示。
 - 禁止在各頁散落硬編碼角色判斷。
 - 後台不能只靠隱藏 Sidebar 達成權限控制。
-- 正式管理 API 必須由後端驗證角色。
-- 第一階段若 API 尚未支援角色，只能使用集中管理的 development mock / feature flag，並清楚標註。
-
----
-
-## 7. UI/UX 規則
-
-### 7.1 前台
-
-前台應優先回答：
-
-- 今天什麼菜便宜？
-- 現在適不適合買？
-- 哪些品項可能漲價？
-- 收藏的菜有沒有降價？
-- 天氣與節氣是否影響價格？
-
-前台預設顯示：
-
-- 便宜／正常／偏貴
-- 適合買／可等等／建議提前買
-- 近 7 日簡易走勢
-- 一句白話原因
-- 資料更新時間
-
-前台預設不在首層顯示：
-
-- 模型名稱
-- 原始風險係數
-- 完整特徵工程
-- 複雜波動率指標
-- 資料品質監控細節
-
-### 7.2 後台
-
-後台總覽至少預留：
-
-- 今日行情資料筆數
-- 最後更新時間
-- 價格異常品項數
-- AI 預測完成率
-- 新增會員
-- 收藏熱門品項
-- 待處理互助貼文
-- 系統錯誤與排程警告
-
-所有數據都必須顯示資料日期或最後更新時間。
-
-### 7.3 共用體驗
-
-- 正文至少 16px。
-- 觸控區至少 44 × 44px。
-- 顏色不可作為唯一狀態辨識，需搭配文字或圖示。
-- 表單需有 label、錯誤訊息與 focus 狀態。
-- 圖示按鈕需有 `aria-label`。
-- 所有頁面需有 loading、empty、error 狀態。
-- 360px 寬度不可產生全頁水平捲軸。
-
----
-
-## 8. Design System 規則
-
-### 8.1 Token
-
-- 將 `index.css` 與 `styles/theme.css` 的重複 token 整合至 `styles/tokens.css`。
-- 過渡期間保留必要的 `--yz-*` alias，避免現有頁面失效。
-- 禁止新增第三套互不相容的色彩系統。
-
-### 8.2 元件
-
-新功能優先使用共用元件：
-
-```text
-Button
-Card
-Badge
-Input
-Drawer
-Modal / ConfirmDialog
-Toast
-EmptyState
-LoadingState / Skeleton
-ResponsiveDataTable
-DashboardChartCard
-```
-
-### 8.3 樣式
-
-- 禁止以大量 inline style 建立新頁面或共用元件。
-- 可變動數值應使用 class、CSS variable 或 component props。
-- 深色模式必須使用 token，不可在元件中硬編碼白色背景。
-
----
-
-## 9. API 與資料安全規則
-
-- UI 任務不得任意變更現有 API contract。
-- API 尚未存在時，使用集中 adapter 或明確 mock。
-- Mock 資料必須標示 `Demo`、`Mock` 或 `尚未接入管理 API`。
-- 禁止將 mock 營運數據偽裝成正式數據。
-- 不得在前端顯示密碼、JWT、資料庫連線字串或敏感環境變數。
-- 後端管理功能必須有權限驗證，不可只依賴前端。
-
----
-
-## 10. 開發文件與任務來源
-
-以下文件是目前 UI/UX 改版的正式依據：
-
-1. `docs/uiux/SMARTBUY_UIUX_FRONT_BACK_RWD_SPEC.md`
-2. `docs/uiux/SMARTBUY_UIUX_TASKS.md`
-3. `docs/uiux/CODEX_PROMPT_PR1_UIUX_FOUNDATION.md`
-4. `docs/SPEC.md`（若存在，以實際系統行為與最新規格為準）
-5. `SmartBuy_AI_便宜買AI_MVP完整開發規格書_v1.1_含任務中心與24節氣.md`
-
-衝突處理優先順序：
-
-1. 使用者最新明確指示
-2. 本 `AGENT.md`
-3. 最新 UI/UX 規格與任務文件
-4. `docs/SPEC.md`
-5. 舊版根目錄規格書
-6. README
-
-README 不是詳細開發規格來源。
-
----
-
-## 11. 目前開發順序
-
-### PR-1｜UI/UX 基礎工程
-
-依 `docs/uiux/CODEX_PROMPT_PR1_UIUX_FOUNDATION.md` 執行：
-
-- 統一 Design System
-- 建立共用 UI 元件
-- 建立 PublicLayout
-- 建立 DashboardLayout
-- 建立三尺寸 RWD
-- 重構路由骨架
-- 保留既有功能與 API
-
-### PR-2｜消費者首頁與售價查詢
-
-- 首頁改為「今天買什麼」
-- 白話採買建議
-- 手機優先查價流程
-- 手機篩選 Drawer / Bottom Sheet
-
-### PR-3｜商品詳情、菜籃、提醒、節氣
-
-- 商品詳細頁
-- 我的菜籃
-- `/alerts`
-- `/season`
-
-### PR-4｜Dashboard Overview
-
-- KPI 卡片
-- 圖表容器
-- 響應式表格
-- 篩選器
-- Demo 狀態標記
-
-### PR-5 之後
-
-- 角色權限
-- 行情管理
-- AI 預測監控
-- 內容管理
-- 互助網管理
-- 會員管理
-
----
-
-## 12. Codex 執行規則
-
-Codex 每次任務必須：
-
-1. 先閱讀 `AGENT.md`。
-2. 再閱讀指定規格與任務文件。
-3. 只執行本次指定 PR 範圍。
-4. 開始修改前盤點相關檔案、引用、API 與既有功能。
-5. 禁止任意刪除舊程式碼、舊功能或改名既有路由；大量刪除必須提供等價替代與逐項驗證。
-6. API 不足時建立 adapter / mock，不得任意重寫後端或用 Demo 取代既有正式 API。
-7. 所有新頁面驗證 Mobile、Tablet、Desktop。
-8. 完成後執行 build 與既有測試。
-9. 回報變更、驗收結果、功能保留對照、已知限制與下一步。
-
----
-
-## 13. 開發與驗證指令
-
-### 前端
-
-```bash
-cd frontend
-npm install
-npm run build
-```
-
-本機開發：
-
-```bash
-cd frontend
-npm run start
-```
-
-### 後端
-
-請先確認專案現有安裝方式與環境變數，不得在文件中提交 `.env` 或機密值。
-
-常見啟動方式：
-
-```bash
-uvicorn backend.main:app --reload
-```
-
-### 基本驗收
-
-- 公開路由可正常開啟
-- 登入、收藏、互助網、通知功能正常
-- 改版前既有 API 與主要功能仍可使用
-- 390、834、1440 三尺寸無主要破版
-- 360px 無全頁水平捲軸
-- 深色模式文字可讀
-- `npm run build` 成功
-
----
-
-## 14. Git 與 PR 規範
-
-### 分支命名
-
-```text
-feat/<scope>
-fix/<scope>
-refactor/<scope>
-docs/<scope>
-```
-
-### Commit 建議
-
-```text
-feat(uiux): ...
-fix(rwd): ...
-refactor(layout): ...
-docs(agent): ...
-```
-
-### PR 必須包含
-
-- 目的與範圍
-- 變更檔案
-- 三尺寸實作方式
-- Build / Test 結果
-- 截圖或視覺驗收資訊
-- 改版前後功能保留對照
-- 大量刪除程式碼的原因與替代位置
-- 已知限制
-- 未完成內容
-- 下一個建議任務
-
----
-
-## 15. Definition of Done
-
-任務只有在以下條件全部滿足時才能標示完成：
-
-- 指定範圍已實作
-- 未破壞或縮減既有功能
-- 被移除的程式碼已有等價替代並完成驗證
-- Mobile／Tablet／Desktop 已驗證
-- Loading／Empty／Error 狀態已處理
-- Build 成功
-- 新增程式符合 Design System
-- Mock 資料已清楚標示
-- 文件與任務狀態已更新
-- PR 說明完整
-
----
-
-## 16. README 維護規則
-
-README 保留：
-
-- 系統定位
-- 使用者價值
-- 主要功能
-- 客群發展方向
-- 線上體驗入口
-- 高階技術架構摘要
-- 資料、AI、自動化與部署技術摘要
-
-README 不放置：
-
-- 開發任務
-- Codex 指令
-- 分支策略
-- 詳細程式碼規範
-- RWD 實作細節
-- 詳細 API contract 與資料表規格
-- 開發中的 TODO
-
-上述詳細開發資訊統一維護於 `AGENT.md` 與其指定的 `docs/` 文件。
+- 正式管理 API 必須由後端驗證角色或權限。
+- 消費者不得進入 Dashboard。
+- 農民與商家只能使用授權給各自角色的後台模組。
+- 系統管理員可管理平台內容、會員、通知、資料任務與系統設定。
+- 第一階段若 API 尚未支援角色，只能使用集中管理的 development mock / feature flag，且 production 不得啟用。
