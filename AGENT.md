@@ -199,6 +199,27 @@ frontend/src/
 - 手機：Sidebar 改 Drawer
 - 主要內容採 KPI、圖表、表格、篩選器與警示清單
 
+### 4.3 Dashboard 視覺基準
+
+所有後台頁面必須閱讀並遵循：
+
+```text
+docs/uiux/DASHBOARD_VISUAL_STYLE_REFERENCE.md
+```
+
+正式視覺方向：
+
+- 深墨綠固定側欄
+- 白色 Topbar
+- 淺灰／暖灰內容背景
+- 白色 KPI、圖表與表格卡片
+- 綠色表示正常與主要操作
+- 黃橘色表示注意
+- 紅色表示錯誤與高風險
+- 藍色表示資訊與中性系統狀態
+- Desktop 四欄 KPI、Tablet 兩欄、Mobile 一欄
+- 不得照抄參考品牌、Logo、文字或假資料
+
 ---
 
 ## 5. 目標路由
