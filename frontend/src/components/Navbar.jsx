@@ -26,7 +26,7 @@ function notifText(item) {
     : `${item.actorName} 按讚了你的貼文`;
 }
 
-function NotificationBell() {
+export function NotificationBell() {
   const navigate = useNavigate();
   const ref = useRef(null);
   const [open, setOpen] = useState(false);

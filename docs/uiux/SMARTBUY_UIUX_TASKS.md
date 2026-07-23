@@ -20,7 +20,7 @@
 
 **優先級：P0**
 
-- [ ] 記錄目前前端路由與頁面清單
+- [x] 記錄目前前端路由與頁面清單
 - [ ] 記錄目前共用元件與 CSS 入口
 - [ ] 確認 `npm run build` 在改版前可成功
 - [ ] 建立主要頁面手動驗收清單
@@ -39,7 +39,7 @@
 
 **優先級：P0**
 
-- [ ] 新增 `frontend/src/styles/tokens.css`
+- [x] 新增 `frontend/src/styles/tokens.css`
 - [ ] 整併 `index.css` 與 `theme.css` 的顏色、陰影、圓角、字體與間距
 - [ ] 保留必要舊 token alias，避免現有頁面一次性失效
 - [ ] 定義 mobile/tablet/desktop breakpoint
@@ -55,7 +55,7 @@
 
 **優先級：P0**
 
-- [ ] Button
+- [x] Button
 - [ ] Card
 - [ ] Badge
 - [ ] Input
@@ -76,9 +76,9 @@
 
 **優先級：P0**
 
-- [ ] 建立 `PublicLayout.jsx`
+- [x] 建立 `PublicLayout.jsx`
 - [ ] 拆分 `PublicHeader.jsx`
-- [ ] 建立 `MobileBottomNav.jsx`
+- [x] 建立 `MobileBottomNav.jsx`
 - [ ] 桌機／平板保留頂部導覽
 - [ ] 手機底部導覽：首頁、查菜價、菜籃、提醒、我的
 - [ ] 通知與登入狀態功能移植，不得失效
@@ -93,10 +93,10 @@
 
 **優先級：P0**
 
-- [ ] 建立 `DashboardLayout.jsx`
-- [ ] 建立 `DashboardSidebar.jsx`
-- [ ] 建立 `DashboardTopbar.jsx`
-- [ ] 建立手機版 `DashboardDrawer.jsx`
+- [x] 建立 `DashboardLayout.jsx`
+- [x] 建立 `DashboardSidebar.jsx`
+- [x] 建立 `DashboardTopbar.jsx`
+- [x] 建立手機版 `DashboardDrawer.jsx`
 - [ ] 桌機固定 Sidebar
 - [ ] 平板 Sidebar 可縮合
 - [ ] 手機 Sidebar 改 Drawer
@@ -111,7 +111,7 @@
 
 **優先級：P0**
 
-- [ ] 使用 nested routes 或一致的 Layout route 架構
+- [x] 使用 nested routes 或一致的 Layout route 架構
 - [ ] 前台路由套用 PublicLayout
 - [ ] 後台路由套用 DashboardLayout
 - [ ] 新增 `/alerts`、`/season`

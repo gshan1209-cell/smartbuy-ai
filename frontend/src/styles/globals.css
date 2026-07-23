@@ -1,0 +1,34 @@
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Existing public pages already own their internal width and spacing.
+   Keep the layout wrapper neutral so full-bleed sections such as Home hero remain intact. */
+.app-main {
+  min-width: 0;
+}
+
+.placeholder {
+  min-height: 50vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6) var(--space-5);
+  text-align: center;
+  color: var(--yz-mut);
+}
+
+@media (max-width: 767px) {
+  .app-main {
+    padding-bottom: 72px;
+  }
+
+  .placeholder {
+    padding: 20px 16px;
+  }
+}
