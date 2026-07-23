@@ -355,3 +355,597 @@
     justify-self: start;
   }
 }
+
+/* Home Agriculture Explorer Styles */
+.home-agri-explorer-section {
+  padding: 32px 0 40px;
+  border-top: 1px solid var(--yz-bdr);
+  margin-top: 20px;
+}
+
+.home-section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.home-section-header h2 {
+  font-size: 28px;
+  margin: 4px 0 0 0;
+}
+
+.section-description {
+  color: var(--yz-mut);
+  margin: 4px 0 0 0;
+  font-size: 15px;
+}
+
+.explorer-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  background: var(--yz-card-bg);
+  color: var(--yz-txt);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.explorer-refresh-btn:hover {
+  background: var(--yz-gl);
+}
+
+.agri-explorer-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.agri-tab-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 64px;
+  padding: 12px 16px;
+  border: 2px solid var(--yz-bdr);
+  border-radius: 12px;
+  background: var(--yz-card-bg);
+  color: var(--yz-txt);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.agri-tab-button:hover {
+  border-color: var(--yz-g);
+}
+
+.agri-tab-button:focus-visible {
+  outline: 3px solid var(--yz-gl);
+  outline-offset: 2px;
+}
+
+.agri-tab-button--active {
+  border-color: var(--yz-g);
+  background: #f0fdf4;
+  box-shadow: 0 2px 8px rgba(20, 125, 75, 0.12);
+}
+
+.agri-tab-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--yz-dark-g, #0f5c37);
+}
+
+.agri-tab-desc {
+  font-size: 12px;
+  color: var(--yz-mut);
+  margin-top: 2px;
+}
+
+.agri-explorer-content-box {
+  border: 1px solid var(--yz-bdr);
+  border-radius: 16px;
+  padding: 24px;
+  background: var(--yz-card-bg);
+  box-shadow: var(--yz-shd);
+}
+
+.local-explorer-heading,
+.monthly-explorer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.local-explorer-heading h3,
+.monthly-explorer-heading h3 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.monthly-term-tag {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--yz-gl);
+  color: var(--yz-gd);
+  font-size: 13px;
+}
+
+.county-selector {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.county-selector-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.county-dropdown {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  background: var(--yz-card-bg);
+  color: var(--yz-txt);
+  font-size: 15px;
+}
+
+.region-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.region-chip {
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 999px;
+  background: var(--yz-card-bg);
+  color: var(--yz-txt);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.region-chip--active {
+  background: var(--yz-g);
+  color: #fff;
+  border-color: var(--yz-g);
+}
+
+.county-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.county-chip {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  background: var(--yz-gl);
+  color: var(--yz-txt);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.county-chip--selected {
+  background: #dcfce7;
+  color: #065f46;
+  border-color: #10b981;
+}
+
+.local-explorer-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.taiwan-county-map-wrapper {
+  border: 1px solid var(--yz-bdr);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fdfbf7;
+}
+
+.map-caption {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.map-caption strong {
+  font-size: 15px;
+  color: var(--yz-dark-g);
+}
+
+.map-caption span {
+  font-size: 12px;
+  color: var(--yz-mut);
+}
+
+.taiwan-county-svg {
+  width: 100%;
+  height: auto;
+  max-height: 460px;
+}
+
+.county-path-group {
+  cursor: pointer;
+  outline: none;
+}
+
+.county-shape {
+  fill: #e2e8f0;
+  stroke: #ffffff;
+  stroke-width: 2;
+  transition: all 0.15s ease;
+}
+
+.county-path-group:hover .county-shape {
+  fill: #a7f3d0;
+}
+
+.county-path-group:focus-visible .county-shape {
+  stroke: #047857;
+  stroke-width: 3;
+}
+
+.county-path-group--selected .county-shape {
+  fill: #10b981;
+  stroke: #047857;
+  stroke-width: 2.5;
+}
+
+.county-label-text {
+  font-size: 11px;
+  font-weight: 700;
+  fill: #1e293b;
+  pointer-events: none;
+}
+
+.county-path-group--selected .county-label-text {
+  fill: #ffffff;
+}
+
+.specialties-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.local-specialty-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.specialty-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.specialty-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--yz-dark-g);
+}
+
+.specialty-desc {
+  font-size: 14px;
+  color: var(--yz-mut);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.specialty-price-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--yz-gl);
+}
+
+.price-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.specialty-status--cheap .price-tag { color: #15803d; }
+.specialty-status--normal .price-tag { color: #b45309; }
+.specialty-status--expensive .price-tag { color: #b91c1c; }
+
+.today-price {
+  font-size: 18px;
+}
+
+.today-price small {
+  font-size: 12px;
+  color: var(--yz-mut);
+  font-weight: normal;
+}
+
+.specialty-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.updated-text {
+  color: var(--yz-dim);
+}
+
+.monthly-produce-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.monthly-produce-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.produce-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.produce-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.produce-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--yz-gl);
+  border-radius: 8px;
+}
+
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-pill--便宜 { background: #dcfce7; color: #15803d; }
+.status-pill--正常 { background: #fef3c7; color: #b45309; }
+.status-pill--偏貴 { background: #fee2e2; color: #b91c1c; }
+
+.cooking-hint {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--yz-mut);
+  background: #fefce8;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #fef08a;
+}
+
+.cooking-hint p {
+  margin: 0;
+}
+
+.produce-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.source-badge--official { background: #e0f2fe; color: #0369a1; }
+.source-badge--seed { background: #fef3c7; color: #92400e; }
+.source-badge--demo { background: #f3e8ff; color: #6b21a8; }
+.source-badge--unavailable { background: #f1f5f9; color: #475569; }
+
+.produce-origin-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.panel-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+}
+
+.panel-header p {
+  margin: 0;
+  color: var(--yz-mut);
+  font-size: 14px;
+}
+
+.produce-selector-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.quick-produce-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.produce-btn {
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  background: var(--yz-card-bg);
+  color: var(--yz-txt);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.produce-btn--active {
+  background: var(--yz-g);
+  color: #fff;
+  border-color: var(--yz-g);
+}
+
+.origin-search-form {
+  display: flex;
+  gap: 6px;
+}
+
+.origin-search-form input {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.origin-search-form button {
+  min-height: 40px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--yz-g);
+  color: #fff;
+  cursor: pointer;
+}
+
+.origin-result-box {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 12px;
+  background: var(--yz-gl);
+}
+
+.origin-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.origin-title h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: normal;
+}
+
+.origin-counties-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.origin-county-tag {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--yz-bdr);
+  font-weight: 700;
+  color: var(--yz-dark-g);
+}
+
+.origin-unavailable-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #854d0e;
+  background: #fefce8;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #fef08a;
+}
+
+.explorer-footer-meta {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--yz-dim);
+  text-align: right;
+}
+
+@media (max-width: 1199px) {
+  .local-explorer-grid {
+    grid-template-columns: 240px 1fr;
+  }
+
+  .specialties-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .monthly-produce-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .agri-explorer-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .local-explorer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .desktop-map-container {
+    display: none;
+  }
+
+  .county-selector-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .monthly-produce-grid {
+    grid-template-columns: 1fr;
+  }
+}
