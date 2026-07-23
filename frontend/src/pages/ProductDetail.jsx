@@ -2,6 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { get } from '../hooks/useApi';
 import Chart from 'chart.js/auto';
+import { Heart, ArrowRight } from 'lucide-react';
+import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
+import { getConsumerAdvice } from '../lib/consumerAdvice';
+import './ProductDetail.css';
 
 // ── 常數 ───────────────────────────────────────────────────────────────────────
 
@@ -380,7 +386,7 @@ const crosshairPlugin = {
 // ── 詳情內容 ──────────────────────────────────────────────────────────────────
 
 function DetailContent({ productName, market, detail }) {
-  const [period, setPeriod] = useState('30');
+  const [period, setPeriod] = useState('7');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [history, setHistory] = useState(null);
@@ -391,6 +397,25 @@ function DetailContent({ productName, market, detail }) {
     ma7: true, ma14: true, ma30: true,
     volume: true,
   });
+  const [isSaved, setIsSaved] = useState(false);
+  const [toastMessage, showToast] = useToast();
+
+  useEffect(() => {
+    fetchFavorites('product').then((names) => setIsSaved(names.includes(productName))).catch(() => {});
+  }, [productName]);
+
+  async function toggleSaved() {
+    const previous = isSaved;
+    setIsSaved(!previous);
+    try {
+      if (previous) await removeFavorite('product', productName);
+      else await addFavorite('product', productName);
+      showToast(previous ? '已從我的菜籃移除' : '已加入我的菜籃');
+    } catch {
+      setIsSaved(previous);
+      showToast('操作失敗，請稍後再試');
+    }
+  }
 
   const priceChartRef = useRef(null);
   const priceChartInst = useRef(null);
@@ -733,6 +758,7 @@ function DetailContent({ productName, market, detail }) {
   const todayPriceColor = priceDiff == null ? 'var(--yz-txt)' : priceDiff > 0 ? '#DC2626' : priceDiff < 0 ? '#16A34A' : 'var(--yz-txt)';
 
   const hasVolumeData = (history || []).some(r => r.volume != null);
+  const purchaseAdvice = getConsumerAdvice(priceStatus, detail.prediction_direction);
 
   return (
     <>
@@ -762,6 +788,11 @@ function DetailContent({ productName, market, detail }) {
           {pd.trans_date ? `${pd.trans_date} ` : ''}
           資料範圍依下方切換器決定
         </p>
+        <div className="consumer-detail-advice">
+          <div><strong>{purchaseAdvice.label}</strong><span>{purchaseAdvice.text}</span></div>
+          <button className="detail-save-button" onClick={toggleSaved} aria-pressed={isSaved}><Heart size={18} fill={isSaved ? 'currentColor' : 'none'} />{isSaved ? '已收藏' : '收藏品項'}</button>
+        </div>
+        <p className="detail-disclaimer">價格與預測僅供採買參考，不保證未來價格；資料日期以 API 回傳為準。</p>
       </div>
 
       {/* 1b. 日期切換器 */}
@@ -1087,6 +1118,8 @@ function DetailContent({ productName, market, detail }) {
 
       {/* 6. AI 方向預測卡 */}
       <DirectionCard productName={productName} market={market} />
+      <div className="detail-related-links"><button onClick={() => window.location.assign('/season')}>看看節氣推薦 <ArrowRight size={15} /></button><button onClick={() => window.location.assign('/alerts')}>查看提醒中心 <ArrowRight size={15} /></button></div>
+      <Toast message={toastMessage} />
     </>
   );
 }

@@ -7,11 +7,22 @@ const adviceByStatus = {
 
 export function getConsumerAdvice(status = '資料不足', direction) {
   const base = adviceByStatus[status] || adviceByStatus.資料不足;
-  if (direction === '漲' && status !== '偏貴') return { label: '可考慮提前買', text: '近期可能上漲，有需要可以考慮先買。' };
-  if (direction === '跌' && status === '偏貴') return { label: '可再觀察', text: '近期可能回落，可以先觀察價格變化。' };
+  if (direction === '漲' && status !== '偏貴') {
+    return { label: '可考慮提前買', text: '近期可能上漲，有需要可以考慮先買。' };
+  }
+  if (direction === '跌' && status === '偏貴') {
+    return { label: '可再觀察', text: '近期可能回落，可以先觀察價格變化。' };
+  }
   return base;
 }
 
 export function getPriceStatus(item) {
-  return item.status || (item.today_price == null ? '資料不足' : '正常');
+  if (!item) return '資料不足';
+
+  return (
+    item.status
+    || item.price_status
+    || item.price_detail?.status
+    || (item.today_price == null ? '資料不足' : '正常')
+  );
 }

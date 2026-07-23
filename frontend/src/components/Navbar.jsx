@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { fetchNotifications, fetchUnreadCount, markNotificationRead, markAllNotificationsRead } from '../lib/notificationsApi';
+import { loadNotificationPage, fetchUnreadCount, markNotificationRead, markAllNotificationsRead } from '../lib/notificationsAdapter';
 
 const NOTIF_POLL_MS = 45000; // 未讀通知輪詢間隔：介於已確認的 30~60 秒範圍內
 const NOTIF_PAGE_SIZE = 10;
@@ -59,7 +59,7 @@ export function NotificationBell() {
   function loadNotifications(offset) {
     setLoading(true);
     setLoadError('');
-    fetchNotifications({ limit: NOTIF_PAGE_SIZE, offset })
+    loadNotificationPage({ limit: NOTIF_PAGE_SIZE, offset })
       .then(data => {
         setItems(list => (offset === 0 ? data.items : [...list, ...data.items]));
         setHasMore(offset + data.items.length < data.total);

@@ -5,6 +5,7 @@ import ProtectedRoute from './components/shared/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
 import PublicLayout from './layouts/PublicLayout';
 import AgriNews from './pages/AgriNews';
+import Alerts from './pages/Alerts';
 import DashboardOverview from './pages/dashboard/DashboardOverview';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -15,6 +16,7 @@ import PriceSearch from './pages/PriceSearch';
 import ProductDetail from './pages/ProductDetail';
 import Register from './pages/Register';
 import Settings from './pages/Settings';
+import Season from './pages/Season';
 
 const dashboardModules = {
   prices: '行情管理',
@@ -57,11 +59,8 @@ export default function App() {
           <Route path="/news" element={<AgriNews />} />
           <Route path="/mutual-aid" element={<MutualAid />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/alerts" element={<Placeholder title="提醒中心" />} />
-          <Route
-            path="/season"
-            element={<Placeholder title="節氣與當季推薦" />}
-          />
+          <Route path="/alerts" element={<Alerts />} />
+          <Route path="/season" element={<Season />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Route>
