@@ -1,46 +1,37 @@
 import { useState } from 'react';
-import { ArrowRight, Info, MapPin, Search } from 'lucide-react';
+import { ArrowRight, ExternalLink, Info, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../shared/Card';
 import SourceBadge from './SourceBadge';
 
-const SAMPLE_PRODUCE_ORIGINS = {
-  高麗菜: { origins: ['彰化縣', '雲林縣', '南投縣'], statusNote: '正式農業部產區資料尚未介接 API' },
-  番茄: { origins: ['嘉義縣', '高雄市', '臺南市'], statusNote: '正式農業部產區資料尚未介接 API' },
-  青蔥: { origins: ['宜蘭縣', '彰化縣', '雲林縣'], statusNote: '正式農業部產區資料尚未介接 API' },
-  竹筍: { origins: ['新北市', '臺南市', '嘉義縣'], statusNote: '正式農業部產區資料尚未介接 API' },
-};
+const QUICK_PRODUCE = ['高麗菜', '番茄', '青蔥', '竹筍'];
 
-export default function ProduceOriginPanel() {
+export default function ProduceOriginPanel({ publicationUrl, openDataUrl }) {
   const navigate = useNavigate();
   const [selectedProduce, setSelectedProduce] = useState('高麗菜');
   const [customSearch, setCustomSearch] = useState('');
 
-  const currentInfo = SAMPLE_PRODUCE_ORIGINS[selectedProduce] || {
-    origins: ['雲林縣', '彰化縣'],
-    statusNote: '正式農業部產區資料尚未介接 API',
-  };
-
-  function handleSearch(e) {
-    e.preventDefault();
-    if (customSearch.trim()) {
-      setSelectedProduce(customSearch.trim());
-    }
+  function handleSearch(event) {
+    event.preventDefault();
+    if (customSearch.trim()) setSelectedProduce(customSearch.trim());
   }
 
   return (
     <Card className="produce-origin-panel">
       <div className="panel-header">
         <div>
-          <h3>農產在哪 — 主要產地查詢</h3>
-          <p>搜尋或選擇農產品，了解主要生產縣市與行情。</p>
+          <h3>農產在哪 — 產地資料查詢</h3>
+          <p>選擇農產品，查看目前資料狀態與市場行情入口。</p>
         </div>
-        <SourceBadge type="Unavailable" label="產地 API: 尚未接入" />
+        <div className="explorer-source-group">
+          <SourceBadge type="Official Publication" label="官方來源已確認" />
+          <SourceBadge type="Unavailable" label="產地資料介接中" />
+        </div>
       </div>
 
       <div className="produce-selector-row">
         <div className="quick-produce-buttons">
-          {Object.keys(SAMPLE_PRODUCE_ORIGINS).map((item) => (
+          {QUICK_PRODUCE.map((item) => (
             <button
               key={item}
               type="button"
@@ -53,39 +44,39 @@ export default function ProduceOriginPanel() {
         </div>
 
         <form onSubmit={handleSearch} className="origin-search-form">
+          <label htmlFor="origin-produce-search" className="sr-only">輸入其他蔬果</label>
           <input
+            id="origin-produce-search"
             value={customSearch}
-            onChange={(e) => setCustomSearch(e.target.value)}
+            onChange={(event) => setCustomSearch(event.target.value)}
             placeholder="輸入其他蔬果"
-            aria-label="輸入其他蔬果"
           />
-          <button type="submit" aria-label="搜尋產地">
-            <Search size={16} />
+          <button type="submit" aria-label="確認查詢農產品">
+            <Search size={16} aria-hidden="true" />
           </button>
         </form>
       </div>
 
       <div className="origin-result-box">
-        <div className="origin-title">
-          <MapPin size={20} className="text-emerald-700" />
-          <h4><strong>{selectedProduce}</strong> 的主要生產縣市與市場區域</h4>
-        </div>
-
-        <div className="origin-counties-list">
-          {currentInfo.origins.map((county) => (
-            <div key={county} className="origin-county-tag">
-              <span>{county}</span>
-            </div>
-          ))}
-        </div>
-
         <div className="origin-unavailable-notice">
-          <Info size={16} className="shrink-0 text-amber-700" />
+          <Info size={18} className="shrink-0 text-amber-700" aria-hidden="true" />
           <span>
-            <strong>資料狀態說明：</strong>
-            正式縣市栽培面積、產量排名與詳細產區 API 尚未正式介接。
-            上述為種子參考資料，請點擊下方按鈕查詢各批發市場即時成交行情。
+            <strong>{selectedProduce} 的正式產地統計尚未介接。</strong>
+            目前不顯示推測縣市、虛構產量或排名；完成農業部資料 ETL 後，才會呈現主要產區、種植面積、收穫量與年度。
           </span>
+        </div>
+
+        <div className="official-source-links">
+          {publicationUrl && (
+            <a href={publicationUrl} target="_blank" rel="noreferrer">
+              查看農業統計書刊 <ExternalLink size={14} aria-hidden="true" />
+            </a>
+          )}
+          {openDataUrl && (
+            <a href={openDataUrl} target="_blank" rel="noreferrer">
+              查看農情調查開放資料 <ExternalLink size={14} aria-hidden="true" />
+            </a>
+          )}
         </div>
 
         <div className="origin-action-row">
