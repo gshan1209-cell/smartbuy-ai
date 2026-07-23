@@ -1,0 +1,335 @@
+.dashboard-metric-card {
+  min-height: 170px;
+}
+
+.metric-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: start;
+}
+
+.metric-card-head > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--yz-mut);
+  font-weight: 700;
+}
+
+.metric-value {
+  display: block;
+  font-size: clamp(24px, 3vw, 34px);
+  margin: 18px 0 8px;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-metric-card p {
+  color: var(--yz-mut);
+  min-height: 38px;
+}
+
+.dashboard-metric-card small,
+.chart-meta {
+  display: block;
+  color: var(--yz-dim);
+  margin-top: 12px;
+}
+
+.dashboard-chart-card {
+  min-width: 0;
+}
+
+.dashboard-chart-card > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.dashboard-chart-card h2 {
+  font-size: 19px;
+}
+
+.dashboard-chart-card header p {
+  color: var(--yz-mut);
+  margin-top: 4px;
+}
+
+.dashboard-source-label {
+  color: var(--yz-g);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chart-container {
+  min-height: 170px;
+  display: grid;
+  gap: 18px;
+  align-items: center;
+}
+
+.intel-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.intel-summary strong {
+  grid-column: 1 / -1;
+  font-size: 30px;
+  color: var(--yz-g);
+}
+
+.intel-summary span {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--yz-gl);
+  color: var(--yz-mut);
+}
+
+.market-intel-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.market-intel-lists > div {
+  padding: 12px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+}
+
+.market-intel-lists b {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.market-intel-lists p {
+  color: var(--yz-mut);
+  line-height: 1.55;
+}
+
+.distribution-section h3 {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--yz-mut);
+}
+
+.distribution-bars {
+  display: grid;
+  gap: 14px;
+}
+
+.distribution-bars > div {
+  display: grid;
+  grid-template-columns: 64px 1fr 35px;
+  gap: 10px;
+  align-items: center;
+}
+
+.distribution-bars > div > div {
+  background: var(--yz-bdr);
+  height: 12px;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.distribution-bars i {
+  display: block;
+  height: 100%;
+  background: var(--yz-g);
+  border-radius: inherit;
+}
+
+.distribution-bars b {
+  text-align: right;
+}
+
+.responsive-table {
+  overflow: hidden;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 12px;
+  background: var(--yz-card-bg);
+}
+
+.responsive-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.responsive-table th,
+.responsive-table td {
+  padding: 13px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--yz-bdr);
+  font-size: 14px;
+}
+
+.responsive-table th {
+  color: var(--yz-mut);
+  background: var(--yz-gl);
+}
+
+.table-sort-button {
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.table-sort-button:focus-visible,
+.responsive-table tbody tr:focus-visible,
+.mobile-table-cards article[role='button']:focus-visible {
+  outline: 2px solid var(--yz-g);
+  outline-offset: -2px;
+}
+
+.responsive-table tbody tr[tabindex] {
+  cursor: pointer;
+}
+
+.responsive-table tbody tr[tabindex]:hover,
+.responsive-table tbody tr[tabindex]:focus-visible {
+  background: var(--yz-gl);
+}
+
+.mobile-table-cards {
+  display: none;
+}
+
+.table-state {
+  padding: 28px;
+  color: var(--yz-mut);
+}
+
+.table-error {
+  color: var(--color-danger);
+}
+
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.table-pagination button {
+  min-height: 40px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  background: var(--yz-card-bg);
+  color: var(--yz-g);
+  padding: 7px 12px;
+  font-weight: 700;
+}
+
+.table-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.table-pagination span {
+  color: var(--yz-mut);
+  font-size: 13px;
+}
+
+.dashboard-filter-bar {
+  margin-left: auto;
+}
+
+.dashboard-filter-fields {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.dashboard-filter-fields label {
+  color: var(--yz-mut);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dashboard-filter-fields input,
+.dashboard-filter-fields select {
+  display: block;
+  min-height: 44px;
+  min-width: 150px;
+  margin-top: 4px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--yz-card-bg);
+  color: var(--yz-txt);
+}
+
+.dashboard-filter-fields button,
+.mobile-filter-trigger {
+  min-height: 44px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  background: var(--yz-card-bg);
+  color: var(--yz-g);
+  padding: 8px 12px;
+  font-weight: 700;
+}
+
+.dashboard-filter-fields .filter-apply {
+  border-color: var(--yz-g);
+  background: var(--yz-g);
+  color: #fff;
+}
+
+.mobile-filter-trigger {
+  display: none;
+}
+
+@media (max-width: 1199px) {
+  .responsive-table .hide-on-tablet {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .dashboard-chart-card > header {
+    display: grid;
+  }
+
+  .dashboard-source-label {
+    white-space: normal;
+  }
+
+  .market-intel-lists,
+  .intel-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .intel-summary strong {
+    grid-column: auto;
+  }
+
+  .distribution-bars > div {
+    grid-template-columns: 62px 1fr 30px;
+  }
+
+  .dashboard-filter-fields {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .dashboard-filter-fields input,
+  .dashboard-filter-fields select,
+  .dashboard-filter-fields button {
+    width: 100%;
+  }
+
+  .table-pagination {
+    justify-content: space-between;
+  }
+}
