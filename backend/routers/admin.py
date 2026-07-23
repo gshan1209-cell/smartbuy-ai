@@ -12,3 +12,19 @@ def admin_access(member: dict = Depends(require_permissions("dashboard.view"))):
         "permissions": permissions_for_role(member["role"]),
         "dashboardAccess": True,
     }
+
+
+@router.get("/weather/status")
+def weather_status(member: dict = Depends(require_permissions("weather.view"))):
+    return {
+        "available": False,
+        "status": "unavailable",
+        "provider": None,
+        "lastUpdatedAt": None,
+        "reason": "尚未接入正式中央氣象署資料來源",
+        "capabilities": {
+            "countyForecast": False,
+            "weatherAlerts": False,
+            "cropRiskRules": False,
+        },
+    }

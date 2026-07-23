@@ -1,0 +1,115 @@
+.dashboard-predictions-page {
+  display: grid;
+  gap: 20px;
+}
+
+.prediction-distribution-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.prediction-distribution-grid > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 80px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--yz-gl);
+}
+
+.prediction-distribution-grid span {
+  color: var(--yz-mut);
+  font-size: 13px;
+}
+
+.prediction-distribution-grid strong {
+  font-size: 26px;
+}
+
+.prediction-direction-up strong { color: var(--color-danger, #d9534f); }
+.prediction-direction-flat strong { color: var(--yz-mut, #666); }
+.prediction-direction-down strong { color: var(--color-success, #2e7d32); }
+
+.prediction-risk-high strong { color: var(--color-danger, #d9534f); }
+.prediction-risk-medium strong { color: var(--color-warning, #f0ad4e); }
+.prediction-risk-normal strong { color: var(--color-success, #2e7d32); }
+
+.high-risk-list {
+  display: grid;
+  gap: 10px;
+}
+
+.high-risk-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 4px solid var(--color-danger, #d9534f);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--yz-gl);
+}
+
+.high-risk-item div {
+  display: grid;
+  gap: 2px;
+}
+
+.high-risk-item strong {
+  font-size: 15px;
+}
+
+.high-risk-item span {
+  color: var(--yz-mut);
+  font-size: 13px;
+}
+
+.prediction-detail-drawer {
+  display: grid;
+  gap: 14px;
+}
+
+.prediction-detail-drawer h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.prediction-detail-main-value {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 28px;
+}
+
+.prediction-detail-drawer dl {
+  display: grid;
+  grid-template-columns: minmax(110px, auto) 1fr;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 10px;
+  background: var(--yz-gl);
+}
+
+.prediction-detail-drawer dt {
+  color: var(--yz-mut);
+}
+
+.prediction-detail-drawer dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+}
+
+@media (max-width: 767px) {
+  .dashboard-predictions-page {
+    gap: 16px;
+  }
+
+  .prediction-distribution-grid {
+    grid-template-columns: 1fr;
+  }
+}

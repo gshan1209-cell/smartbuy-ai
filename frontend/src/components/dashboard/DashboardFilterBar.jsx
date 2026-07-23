@@ -14,6 +14,12 @@ export default function DashboardFilterBar({
   status = '',
   onStatusChange,
   statusOptions = defaultStatusOptions,
+  direction = '',
+  onDirectionChange,
+  directionOptions = [],
+  risk = '',
+  onRiskChange,
+  riskOptions = [],
   market = '',
   onMarketChange,
   marketOptions = [],
@@ -27,16 +33,18 @@ export default function DashboardFilterBar({
   onClear,
 }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState({ query, status, market, product, dateFrom, dateTo });
+  const [draft, setDraft] = useState({ query, status, direction, risk, market, product, dateFrom, dateTo });
 
   function openMobileFilters() {
-    setDraft({ query, status, market, product, dateFrom, dateTo });
+    setDraft({ query, status, direction, risk, market, product, dateFrom, dateTo });
     setOpen(true);
   }
 
   function applyMobileFilters() {
     onQueryChange?.(draft.query);
     onStatusChange?.(draft.status);
+    onDirectionChange?.(draft.direction);
+    onRiskChange?.(draft.risk);
     onMarketChange?.(draft.market);
     onProductChange?.(draft.product);
     onDateFromChange?.(draft.dateFrom);
@@ -45,13 +53,13 @@ export default function DashboardFilterBar({
   }
 
   function clearMobileFilters() {
-    const cleared = { query: '', status: '', market: '', product: '', dateFrom: '', dateTo: '' };
+    const cleared = { query: '', status: '', direction: '', risk: '', market: '', product: '', dateFrom: '', dateTo: '' };
     setDraft(cleared);
     onClear?.();
   }
 
   function FilterFields({ mobile = false }) {
-    const values = mobile ? draft : { query, status, market, product, dateFrom, dateTo };
+    const values = mobile ? draft : { query, status, direction, risk, market, product, dateFrom, dateTo };
     const update = (key, value) => {
       if (mobile) {
         setDraft((current) => ({ ...current, [key]: value }));
@@ -60,6 +68,8 @@ export default function DashboardFilterBar({
       const handlers = {
         query: onQueryChange,
         status: onStatusChange,
+        direction: onDirectionChange,
+        risk: onRiskChange,
         market: onMarketChange,
         product: onProductChange,
         dateFrom: onDateFromChange,
@@ -90,6 +100,40 @@ export default function DashboardFilterBar({
             >
               {statusOptions.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {onDirectionChange && (
+          <label>
+            方向
+            <select
+              value={values.direction}
+              onChange={(event) => update('direction', event.target.value)}
+            >
+              <option value="">全部方向</option>
+              {directionOptions.map((option) => (
+                <option key={option.value ?? option} value={option.value ?? option}>
+                  {option.label ?? option}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {onRiskChange && (
+          <label>
+            風險
+            <select
+              value={values.risk}
+              onChange={(event) => update('risk', event.target.value)}
+            >
+              <option value="">全部風險</option>
+              {riskOptions.map((option) => (
+                <option key={option.value ?? option} value={option.value ?? option}>
+                  {option.label ?? option}
+                </option>
               ))}
             </select>
           </label>
