@@ -13,8 +13,9 @@ const mobileMenuLinks = [
 
 export default function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { dashboardAccess } = useAuth();
-  const menuLinks = dashboardAccess?.dashboardAccess
+  const { user, dashboardAccess } = useAuth();
+  const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(user?.role);
+  const menuLinks = dashboardAccess?.dashboardAccess || hasDashboardRole
     ? [...mobileMenuLinks, ['/dashboard', '後台']]
     : mobileMenuLinks;
 
