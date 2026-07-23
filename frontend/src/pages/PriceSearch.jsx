@@ -24,8 +24,8 @@ import './PriceSearch.css';
 
 const DEFAULT_SORT = 'volume:desc';
 const DEFAULT_PRICE_RANGE = [0, 1000];
-const statusOptions = ['', '便宜', '正常', '偏貴'];
-const statusIcons = {
+const STATUS_OPTIONS = ['', '便宜', '正常', '偏貴'];
+const STATUS_ICONS = {
   便宜: TrendingDown,
   正常: BarChart3,
   偏貴: TrendingUp,
@@ -47,7 +47,6 @@ function getSevenDayReturn(item) {
   ) {
     return null;
   }
-
   return (item.today_price - item.recent_average) / item.recent_average;
 }
 
@@ -56,6 +55,15 @@ function compareNullableNumbers(a, b, direction) {
   if (a == null) return 1;
   if (b == null) return -1;
   return direction === 'asc' ? a - b : b - a;
+}
+
+function normalizeRange(range) {
+  const min = Number(range[0]);
+  const max = Number(range[1]);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < min) {
+    return null;
+  }
+  return [min, max];
 }
 
 function FilterFields({ values, markets, priceRange, onChange, onPriceChange }) {
@@ -114,7 +122,7 @@ function FilterFields({ values, markets, priceRange, onChange, onPriceChange }) 
       <fieldset>
         <legend>價格狀態</legend>
         <div className="status-filters">
-          {statusOptions.map((value) => (
+          {STATUS_OPTIONS.map((value) => (
             <button
               type="button"
               key={value || 'all'}
@@ -130,37 +138,17 @@ function FilterFields({ values, markets, priceRange, onChange, onPriceChange }) 
   );
 }
 
-function AdvancedMarketIntel() {
-  const [open, setOpen] = useState(false);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+function MarketIntelChart({ data }) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
 
   useEffect(() => {
-    if (!open || data || loading) return;
+    if (!canvasRef.current) return undefined;
 
-    setLoading(true);
-    setError(false);
-    get('/api/market-intel')
-      .then((response) => {
-        if (!response || Object.keys(response).length === 0) {
-          throw new Error('empty market intel');
-        }
-        setData(response);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [data, loading, open]);
-
-  useEffect(() => {
-    if (!open || !data || !canvasRef.current) return undefined;
-
-    const gainers = [...(data.gainers || [])].reverse();
-    const losers = [...(data.losers || [])];
-    const chartItems = [...gainers, ...losers];
-
+    const chartItems = [
+      ...[...(data.gainers || [])].reverse(),
+      ...(data.losers || []),
+    ];
     if (!chartItems.length) return undefined;
 
     chartRef.current?.destroy();
@@ -170,7 +158,9 @@ function AdvancedMarketIntel() {
         labels: chartItems.map((item) => item.crop_name),
         datasets: [{
           label: '近 7 日漲跌',
-          data: chartItems.map((item) => Math.round((item.price_return_7 || 0) * 1000) / 10),
+          data: chartItems.map(
+            (item) => Math.round((item.price_return_7 || 0) * 1000) / 10,
+          ),
           backgroundColor: chartItems.map((item) => (
             item.price_return_7 >= 0
               ? 'rgba(220, 38, 38, 0.75)'
@@ -206,7 +196,30 @@ function AdvancedMarketIntel() {
       chartRef.current?.destroy();
       chartRef.current = null;
     };
-  }, [data, open]);
+  }, [data]);
+
+  return <div className="advanced-chart"><canvas ref={canvasRef} /></div>;
+}
+
+function AdvancedMarketIntel() {
+  const [open, setOpen] = useState(false);
+  const [loadState, setLoadState] = useState('idle');
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    if (!open || loadState !== 'idle') return;
+
+    setLoadState('loading');
+    get('/api/market-intel')
+      .then((response) => {
+        if (!response || Object.keys(response).length === 0) {
+          throw new Error('empty market intel');
+        }
+        setData(response);
+        setLoadState('ready');
+      })
+      .catch(() => setLoadState('error'));
+  }, [loadState, open]);
 
   const stability = data?.market_stability;
   const bias = data?.market_bias;
@@ -226,14 +239,25 @@ function AdvancedMarketIntel() {
 
       {open && (
         <div className="advanced-content">
-          {loading && <LoadingState label="正在載入全台市場資訊…" />}
-          {error && (
+          {loadState === 'loading' && (
+            <LoadingState label="正在載入全台市場資訊…" />
+          )}
+          {loadState === 'error' && (
             <EmptyState
               title="目前無法取得進階市場資訊"
               description="一般菜價查詢仍可正常使用，稍後再查看市場分析。"
+              action={(
+                <button
+                  type="button"
+                  className="consumer-link"
+                  onClick={() => setLoadState('idle')}
+                >
+                  重新載入
+                </button>
+              )}
             />
           )}
-          {!loading && !error && data && (
+          {loadState === 'ready' && data && (
             <>
               <div className="market-intel-heading">
                 <div>
@@ -262,11 +286,15 @@ function AdvancedMarketIntel() {
                   <AlertTriangle size={20} aria-hidden="true" />
                   <span>異常警報</span>
                   <strong>{alerts.length} 項</strong>
-                  <small>{alerts.length ? alerts.slice(0, 3).map((item) => item.crop_name).join('、') : '目前無異常警報'}</small>
+                  <small>
+                    {alerts.length
+                      ? alerts.slice(0, 3).map((item) => item.crop_name).join('、')
+                      : '目前無異常警報'}
+                  </small>
                 </div>
               </div>
 
-              <div className="advanced-chart"><canvas ref={canvasRef} /></div>
+              <MarketIntelChart data={data} />
               <p className="market-intel-note">
                 此區保留原有市場風險、漲跌偏向與異常資料，提供需要進階分析的使用者查看。
               </p>
@@ -280,7 +308,7 @@ function AdvancedMarketIntel() {
 
 function PriceResultCard({ item, saved, onToggleSaved, onOpen }) {
   const currentStatus = getPriceStatus(item);
-  const Icon = statusIcons[currentStatus] || Search;
+  const Icon = STATUS_ICONS[currentStatus] || Search;
   const advice = getConsumerAdvice(currentStatus, item.prediction_direction);
   const return7 = getSevenDayReturn(item);
   const statusClass = {
@@ -372,6 +400,7 @@ export default function PriceSearch() {
   const toastTimerRef = useRef(null);
 
   useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
+  useEffect(() => setInput(query), [query]);
 
   useEffect(() => {
     get('/api/markets')
@@ -418,6 +447,13 @@ export default function PriceSearch() {
     updateSearchParams({ [paramKey]: value });
   }
 
+  function handleDesktopPriceChange(nextRange) {
+    setPriceRange(nextRange);
+    const normalized = normalizeRange(nextRange);
+    if (!normalized) return;
+    setPriceRange(normalized);
+  }
+
   function openDrawer() {
     setDraftFilters({ market, status, sort });
     setDraftPriceRange([...priceRange]);
@@ -425,20 +461,13 @@ export default function PriceSearch() {
   }
 
   function applyMobileFilters() {
-    const minPrice = Number(draftPriceRange[0]);
-    const maxPrice = Number(draftPriceRange[1]);
-
-    if (
-      !Number.isFinite(minPrice)
-      || !Number.isFinite(maxPrice)
-      || minPrice < 0
-      || maxPrice < minPrice
-    ) {
+    const normalized = normalizeRange(draftPriceRange);
+    if (!normalized) {
       showToast('請確認價格範圍，最高價格需大於或等於最低價格');
       return;
     }
 
-    setPriceRange([minPrice, maxPrice]);
+    setPriceRange(normalized);
     updateSearchParams({
       market: draftFilters.market,
       filter: draftFilters.status,
@@ -455,6 +484,7 @@ export default function PriceSearch() {
   const visibleItems = useMemo(() => {
     const [sortColumn, sortDirection] = sort.split(':');
     const normalizedQuery = query.trim();
+    const normalizedRange = normalizeRange(priceRange) || DEFAULT_PRICE_RANGE;
 
     return items
       .filter((item) => !normalizedQuery || item.product_name?.includes(normalizedQuery))
@@ -462,8 +492,8 @@ export default function PriceSearch() {
       .filter((item) => (
         item.today_price == null
         || (
-          item.today_price >= Number(priceRange[0])
-          && item.today_price <= Number(priceRange[1])
+          item.today_price >= normalizedRange[0]
+          && item.today_price <= normalizedRange[1]
         )
       ))
       .sort((a, b) => {
@@ -510,8 +540,8 @@ export default function PriceSearch() {
     market
     || status
     || sort !== DEFAULT_SORT
-    || priceRange[0] !== DEFAULT_PRICE_RANGE[0]
-    || priceRange[1] !== DEFAULT_PRICE_RANGE[1]
+    || Number(priceRange[0]) !== DEFAULT_PRICE_RANGE[0]
+    || Number(priceRange[1]) !== DEFAULT_PRICE_RANGE[1]
   );
 
   return (
@@ -549,7 +579,7 @@ export default function PriceSearch() {
             markets={markets}
             priceRange={priceRange}
             onChange={handleDesktopFilterChange}
-            onPriceChange={setPriceRange}
+            onPriceChange={handleDesktopPriceChange}
           />
         </div>
 
