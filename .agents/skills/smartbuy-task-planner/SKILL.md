@@ -1,6 +1,6 @@
 ---
 name: smartbuy-task-planner
-description: Use for new features, cross-layer changes, broad refactors, ambiguous tasks, or when defining the next SmartBuy AI pull request. Do not use for a tiny isolated edit with already explicit acceptance criteria.
+description: 適用於規劃新功能、跨層修改、大型重構、需求不明確，或定義下一個 SmartBuy AI Pull Request；若只是驗收條件已明確的單一小修改，則不應使用。
 ---
 
 # SmartBuy Task Planner
