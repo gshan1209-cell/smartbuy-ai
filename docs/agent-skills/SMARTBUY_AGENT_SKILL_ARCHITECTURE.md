@@ -86,23 +86,26 @@ Agent 應只載入完成任務所需的技能。例如：
 ```yaml
 ---
 name: smartbuy-example-skill
-description: Use when ... Do not use when ...
+description: 適用於實作或審查指定工作；不適用於與此領域無關的任務。
 ---
 ```
 
-命名規則：
+命名與描述規則：
 
-- 全部使用小寫 kebab-case。
-- 專案技能統一以 `smartbuy-` 開頭。
+- `name` 全部使用小寫 kebab-case。
+- 專案技能名稱統一以 `smartbuy-` 開頭。
 - 名稱描述工作，不描述 Agent 身分。
+- `description` **必須使用繁體中文**，不可只寫英文描述。
 - `description` 前段先寫最重要的觸發情境，避免技能清單被截短時失去辨識能力。
+- `description` 應同時說明「何時使用」與「何時不使用」，讓 Agent 能正確選擇技能。
+- 技術名稱、套件名稱、路由名稱與正式角色值可保留英文。
 
 ## 7. 新技能模板
 
 ```markdown
 ---
 name: smartbuy-example-skill
-description: Use when implementing or reviewing ... Do not use for ...
+description: 適用於實作或審查某類 SmartBuy AI 工作；不適用於僅涉及其他領域的修改。
 ---
 
 # Purpose
