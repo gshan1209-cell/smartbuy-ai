@@ -55,7 +55,24 @@
 - 變更 API 時應優先維持相容；破壞性變更必須有 migration 與明確說明。
 - 一個 PR 只處理一個清楚範圍，確保可獨立建置、驗收與回滾。
 
-## 5. 任務交付格式
+## 5. 專案結構規範
+
+涉及新增目錄、搬移檔案、拆分模組、整理依賴或大型重構時，必須先閱讀：
+
+```text
+docs/architecture/PROJECT_STRUCTURE.md
+```
+
+結構調整的共同原則：
+
+- `backend/main.py` 只保留部署入口；FastAPI 組裝放在 `backend/application.py`。
+- Router 集中於 `backend/api/router.py` 註冊；生命週期集中於 `backend/core/lifecycle.py`。
+- 與 FastAPI 無關的資料、規則、特徵與模型能力優先放在根目錄 `src/`。
+- `frontend/src/App.jsx` 只保留應用外殼；路由放在 `routes/`，穩定設定放在 `config/`，瀏覽器副作用放在 `hooks/`。
+- 新增共用元件前先檢查 `components/shared/`，不得建立功能重複但命名不同的第二套元件。
+- 舊檔案只能在引用、測試、部署與回滾方式都確認後分批搬移，不得一次全站搬家。
+
+## 6. 任務交付格式
 
 每次完成任務，至少交付：
 
@@ -67,12 +84,12 @@
 
 只寫「完成」或「Build 成功」不算完整交付。
 
-## 6. 技能維護
+## 7. 技能維護
 
 新增或修改技能時必須：
 
 - 放在 `.agents/skills/<skill-name>/SKILL.md`。
-- `SKILL.md` 包含 `name` 與 `description` frontmatter。
+- `SKILL.md` 包含 `name` 與繁體中文 `description` frontmatter。
 - 一個技能只負責一類可重複工作。
 - 描述清楚寫出何時應觸發與何時不應觸發。
 - 指令使用可執行的步驟、輸入、輸出與驗收條件。
