@@ -4,14 +4,15 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.router import register_routers
-from backend.core.lifecycle import app_lifespan
+# settings 必須先載入，確保依賴環境變數的 Router 與資料模組取得 .env。
 from backend.core.settings import (
     APP_TITLE,
     APP_VERSION,
     CORS_ORIGIN_REGEX,
     CORS_ORIGINS,
 )
+from backend.api.router import register_routers
+from backend.core.lifecycle import app_lifespan
 
 
 def create_app() -> FastAPI:
