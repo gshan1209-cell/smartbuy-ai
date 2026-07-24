@@ -1,6 +1,6 @@
 ---
 name: smartbuy-api-change
-description: Use when implementing or reviewing FastAPI routers, Pydantic schemas, SQLAlchemy models, Supabase/PostgreSQL access, JWT authentication, cookies, caching, background jobs, or API contracts in SmartBuy AI. Do not use for documentation-only or frontend-only changes.
+description: 適用於實作或審查 SmartBuy AI 的 FastAPI Router、Pydantic Schema、SQLAlchemy Model、Supabase／PostgreSQL 存取、JWT 驗證、Cookie、快取、背景工作與 API 契約；不適用於僅修改文件或僅修改前端的工作。
 ---
 
 # SmartBuy API Change
