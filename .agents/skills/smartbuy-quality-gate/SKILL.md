@@ -1,6 +1,6 @@
 ---
 name: smartbuy-quality-gate
-description: Use before declaring any SmartBuy AI feature, refactor, bug fix, or pull request complete. Covers build, tests, regression, responsive UI, permissions, data-source truthfulness, and delivery evidence. Do not use as a substitute for implementing the task.
+description: 適用於宣告任何 SmartBuy AI 功能、重構、錯誤修正或 Pull Request 完成之前，涵蓋建置、測試、功能回歸、響應式介面、權限、資料來源真實性與交付證據；不得用來取代實際開發工作。
 ---
 
 # SmartBuy Quality Gate
