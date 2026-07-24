@@ -1,6 +1,6 @@
 ---
 name: smartbuy-agri-intelligence
-description: Use when implementing or reviewing agriculture market data, county crops, weather risk, 24 solar terms, seasonal produce, price direction predictions, buying advice, or source freshness in SmartBuy AI. Do not use for generic UI work without agriculture data meaning.
+description: 適用於實作或審查 SmartBuy AI 的農產品行情、縣市農產、天氣風險、二十四節氣、當季蔬果、價格方向預測、採買建議與資料新鮮度；不適用於不涉及農業資料意義的一般介面工作。
 ---
 
 # SmartBuy Agriculture Intelligence
