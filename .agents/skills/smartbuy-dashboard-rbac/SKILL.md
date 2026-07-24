@@ -1,6 +1,6 @@
 ---
 name: smartbuy-dashboard-rbac
-description: Use when implementing or reviewing SmartBuy AI dashboards, admin tools, farmer or merchant modules, sidebar navigation, role guards, permissions, or management workflows. Do not use for consumer-only public pages.
+description: 適用於實作或審查 SmartBuy AI 後台儀表板、管理工具、農民或商家模組、側邊導覽、角色守衛、權限控制與管理流程；不適用於僅涉及消費者前台的頁面。
 ---
 
 # SmartBuy Dashboard and RBAC
