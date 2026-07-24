@@ -1,6 +1,6 @@
 ---
 name: smartbuy-public-app
-description: Use when implementing or reviewing SmartBuy AI consumer-facing pages, navigation, search, product detail, basket, alerts, seasonal content, news, mutual aid, settings, or responsive UI. Do not use for dashboard-only administration work.
+description: 適用於實作或審查 SmartBuy AI 消費者前台頁面、導覽、查價、商品詳情、菜籃、提醒、節氣內容、新知、互助網、設定與響應式介面；不適用於僅涉及後台管理的工作。
 ---
 
 # SmartBuy Public App
