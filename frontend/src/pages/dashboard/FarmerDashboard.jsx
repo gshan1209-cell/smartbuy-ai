@@ -295,7 +295,7 @@ export default function FarmerDashboard() {
       {error && dashboard && <div className="dashboard-inline-warning" role="status">重新整理失敗，畫面保留上次成功資料：{error}</div>}
 
       <section className="dashboard-metric-grid farmer-dashboard-metrics" aria-label="農民工作台重點指標">
-        {metrics.map((metric) => <DashboardMetricCard key={metric.label} {...metric} updatedAt={latestDate || fetchedAt} />)}
+        {metrics.map((metric) => <DashboardMetricCard key={metric.label} {...metric} hideSource updatedAt={latestDate || fetchedAt} />)}
       </section>
 
       <div className="farmer-dashboard-context-strip" aria-label="農業決策背景資料">
