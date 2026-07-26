@@ -1,0 +1,145 @@
+.merchant-dashboard-hero {
+  border-color: #d9d6f0;
+  background: linear-gradient(135deg, #ffffff, #f7f5ff);
+  box-shadow: 0 10px 26px rgb(83 74 183 / 7%);
+}
+
+.merchant-dashboard-hero-icon {
+  border-color: #d2cbee;
+  background: #f2efff;
+  color: #6355b7;
+}
+
+.merchant-dashboard .farmer-dashboard-hero-actions > button {
+  border-color: #6355b7;
+  background: #6355b7;
+}
+
+.merchant-dashboard .farmer-dashboard-date {
+  border-color: #d9d6f0;
+}
+
+.merchant-dashboard .dashboard-metric-card {
+  border-color: #e2def5;
+}
+
+.merchant-dashboard .dashboard-metric-card:hover {
+  border-color: #b8afe5;
+  box-shadow: 0 14px 30px rgb(83 74 183 / 10%);
+}
+
+.merchant-dashboard .dashboard-metric-card:nth-child(2) .metric-status-donut {
+  box-shadow: 0 0 0 5px #f2f7ff;
+}
+
+.merchant-dashboard .dashboard-metric-card:nth-child(3) .metric-status-donut {
+  box-shadow: 0 0 0 5px #f0faf5;
+}
+
+.merchant-dashboard .dashboard-metric-card:nth-child(4) .metric-status-donut {
+  box-shadow: 0 0 0 5px #fff7e8;
+}
+
+.merchant-dashboard-context-strip > div {
+  border-color: #e2def5;
+}
+
+.merchant-dashboard-context-strip svg {
+  color: #6355b7;
+}
+
+.merchant-dashboard-visual-grid .dashboard-chart-card:nth-child(3) {
+  border-color: #eadfbd;
+  background: linear-gradient(135deg, #ffffff, #fffaf0);
+}
+
+.merchant-offer-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.merchant-offer-preview-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 68px;
+  border: 1px solid #f0e4c9;
+  border-radius: 12px;
+  padding: 10px;
+  background: rgb(255 255 255 / 80%);
+}
+
+.merchant-offer-preview-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #fff1cf;
+  font-size: 22px;
+}
+
+.merchant-offer-preview-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.merchant-offer-preview-copy span,
+.merchant-offer-preview-copy small {
+  overflow: hidden;
+  color: var(--yz-mut);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchant-offer-preview-copy span {
+  color: #a66b14;
+  font-weight: 800;
+}
+
+.merchant-offer-preview-copy strong {
+  overflow: hidden;
+  color: var(--yz-txt);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchant-offer-preview-card > a {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: #6355b7;
+}
+
+.merchant-offer-preview-card > a:hover,
+.merchant-offer-preview-card > a:focus-visible {
+  background: #f2efff;
+  outline: none;
+}
+
+.merchant-price-section {
+  border-color: #e2def5;
+}
+
+@media (max-width: 1199px) {
+  .merchant-offer-preview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .merchant-offer-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .merchant-offer-preview-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+}

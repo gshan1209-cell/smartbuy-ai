@@ -10,6 +10,7 @@ import AgriNews from '../pages/AgriNews';
 import Alerts from '../pages/Alerts';
 import DashboardOverview from '../pages/dashboard/DashboardOverview';
 import FarmerDashboard from '../pages/dashboard/FarmerDashboard';
+import MerchantDashboard from '../pages/dashboard/MerchantDashboard';
 import DashboardPredictions from '../pages/dashboard/DashboardPredictions';
 import DashboardPrices from '../pages/dashboard/DashboardPrices';
 import DashboardSeasonal from '../pages/dashboard/DashboardSeasonal';
@@ -72,6 +73,16 @@ export default function AppRoutes() {
               <GuardedModule permission={PERMISSIONS.DASHBOARD_VIEW}>
                 <RoleGuard roles={['farmer', 'admin']}>
                   <FarmerDashboard />
+                </RoleGuard>
+              </GuardedModule>
+            )}
+          />
+          <Route
+            path="merchant"
+            element={(
+              <GuardedModule permission={PERMISSIONS.DASHBOARD_VIEW}>
+                <RoleGuard roles={['merchant', 'admin']}>
+                  <MerchantDashboard />
                 </RoleGuard>
               </GuardedModule>
             )}
