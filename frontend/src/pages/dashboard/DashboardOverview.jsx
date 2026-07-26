@@ -8,6 +8,7 @@ import {
   Database,
   RefreshCw,
   ShieldAlert,
+  Sprout,
   Users,
 } from 'lucide-react';
 import DashboardChartCard from '../../components/dashboard/DashboardChartCard';
@@ -229,11 +230,16 @@ export default function DashboardOverview() {
 
   return (
     <div className="dashboard-overview">
-      <header className="dashboard-overview-heading">
-        <div>
-          <p className="eyebrow">Dashboard Overview</p>
-          <h1>營運總覽</h1>
-          <p>正式 API 優先的營運資料摘要。最後檢查：{updatedAt}</p>
+      <header className="dashboard-overview-heading overview-banner">
+        <div className="overview-banner-copy">
+          <div className="overview-banner-icon" aria-hidden="true">
+            <Sprout size={30} />
+          </div>
+          <div>
+            <p className="eyebrow">Dashboard Overview</p>
+            <h1>營運總覽</h1>
+            <p>正式 API 優先的營運資料摘要。最後檢查：{updatedAt}</p>
+          </div>
         </div>
         <div className="overview-actions">
           <Badge tone={partial ? 'warning' : 'neutral'}>
@@ -257,10 +263,25 @@ export default function DashboardOverview() {
         </div>
       )}
 
-      <section className="dashboard-metric-grid">
-        {metrics.map((metric) => (
+      <section className="dashboard-metric-grid dashboard-primary-metrics" aria-label="總覽重點指標">
+        {metrics.slice(0, 4).map((metric) => (
           <DashboardMetricCard key={metric.label} {...metric} updatedAt={updatedAt} />
         ))}
+      </section>
+
+      <section className="dashboard-secondary-metrics" aria-label="營運補充指標">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="eyebrow">OPERATIONS SIGNALS</p>
+            <h2>營運提醒</h2>
+          </div>
+          <span>同步自目前可用的管理 API</span>
+        </div>
+        <div className="dashboard-secondary-metric-grid">
+          {metrics.slice(4).map((metric) => (
+            <DashboardMetricCard key={metric.label} {...metric} updatedAt={updatedAt} />
+          ))}
+        </div>
       </section>
 
       <section className="dashboard-source-health">

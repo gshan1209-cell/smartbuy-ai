@@ -11,10 +11,11 @@
   display: flex;
   flex-direction: column;
   width: var(--sidebar-width);
-  border-right: 1px solid #245543;
+  border-right: 1px solid var(--yz-bdr);
   padding: 20px 12px;
-  background: #153b2e;
-  color: #f4fbf6;
+  background: var(--yz-card-bg);
+  color: var(--yz-txt);
+  box-shadow: 4px 0 18px rgb(26 62 45 / 5%);
 }
 
 .dashboard-brand {
@@ -23,7 +24,7 @@
   gap: 10px;
   min-height: 52px;
   padding: 8px 10px 22px;
-  color: #d9f2df;
+  color: var(--yz-gd);
   font-weight: 800;
 }
 
@@ -39,23 +40,23 @@
   min-height: 44px;
   border-radius: 9px;
   padding: 10px 12px;
-  color: #c9dfd0;
+  color: var(--yz-mut);
 }
 
 .dashboard-sidebar a:hover,
 .dashboard-sidebar a:focus-visible {
-  background: #245543;
-  color: #fff;
+  background: var(--yz-gl);
+  color: var(--yz-gd);
 }
 
 .dashboard-sidebar a:focus-visible {
-  outline: 2px solid #91d5a6;
+  outline: 2px solid var(--yz-g);
   outline-offset: 2px;
 }
 
 .dashboard-sidebar a.active {
-  background: #2d7050;
-  color: #fff;
+  background: var(--yz-gl);
+  color: var(--yz-gd);
   font-weight: 700;
 }
 
@@ -63,13 +64,13 @@
   display: grid;
   gap: 3px;
   margin-top: auto;
-  border-top: 1px solid #35614f;
+  border-top: 1px solid var(--yz-bdr);
   padding: 16px 10px 4px;
-  color: #d9f2df;
+  color: var(--yz-gd);
 }
 
 .dashboard-sidebar-footer small {
-  color: #9fc1ad;
+  color: var(--yz-mut);
 }
 
 .dashboard-topbar {
