@@ -1,6 +1,6 @@
 import { lazy } from 'react';
 
-import { isChunkLoadError } from './errorRecovery';
+import { isChunkLoadError } from './errorRecovery.js';
 
 const RETRY_PREFIX = 'smartbuy:lazy-retry:';
 
