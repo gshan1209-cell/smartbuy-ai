@@ -90,9 +90,13 @@ export async function readFocusableNameProblems(page) {
               .map((id) => document.getElementById(id)?.textContent || '')
               .join(' ')
           : '';
+        const nativeLabelText = Array.from(element.labels || [])
+          .map((label) => label.textContent || '')
+          .join(' ');
         const name = [
           element.getAttribute('aria-label'),
           labelledText,
+          nativeLabelText,
           element.getAttribute('title'),
           element.textContent,
           element.getAttribute('placeholder'),
