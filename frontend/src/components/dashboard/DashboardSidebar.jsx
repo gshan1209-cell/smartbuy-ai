@@ -28,6 +28,7 @@ export default function DashboardSidebar({ collapsed = false, onNavigate }) {
             to={to}
             onClick={onNavigate}
             end={to.endsWith('/overview')}
+            aria-label={label}
             title={collapsed ? label : undefined}
           >
             <Icon size={19} aria-hidden="true" />
