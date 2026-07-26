@@ -1,10 +1,10 @@
-import { get } from '../hooks/useApi';
+import { apiRequest } from './apiClient';
 
 let latestRecommendationRequest = 0;
 let latestRecommendationPromise = Promise.resolve(null);
 
 export async function loadRecommendationCategories() {
-  const payload = await get('/api/recommendations/categories');
+  const payload = await apiRequest('/api/recommendations/categories', { timeoutMs: 8000 });
   return Array.isArray(payload?.categories) ? payload.categories : [];
 }
 
@@ -12,7 +12,10 @@ export function loadRecommendation(category) {
   if (!category) return Promise.reject(new Error('請先選擇推薦分類。'));
 
   const requestId = ++latestRecommendationRequest;
-  const requestPromise = get(`/api/recommendations?category=${encodeURIComponent(category)}`);
+  const requestPromise = apiRequest(
+    `/api/recommendations?category=${encodeURIComponent(category)}`,
+    { timeoutMs: 150000 },
+  );
   latestRecommendationPromise = requestPromise;
 
   return requestPromise.then((payload) => {
