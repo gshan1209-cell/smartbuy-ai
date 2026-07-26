@@ -6,28 +6,52 @@ import { DASHBOARD_PLACEHOLDER_MODULES } from '../config/dashboardModules';
 import { PERMISSIONS } from '../config/permissions';
 import DashboardLayout from '../layouts/DashboardLayout';
 import PublicLayout from '../layouts/PublicLayout';
-import AgriNews from '../pages/AgriNews';
-import Alerts from '../pages/Alerts';
-import CouponManagement from '../pages/dashboard/CouponManagement';
-import DashboardOverview from '../pages/dashboard/DashboardOverview';
-import DashboardPredictions from '../pages/dashboard/DashboardPredictions';
-import DashboardPrices from '../pages/dashboard/DashboardPrices';
-import DashboardRecommendations from '../pages/dashboard/DashboardRecommendations';
-import DashboardSeasonal from '../pages/dashboard/DashboardSeasonal';
-import DashboardWeather from '../pages/dashboard/DashboardWeather';
-import ForbiddenPage from '../pages/ForbiddenPage';
-import Home from '../pages/Home';
-import Login from '../pages/Login';
-import MutualAid from '../pages/MutualAid';
-import MyBasket from '../pages/MyBasket';
-import Placeholder from '../pages/Placeholder';
-import PointsCenter from '../pages/PointsCenter';
-import PriceSearch from '../pages/PriceSearch';
-import ProductDetail from '../pages/ProductDetail';
-import Register from '../pages/Register';
-import Season from '../pages/Season';
-import Settings from '../pages/Settings';
-import SpecialOffers from '../pages/SpecialOffers';
+import lazyWithRetry from '../lib/lazyWithRetry';
+
+const AgriNews = lazyWithRetry(() => import('../pages/AgriNews'), 'agri-news');
+const Alerts = lazyWithRetry(() => import('../pages/Alerts'), 'alerts');
+const CouponManagement = lazyWithRetry(
+  () => import('../pages/dashboard/CouponManagement'),
+  'dashboard-coupons',
+);
+const DashboardOverview = lazyWithRetry(
+  () => import('../pages/dashboard/DashboardOverview'),
+  'dashboard-overview',
+);
+const DashboardPredictions = lazyWithRetry(
+  () => import('../pages/dashboard/DashboardPredictions'),
+  'dashboard-predictions',
+);
+const DashboardPrices = lazyWithRetry(
+  () => import('../pages/dashboard/DashboardPrices'),
+  'dashboard-prices',
+);
+const DashboardRecommendations = lazyWithRetry(
+  () => import('../pages/dashboard/DashboardRecommendations'),
+  'dashboard-recommendations',
+);
+const DashboardSeasonal = lazyWithRetry(
+  () => import('../pages/dashboard/DashboardSeasonal'),
+  'dashboard-seasonal',
+);
+const DashboardWeather = lazyWithRetry(
+  () => import('../pages/dashboard/DashboardWeather'),
+  'dashboard-weather',
+);
+const ForbiddenPage = lazyWithRetry(() => import('../pages/ForbiddenPage'), 'forbidden');
+const Home = lazyWithRetry(() => import('../pages/Home'), 'home');
+const Login = lazyWithRetry(() => import('../pages/Login'), 'login');
+const MutualAid = lazyWithRetry(() => import('../pages/MutualAid'), 'mutual-aid');
+const MyBasket = lazyWithRetry(() => import('../pages/MyBasket'), 'basket');
+const NotFoundPage = lazyWithRetry(() => import('../pages/NotFoundPage'), 'not-found');
+const Placeholder = lazyWithRetry(() => import('../pages/Placeholder'), 'dashboard-placeholder');
+const PointsCenter = lazyWithRetry(() => import('../pages/PointsCenter'), 'points');
+const PriceSearch = lazyWithRetry(() => import('../pages/PriceSearch'), 'price-search');
+const ProductDetail = lazyWithRetry(() => import('../pages/ProductDetail'), 'product-detail');
+const Register = lazyWithRetry(() => import('../pages/Register'), 'register');
+const Season = lazyWithRetry(() => import('../pages/Season'), 'season');
+const Settings = lazyWithRetry(() => import('../pages/Settings'), 'settings');
+const SpecialOffers = lazyWithRetry(() => import('../pages/SpecialOffers'), 'special-offers');
 
 function GuardedModule({ permission, children }) {
   return <PermissionGuard permission={permission}>{children}</PermissionGuard>;
@@ -52,6 +76,7 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/403" element={<ForbiddenPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
@@ -124,6 +149,7 @@ export default function AppRoutes() {
               )}
             />
           ))}
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>
     </Routes>
