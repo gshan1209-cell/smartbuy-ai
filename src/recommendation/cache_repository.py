@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import Protocol
 
 from src.data.r2_sync import is_r2_configured
@@ -38,10 +37,14 @@ class RecommendationCacheRepository(Protocol):
     def create_if_absent(self, cache_key: str, payload: dict) -> bool: ...
 
 
+def _is_true(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() == "true"
+
+
 def build_recommendation_cache_repository():
-    """Choose durable R2 in configured/strict environments, local only for dev/test."""
+    """Choose durable R2 in production; local JSON is limited to dev/test."""
     backend = os.getenv("RECOMMENDATION_CACHE_BACKEND", "auto").strip().lower()
-    strict = os.getenv("R2_REQUIRED") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
+    strict = _is_true("R2_REQUIRED") or _is_true("GITHUB_ACTIONS") or _is_true("RENDER")
 
     if backend not in {"auto", "r2", "local"}:
         raise ValueError("RECOMMENDATION_CACHE_BACKEND 只能是 auto、r2 或 local")
