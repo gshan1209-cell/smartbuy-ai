@@ -1,0 +1,21 @@
+/* Narrow tablet content can be reduced further by the contextual sidebar.
+   Keep the action on its own row instead of allowing the icon to overflow. */
+@media (max-width: 900px) and (min-width: 768px) {
+  .home-quick-link-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .home-quick-link-card .consumer-link {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+html[data-layout-mode="tablet"] .home-quick-link-card {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+html[data-layout-mode="tablet"] .home-quick-link-card .consumer-link {
+  grid-column: 2;
+  justify-self: start;
+}
