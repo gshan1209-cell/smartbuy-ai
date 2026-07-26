@@ -61,6 +61,6 @@ test('@responsive 後台外殼在三種尺寸維持可操作', async ({ page }, 
     const menuButton = page.getByRole('button', { name: '開啟後台選單' });
     await expect(menuButton).toBeVisible();
     await menuButton.click();
-    await expect(page.getByRole('navigation', { name: '後台主要導覽' })).toBeVisible();
+    await expect(page.locator('nav[aria-label="後台主要導覽"]:visible')).toBeVisible();
   }
 });
