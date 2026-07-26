@@ -1,4 +1,4 @@
-"""AI 採買推薦的快取優先、single-flight 與規則備援流程。"""
+"""AI 採買推薦的快取優先、single-flight 與三角色規則備援流程。"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -23,18 +23,20 @@ from .cache_repository import (
     RecommendationCacheRepository,
     build_recommendation_cache_repository,
 )
-from .category_catalog import CategoryDefinition, cache_key_for, get_category
+from .category_catalog import SCHEMA_VERSION, CategoryDefinition, cache_key_for, get_category
 from .llm_recommendation_client import (
     OpenAICompatibleRecommendationClient,
     RecommendationLLMClient,
 )
 from .recommendation_models import (
     CategoryInfo,
-    RecommendationContent,
     RecommendationDocument,
     RecommendationItem,
+    RoleRecommendationBundle,
+    RoleRecommendationContent,
     SourceSummary,
 )
+from .role_prompts import PROMPT_SET_VERSION, ROLE_PROMPT_DEFINITIONS
 
 
 logger = logging.getLogger(__name__)
@@ -57,6 +59,11 @@ class RecommendationResult:
 
     def as_response(self) -> dict:
         data = self.document.model_dump(mode="json")
+        consumer_recommendation = data["role_recommendations"]["consumer"]
+
+        # Additive compatibility aliases for callers that still expect the original
+        # single consumer recommendation payload.
+        data["recommendation"] = consumer_recommendation
         return {
             "category": self.document.category.key,
             "cache_hit": self.cache_hit,
@@ -66,8 +73,10 @@ class RecommendationResult:
             "generated_at": data["generated_at"],
             "data_status": self.document.source_summary.data_status,
             "source_name": self.document.source_summary.source_name,
+            "prompt_set_version": self.document.prompt_set_version,
             "data": data,
-            "recommendations": data["recommendation"]["items"],
+            "role_recommendations": data["role_recommendations"],
+            "recommendations": consumer_recommendation["items"],
         }
 
 
@@ -191,6 +200,8 @@ class RecommendationService:
                 "cache_hit": cache_hit,
                 "llm_called": llm_called,
                 "generator": document.generator,
+                "prompt_set_version": document.prompt_set_version,
+                "role_count": len(ROLE_PROMPT_DEFINITIONS),
                 "duration_ms": round((time.perf_counter() - started) * 1000, 2),
                 "error_type": None,
             },
@@ -204,6 +215,7 @@ class RecommendationService:
             document = RecommendationDocument.model_validate(raw)
             if document.cache_key != category.key or document.category.key != category.key:
                 raise CacheCorruptError(f"推薦快取分類不一致: {cache_key}")
+            self._validate_role_metadata(document)
             return document
         except CacheCorruptError:
             logger.error(
@@ -265,7 +277,12 @@ class RecommendationService:
     @staticmethod
     def _input_digest(category: CategoryDefinition, candidates: list[dict], source_summary: SourceSummary) -> str:
         raw = json.dumps(
-            {"category": category.key, "candidates": candidates, "source_summary": source_summary.model_dump()},
+            {
+                "category": category.key,
+                "prompt_set_version": PROMPT_SET_VERSION,
+                "candidates": candidates,
+                "source_summary": source_summary.model_dump(),
+            },
             sort_keys=True,
             ensure_ascii=False,
             default=str,
@@ -274,49 +291,79 @@ class RecommendationService:
 
     @staticmethod
     def _build_prompt(category: CategoryDefinition, candidates: list[dict], source_summary: SourceSummary) -> str:
+        content_schema = {
+            "summary": "string",
+            "market_outlook": "string",
+            "shopping_strategy": "string",
+            "items": [
+                {
+                    "product_name": "candidate product_name",
+                    "market_name": "candidate market_name or null",
+                    "price_status": "便宜|正常|偏貴|資料不足",
+                    "today_price": "candidate today_price or null",
+                    "recent_average": "candidate recent_average or null",
+                    "action": "string",
+                    "reason": "string",
+                    "priority": "high|medium|low",
+                    "substitute": "candidate product_name or null",
+                }
+            ],
+        }
         return json.dumps(
             {
-                "task": "提供保守、可執行的採買建議，只能使用 candidates 中的品項與價格。",
+                "task": "使用同一份正式行情候選資料，依三套角色提示語分別產生消費者、農民與商家建議；三份結果必須一次回傳。",
+                "prompt_set_version": PROMPT_SET_VERSION,
                 "category": category.as_dict(),
                 "source_summary": source_summary.model_dump(),
                 "candidates": candidates,
-                "output_schema": {
-                    "summary": "string",
-                    "market_outlook": "string",
-                    "shopping_strategy": "string",
-                    "items": [
-                        {
-                            "product_name": "candidate product_name",
-                            "market_name": "candidate market_name or null",
-                            "price_status": "便宜|正常|偏貴|資料不足",
-                            "today_price": "candidate today_price or null",
-                            "recent_average": "candidate recent_average or null",
-                            "action": "string",
-                            "reason": "string",
-                            "priority": "high|medium|low",
-                            "substitute": "candidate product_name or null",
-                        }
-                    ],
+                "role_prompts": {
+                    definition.key: definition.as_prompt_dict()
+                    for definition in ROLE_PROMPT_DEFINITIONS
                 },
-                "rules": [
+                "output_schema": {
+                    "role_recommendations": {
+                        definition.key: content_schema
+                        for definition in ROLE_PROMPT_DEFINITIONS
+                    }
+                },
+                "shared_rules": [
                     "只輸出 JSON object，不要 Markdown。",
-                    "最多 6 個 items，只能選 candidates 已存在的品項。",
-                    "不得虛構價格、產地、營養、食安或供應資訊。",
-                    "不得做保證性價格預測或醫療建議。",
+                    "必須完整輸出 consumer、farmer、merchant 三個 key，不得缺少角色。",
+                    "每個角色最多 6 個 items，只能選 candidates 已存在的品項。",
+                    "不得修改 candidates 的市場、價格、近期平均或價格狀態。",
+                    "substitute 若有值，只能使用 candidates 已存在的品項。",
+                    "不得虛構產地、天氣、產量、庫存、需求、營養、食安、成本或供應資訊。",
+                    "不得做保證性價格預測、獲利保證或醫療建議。",
+                    "三個角色的 summary、market_outlook、shopping_strategy 與 action 必須反映各自提示語，不得只複製相同內容。",
                 ],
             },
             ensure_ascii=False,
         )
 
     def _document_from_llm(self, category, raw, candidates, source_summary, input_digest) -> RecommendationDocument:
-        if "recommendation" in raw:
-            recommendation = raw["recommendation"]
-        else:
-            recommendation = raw
-        if not isinstance(recommendation, dict):
-            raise ValueError("LLM recommendation 不是 object")
+        role_payload = raw.get("role_recommendations") if isinstance(raw, dict) else None
+        if not isinstance(role_payload, dict):
+            raise ValueError("LLM role_recommendations 不是 object")
+
+        expected_roles = {definition.key for definition in ROLE_PROMPT_DEFINITIONS}
+        if set(role_payload) != expected_roles:
+            raise ValueError("LLM 未完整輸出三個正式角色")
+
+        normalized_roles = {}
+        for definition in ROLE_PROMPT_DEFINITIONS:
+            content = role_payload.get(definition.key)
+            if not isinstance(content, dict):
+                raise ValueError(f"LLM 角色內容不是 object: {definition.key}")
+            normalized_roles[definition.key] = RoleRecommendationContent(
+                role=definition.key,
+                role_label=definition.label,
+                perspective=definition.perspective,
+                **content,
+            )
+
         payload = {
-            "schema_version": 1,
+            "schema_version": SCHEMA_VERSION,
+            "prompt_set_version": PROMPT_SET_VERSION,
             "cache_key": category.key,
             "category": category.as_dict(),
             "generated_at": datetime.now(timezone.utc),
@@ -325,60 +372,94 @@ class RecommendationService:
             "model": getattr(self.llm_client, "model", None),
             "input_digest": input_digest,
             "source_summary": source_summary.model_dump(),
-            "recommendation": recommendation,
+            "role_recommendations": RoleRecommendationBundle(**normalized_roles),
         }
         document = RecommendationDocument.model_validate(payload)
-        allowed = {candidate["product_name"] for candidate in candidates}
-        if any(item.product_name not in allowed for item in document.recommendation.items):
-            raise ValueError("LLM 使用了輸入資料不存在的品項")
-        for item in document.recommendation.items:
-            candidate = next(row for row in candidates if row["product_name"] == item.product_name)
-            if item.market_name and item.market_name != candidate.get("market_name"):
-                raise ValueError("LLM 使用了輸入資料不存在的市場")
-            if item.price_status != candidate.get("status"):
-                raise ValueError("LLM 修改了輸入資料的價格狀態")
-            if item.today_price != candidate.get("today_price") or item.recent_average != candidate.get("recent_average"):
-                raise ValueError("LLM 修改了輸入資料的價格")
-            if item.substitute and item.substitute not in allowed:
-                raise ValueError("LLM 使用了輸入資料不存在的替代品")
+        self._validate_role_metadata(document)
+        self._validate_candidate_integrity(document, candidates)
         return document
 
     @staticmethod
+    def _validate_role_metadata(document: RecommendationDocument) -> None:
+        for definition in ROLE_PROMPT_DEFINITIONS:
+            content = getattr(document.role_recommendations, definition.key)
+            if content.role != definition.key:
+                raise ValueError(f"推薦角色 key 不一致: {definition.key}")
+            if content.role_label != definition.label:
+                raise ValueError(f"推薦角色名稱不一致: {definition.key}")
+            if content.perspective != definition.perspective:
+                raise ValueError(f"推薦角色視角不一致: {definition.key}")
+
+    @staticmethod
+    def _validate_candidate_integrity(document: RecommendationDocument, candidates: list[dict]) -> None:
+        allowed = {candidate["product_name"] for candidate in candidates}
+        candidate_by_product = {candidate["product_name"]: candidate for candidate in candidates}
+        for definition in ROLE_PROMPT_DEFINITIONS:
+            content = getattr(document.role_recommendations, definition.key)
+            for item in content.items:
+                if item.product_name not in allowed:
+                    raise ValueError("LLM 使用了輸入資料不存在的品項")
+                candidate = candidate_by_product[item.product_name]
+                if item.market_name and item.market_name != candidate.get("market_name"):
+                    raise ValueError("LLM 使用了輸入資料不存在的市場")
+                if item.price_status != candidate.get("status"):
+                    raise ValueError("LLM 修改了輸入資料的價格狀態")
+                if item.today_price != candidate.get("today_price") or item.recent_average != candidate.get("recent_average"):
+                    raise ValueError("LLM 修改了輸入資料的價格")
+                if item.substitute and item.substitute not in allowed:
+                    raise ValueError("LLM 使用了輸入資料不存在的替代品")
+
+    @staticmethod
     def _document_from_rules(category, candidates, source_summary, input_digest) -> RecommendationDocument:
-        rank = {"便宜": 0, "正常": 1, "偏貴": 2, "資料不足": 3}
-        substitutes = [row for row in candidates if row.get("status") in {"便宜", "正常"}]
-        items = []
-        for row in candidates[:6]:
-            status = row.get("status", "資料不足")
-            if status == "便宜":
-                action, reason, priority = "優先採買", "今日價格低於近期平均，可列入採買清單。", "high"
-            elif status == "偏貴":
-                action, reason, priority = "少量購買", "今日價格高於近期平均，建議比較同類品項。", "low"
-            elif status == "正常":
-                action, reason, priority = "依需求採買", "今日價格接近近期平均，可依實際需求購買。", "medium"
-            else:
-                action, reason, priority = "留意資料", "近期資料不足，建議先確認最新行情。", "low"
-            substitute = next((item["product_name"] for item in substitutes if item["product_name"] != row.get("product_name")), None) if status == "偏貴" else None
-            items.append(
-                RecommendationItem(
-                    product_name=row.get("product_name", ""),
-                    market_name=row.get("market_name"),
-                    price_status=status if status in rank else "資料不足",
-                    today_price=row.get("today_price"),
-                    recent_average=row.get("recent_average"),
-                    action=action,
-                    reason=reason,
-                    priority=priority,
-                    substitute=substitute,
-                )
-            )
         cheap = sum(1 for row in candidates if row.get("status") == "便宜")
+        normal = sum(1 for row in candidates if row.get("status") == "正常")
         expensive = sum(1 for row in candidates if row.get("status") == "偏貴")
-        summary = f"{category.label}目前有 {len(candidates)} 個可比較品項，其中 {cheap} 個價格相對划算。"
-        outlook = "依目前行情資料提供保守判斷；價格狀態不代表未來價格保證。"
-        strategy = "優先比較價格便宜或正常的品項；偏貴品項可少量購買並留意替代選擇。"
-        if not cheap and not expensive:
-            strategy = "目前沒有明顯便宜或偏貴品項，建議依需求採買並留意交易日期。"
+        substitutes = [row for row in candidates if row.get("status") in {"便宜", "正常"}]
+
+        role_contents = {}
+        for definition in ROLE_PROMPT_DEFINITIONS:
+            items = []
+            for row in candidates[:6]:
+                action, reason, priority, substitute = RecommendationService._rule_decision(
+                    definition.key,
+                    row,
+                    substitutes,
+                )
+                status = row.get("status", "資料不足")
+                if status not in {"便宜", "正常", "偏貴", "資料不足"}:
+                    status = "資料不足"
+                items.append(
+                    RecommendationItem(
+                        product_name=row.get("product_name", ""),
+                        market_name=row.get("market_name"),
+                        price_status=status,
+                        today_price=row.get("today_price"),
+                        recent_average=row.get("recent_average"),
+                        action=action,
+                        reason=reason,
+                        priority=priority,
+                        substitute=substitute,
+                    )
+                )
+
+            summary, outlook, strategy = RecommendationService._rule_role_summary(
+                definition.key,
+                category.label,
+                len(candidates),
+                cheap,
+                normal,
+                expensive,
+            )
+            role_contents[definition.key] = RoleRecommendationContent(
+                role=definition.key,
+                role_label=definition.label,
+                perspective=definition.perspective,
+                summary=summary,
+                market_outlook=outlook,
+                shopping_strategy=strategy,
+                items=items,
+            )
+
         return RecommendationDocument(
             cache_key=category.key,
             category=CategoryInfo(**category.as_dict()),
@@ -388,10 +469,65 @@ class RecommendationService:
             model=None,
             input_digest=input_digest,
             source_summary=source_summary,
-            recommendation=RecommendationContent(
-                summary=summary,
-                market_outlook=outlook,
-                shopping_strategy=strategy,
-                items=items,
-            ),
+            role_recommendations=RoleRecommendationBundle(**role_contents),
         )
+
+    @staticmethod
+    def _rule_decision(role_key: str, row: dict, substitutes: list[dict]) -> tuple[str, str, str, str | None]:
+        status = row.get("status", "資料不足")
+        substitute = next(
+            (
+                item["product_name"]
+                for item in substitutes
+                if item["product_name"] != row.get("product_name")
+            ),
+            None,
+        )
+
+        if role_key == "consumer":
+            if status == "便宜":
+                return "優先採買", "今日價格低於近期平均，可依家庭需求列入採買清單，避免因便宜而過量囤貨。", "high", None
+            if status == "偏貴":
+                return "少量購買", "今日價格高於近期平均，建議控制購買量並比較同分類替代品。", "low", substitute
+            if status == "正常":
+                return "依需求採買", "今日價格接近近期平均，可依家中實際需求購買。", "medium", None
+            return "先查最新行情", "近期資料不足，建議確認交易日期與最新市場價格後再購買。", "low", None
+
+        if role_key == "farmer":
+            if status == "偏貴":
+                return "評估分批出貨", "目前行情高於近期平均，可核對可交付量與自身成本後安排分批出貨，不代表價格會持續。", "high", None
+            if status == "便宜":
+                return "檢查出貨節奏", "目前行情低於近期平均，應先核對成本、保存條件與既定合約，避免只因單日價格改變生產。", "medium", None
+            if status == "正常":
+                return "維持既定節奏", "目前行情接近近期平均，可依既定採收與出貨計畫執行並持續觀察。", "medium", None
+            return "補查市場資料", "近期資料不足，先確認最新市場行情，再評估採收與出貨安排。", "low", None
+
+        if status == "便宜":
+            return "分批補貨", "今日行情低於近期平均，可依實際銷售速度分批補貨，避免一次建立過高庫存。", "high", None
+        if status == "偏貴":
+            return "控制進貨量", "今日行情高於近期平均，建議降低單次進貨量並比較同分類替代品。", "low", substitute
+        if status == "正常":
+            return "依銷售速度補貨", "今日行情接近近期平均，可依現有庫存與銷售速度安排補貨。", "medium", None
+        return "確認供應報價", "近期資料不足，建議先向供應端確認最新報價與可交付狀況。", "low", None
+
+    @staticmethod
+    def _rule_role_summary(
+        role_key: str,
+        category_label: str,
+        candidate_count: int,
+        cheap: int,
+        normal: int,
+        expensive: int,
+    ) -> tuple[str, str, str]:
+        outlook = "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。"
+        if role_key == "consumer":
+            summary = f"{category_label}目前有 {candidate_count} 個可比較品項，其中 {cheap} 個相對便宜、{expensive} 個偏貴。"
+            strategy = "優先選擇價格便宜或正常的品項；偏貴品項少量購買，必要時比較同分類替代品。"
+            return summary, outlook, strategy
+        if role_key == "farmer":
+            summary = f"{category_label}目前有 {candidate_count} 個行情候選，其中 {expensive} 個高於近期平均、{normal} 個接近近期平均。"
+            strategy = "行情偏高時核對可交付量後分批出貨；行情偏低時先檢查成本與既定安排，不依單日價格擴大生產。"
+            return summary, outlook, strategy
+        summary = f"{category_label}目前有 {candidate_count} 個可供採購比較的品項，其中 {cheap} 個相對便宜、{normal} 個價格正常。"
+        strategy = "便宜品項可依銷售速度分批補貨；偏貴品項控制庫存並比較替代品，避免把行情誤當成需求資料。"
+        return summary, outlook, strategy
