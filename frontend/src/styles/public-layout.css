@@ -289,6 +289,13 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
   font-weight: 800;
 }
 
+.public-sidebar-context-description {
+  margin: -10px 10px 0;
+  color: var(--yz-mut);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .public-sidebar-nav {
   display: grid;
   gap: 4px;
@@ -390,7 +397,8 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
 
 .public-sidebar.is-collapsed .public-sidebar-label,
 .public-sidebar.is-collapsed .public-sidebar-heading,
-.public-sidebar.is-collapsed .public-sidebar-context-title {
+.public-sidebar.is-collapsed .public-sidebar-context-title,
+.public-sidebar.is-collapsed .public-sidebar-context-description {
   display: none;
 }
 

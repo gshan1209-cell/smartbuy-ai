@@ -23,8 +23,6 @@ import './MutualAid.css';
 const TYPE_BADGE = { '滯銷急售': 'badge-orange', '求助': 'badge-red', '資訊分享': 'badge-green' };
 const POST_TYPES = ['滯銷急售', '求助', '資訊分享'];
 const INFO_SHARE_TYPE = POST_TYPES[2];
-const INFO_SHARE_TITLE = '\u8cc7\u8a0a\u5206\u4eab';
-const INFO_SHARE_DESC = '\u4fdd\u7559\u7522\u5730\u3001\u683d\u57f9\u3001\u7522\u54c1\u8207\u63a1\u8cfc\u76f8\u95dc\u7684\u5be6\u7528\u5206\u4eab\u3002';
 const SHARE_KINDS = [
   { value: 'special_offer', label: '\u7279\u8ce3\u8a0a\u606f', description: '\u81ea\u5df1\u767c\u5e03\u9650\u6642\u3001\u9650\u91cf\u7684\u7279\u50f9\u5546\u54c1' },
   { value: 'product_recommendation', label: '\u597d\u7269\u63a8\u85a6', description: '\u5206\u4eab\u767c\u73fe\u7684\u9ad8 CP \u503c\u5546\u54c1' },
@@ -950,9 +948,6 @@ export default function MutualAid({ allowedTypes = POST_TYPES }) {
   const isInfoOnly = allowedTypes.length === 1 && allowedTypes[0] === INFO_SHARE_TYPE;
   return (
     <div className="container ma-page">
-      <h1 className="page-title">{isInfoOnly ? INFO_SHARE_TITLE : '🎁 好康'}</h1>
-      <p className="ma-desc">{isInfoOnly ? INFO_SHARE_DESC : '產地特惠媒合、合作互助與栽培交流。'}</p>
-
       <DiscussionBoard allowedTypes={allowedTypes} />
 
       {!isInfoOnly && (

@@ -106,6 +106,9 @@ export default function PublicSidebar({ collapsed, onToggle }) {
       </div>
 
       <div className="public-sidebar-context-title">{sidebarContext.title}</div>
+      {sidebarContext.description && (
+        <p className="public-sidebar-context-description">{sidebarContext.description}</p>
+      )}
 
       {sidebarContext.sections.map(section => (
         <nav key={section.heading} className="public-sidebar-nav" aria-label={section.heading}>

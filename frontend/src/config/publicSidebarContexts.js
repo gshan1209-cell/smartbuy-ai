@@ -1,4 +1,4 @@
-const context = (title, sections, quickTags = []) => ({ title, sections, quickTags });
+const context = (title, sections, quickTags = [], description = '') => ({ title, sections, quickTags, description });
 
 const link = (to, label, description) => ({ to, label, description });
 const tag = (to, label, description) => ({ to, label, description });
@@ -89,8 +89,8 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
   ], [
     tag('/information-sharing?q=產地', '產地資訊', '搜尋產地相關分享'),
     tag('/information-sharing?q=採買', '採買交流', '搜尋採買相關分享'),
-  ]),
-  '/mutual-aid': context('好物推薦', [
+  ], '保留產地、栽培、產品與採購相關的實用資訊分享。'),
+  '/mutual-aid': context('🎁 好康', [
     {
       heading: '查詢條件',
       links: [
@@ -102,7 +102,7 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
     tag('/mutual-aid?q=即期', '即期好康', '搜尋即期品超低價推薦'),
     tag('/mutual-aid?q=高 CP 值', '高 CP 值', '搜尋高 CP 值好物推薦'),
     tag('/mutual-aid?city=全部', '全部縣市', '查看全部縣市推薦'),
-  ]),
+  ], '產地特惠媒合、合作互助與栽培交流。'),
   '/points': context('點數與優惠券', [
     {
       heading: '點數頁專屬入口',
