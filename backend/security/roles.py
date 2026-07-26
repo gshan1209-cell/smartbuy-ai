@@ -44,7 +44,6 @@ ROLE_PERMISSIONS = {
             "members.manage",
             "notifications.manage",
             "dataJobs.view",
-            "coupons.manage",
             "system.manage",
         }
     ),
