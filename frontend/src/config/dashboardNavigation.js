@@ -10,7 +10,6 @@ import {
   MessageSquareMore,
   Sparkles,
   Settings,
-  TicketPercent,
   Users,
 } from 'lucide-react';
 
@@ -88,12 +87,6 @@ export const dashboardNavigation = [
     label: '資料任務',
     permission: PERMISSIONS.DATA_JOBS_VIEW,
     icon: Database,
-  },
-  {
-    to: '/dashboard/coupons',
-    label: '優惠券管理',
-    permission: PERMISSIONS.COUPONS_MANAGE,
-    icon: TicketPercent,
   },
   {
     to: '/dashboard/settings',
