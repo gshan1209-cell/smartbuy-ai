@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 const mobileMenuLinks = [
   ['/news', '農產新知'],
   ['/special-offers', '特賣會'],
-  ['/mutual-aid', '好康推薦'],
+  ['/mutual-aid', '🎁 好康'],
   ['/points', '點數中心'],
   ['/settings', '個人設定'],
 ];
