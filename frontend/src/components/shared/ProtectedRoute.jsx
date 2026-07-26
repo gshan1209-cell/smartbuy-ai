@@ -1,6 +1,10 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../../context/AuthContext';
+import {
+  getProtectedRouteDecision,
+  PROTECTED_ROUTE_DECISION,
+} from '../../lib/accessDecision';
 
 export default function ProtectedRoute() {
   const {
@@ -13,7 +17,15 @@ export default function ProtectedRoute() {
   } = useAuth();
   const location = useLocation();
 
-  if (!isAuthenticated) {
+  const decision = getProtectedRouteDecision({
+    isAuthenticated,
+    authLoading,
+    dashboardAccess,
+    accessDenied,
+    accessError,
+  });
+
+  if (decision === PROTECTED_ROUTE_DECISION.LOGIN) {
     return (
       <Navigate
         to="/login"
@@ -23,11 +35,11 @@ export default function ProtectedRoute() {
     );
   }
 
-  if (authLoading) {
+  if (decision === PROTECTED_ROUTE_DECISION.LOADING) {
     return <div className="dashboard-loading">正在確認後台權限…</div>;
   }
 
-  if (accessError) {
+  if (decision === PROTECTED_ROUTE_DECISION.ERROR) {
     return (
       <div className="dashboard-loading dashboard-access-error" role="alert">
         <p>權限服務暫時無法取得，未開放任何後台內容。</p>
@@ -37,7 +49,7 @@ export default function ProtectedRoute() {
     );
   }
 
-  if (accessDenied || dashboardAccess?.dashboardAccess !== true) {
+  if (decision === PROTECTED_ROUTE_DECISION.FORBIDDEN) {
     return <Navigate to="/403" replace state={{ from: location.pathname }} />;
   }
 
