@@ -8,7 +8,6 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import PublicLayout from '../layouts/PublicLayout';
 import AgriNews from '../pages/AgriNews';
 import Alerts from '../pages/Alerts';
-import CouponManagement from '../pages/dashboard/CouponManagement';
 import DashboardOverview from '../pages/dashboard/DashboardOverview';
 import DashboardPredictions from '../pages/dashboard/DashboardPredictions';
 import DashboardPrices from '../pages/dashboard/DashboardPrices';
@@ -21,13 +20,11 @@ import Login from '../pages/Login';
 import MutualAid from '../pages/MutualAid';
 import MyBasket from '../pages/MyBasket';
 import Placeholder from '../pages/Placeholder';
-import PointsCenter from '../pages/PointsCenter';
 import PriceSearch from '../pages/PriceSearch';
 import ProductDetail from '../pages/ProductDetail';
 import Register from '../pages/Register';
 import Season from '../pages/Season';
 import Settings from '../pages/Settings';
-import SpecialOffers from '../pages/SpecialOffers';
 
 function GuardedModule({ permission, children }) {
   return <PermissionGuard permission={permission}>{children}</PermissionGuard>;
@@ -42,9 +39,6 @@ export default function AppRoutes() {
         <Route path="/product/:name" element={<ProductDetail />} />
         <Route path="/basket" element={<MyBasket />} />
         <Route path="/news" element={<AgriNews />} />
-        <Route path="/special-offers" element={<SpecialOffers />} />
-        <Route path="/information-sharing" element={<MutualAid allowedTypes={['資訊分享']} />} />
-        <Route path="/points" element={<PointsCenter />} />
         <Route path="/mutual-aid" element={<MutualAid />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/alerts" element={<Alerts />} />
@@ -102,14 +96,6 @@ export default function AppRoutes() {
             element={(
               <GuardedModule permission={PERMISSIONS.SEASONAL_VIEW}>
                 <DashboardSeasonal />
-              </GuardedModule>
-            )}
-          />
-          <Route
-            path="coupons"
-            element={(
-              <GuardedModule permission={PERMISSIONS.COUPONS_MANAGE}>
-                <CouponManagement />
               </GuardedModule>
             )}
           />
