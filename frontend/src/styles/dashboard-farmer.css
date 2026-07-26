@@ -98,6 +98,10 @@
   min-height: 218px;
 }
 
+.farmer-dashboard .dashboard-metric-card.has-visual .metric-value {
+  display: none;
+}
+
 .metric-status-visual {
   display: flex;
   align-items: center;

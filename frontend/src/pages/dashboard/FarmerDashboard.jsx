@@ -164,6 +164,13 @@ export default function FarmerDashboard() {
       return `${statusColors[label] || '#9b9a90'} ${start}% ${statusCursor}%`;
     }).join(', ')})`
     : '#f0ece5';
+  const pricedMarketCount = new Set(pricedRows.map((row) => row.market_name).filter(Boolean)).size;
+  const averagePriceRatio = averagePrice != null ? Math.min(1, averagePrice / maxComparisonPrice) : 0;
+  const aboveAverageRatio = pricedRows.length ? Math.min(1, aboveAverageRows.length / pricedRows.length) : 0;
+  const marketCoverageRatio = dashboard?.markets?.length
+    ? Math.min(1, pricedMarketCount / dashboard.markets.length)
+    : 0;
+  const ratioGradient = (ratio, primary, secondary = '#edf1ef') => `conic-gradient(${primary} 0 ${ratio * 100}%, ${secondary} ${ratio * 100}% 100%)`;
 
   const metrics = [
     {
@@ -190,6 +197,15 @@ export default function FarmerDashboard() {
       status: productStatus,
       source: '/api/products',
       description: '依目前可取得報價計算，非官方指數',
+      visual: {
+        gradient: ratioGradient(averagePriceRatio, '#378add'),
+        centerValue: averagePrice != null ? Number(averagePrice).toFixed(1) : '—',
+        centerLabel: '元',
+        segments: [
+          { label: '相對最高報價', value: `${Math.round(averagePriceRatio * 100)}%`, color: '#378add' },
+          { label: '與最高報價差距', value: `${Math.round((1 - averagePriceRatio) * 100)}%`, color: '#edf1ef' },
+        ],
+      },
     },
     {
       label: '高於近期均價',
@@ -199,6 +215,15 @@ export default function FarmerDashboard() {
       status: productStatus,
       source: '/api/products',
       description: '今日報價高於該品項近期均價的筆數',
+      visual: {
+        gradient: ratioGradient(aboveAverageRatio, '#ba7517'),
+        centerValue: aboveAverageRows.length,
+        centerLabel: '品項',
+        segments: [
+          { label: '高於近期均價', value: aboveAverageRows.length, color: '#ba7517' },
+          { label: '其餘可比較品項', value: Math.max(0, pricedRows.length - aboveAverageRows.length), color: '#edf1ef' },
+        ],
+      },
     },
     {
       label: '可比較市場',
@@ -207,6 +232,15 @@ export default function FarmerDashboard() {
       status: dashboard?.sources?.markets?.status || productStatus,
       source: '/api/markets',
       description: '可用來比較出貨市場的清單',
+      visual: {
+        gradient: ratioGradient(marketCoverageRatio, '#1d9e75'),
+        centerValue: dashboard?.markets?.length || 0,
+        centerLabel: '市場',
+        segments: [
+          { label: '目前有報價市場', value: pricedMarketCount, color: '#1d9e75' },
+          { label: '尚待行情市場', value: Math.max(0, (dashboard?.markets?.length || 0) - pricedMarketCount), color: '#edf1ef' },
+        ],
+      },
     },
   ];
 
