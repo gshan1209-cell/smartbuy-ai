@@ -1,6 +1,6 @@
 # SmartBuy AI｜測試結構與隔離規範
 
-> 本文件定義 Python／FastAPI 測試的分層、依賴替換方式與完整測試套件的隔離原則。
+> 本文件定義 Python／FastAPI 與前端 JavaScript 測試的分層、依賴替換方式與完整測試套件的隔離原則。
 > 目標是讓單一測試可獨立執行，也能與其他測試任意排序後一起執行。
 
 ## 1. 測試層級
@@ -60,6 +60,32 @@ def test_example(monkeypatch, router_client_factory):
 - 每個案例應使用 transaction rollback、唯一測試資料或可重複 migration。
 - 不得將正式資料庫寫入當成一般單元測試的必要條件。
 
+### 1.5 前端邏輯與路由契約測試
+
+前端優先使用 Node 內建 `node:test` 測試不需要瀏覽器的核心決策：
+
+- 登入與後台權限 fail-closed 決策。
+- 單一 permission 判斷。
+- route manifest、404 fallback 與關鍵頁面路徑。
+- stale chunk 是否只重新載入一次。
+- Error Boundary 使用的錯誤分類與安全文案。
+- bundle budget script 的輸入與失敗條件。
+
+正式命令：
+
+```bash
+cd frontend
+npm test
+npm run build:check
+```
+
+原則：
+
+- 測試應 import 正式應用程式使用的同一個純函式或契約，不得複製一套只給測試使用的判斷。
+- 不需要 DOM 的邏輯不得為了測試額外引入 jsdom 或大型測試框架。
+- 確實需要互動、焦點或瀏覽器 API 時，再建立獨立 DOM／E2E 測試層，不把假 DOM 當成完整瀏覽器證據。
+- 路由、權限、錯誤復原或 bundle 預算變更時，必須同步更新對應測試。
+
 ## 2. Dependency Override
 
 FastAPI `Depends` 應使用 `app.dependency_overrides`：
@@ -115,12 +141,13 @@ sys.modules.setdefault("src.data.some_module", fake_module)
 
 ## 5. Cache 與全域狀態
 
-測試快取、單例與 process-level lock 時：
+測試快取、單例、process-level lock、localStorage 或 sessionStorage 時：
 
 - 每個案例開始前清空。
 - 每個案例結束後再次清空。
 - 不依賴測試執行順序。
 - 需要驗證快取命中時，在同一案例內完成兩次呼叫。
+- 瀏覽器儲存應透過可注入的 storage adapter 測試，不直接污染真實全域物件。
 
 ## 6. 驗證順序
 
@@ -132,19 +159,29 @@ python -m pytest <受影響測試檔> -q
 python -m pytest -q
 ```
 
+前端變更建議依序執行：
+
+```bash
+cd frontend
+npm test
+npm run build:check
+```
+
 若完整套件失敗：
 
 1. 先確認單檔是否通過。
 2. 以不同順序或與前一個測試檔組合執行，辨識全域狀態污染。
 3. 不得直接永久排除測試並將功能標記為完成。
 4. 環境型資料庫測試可 skip，但 collection error、import error 與測試順序污染必須修正。
+5. 前端測試失敗時，不得只保留 build；build 通過不代表權限、404 或錯誤復原契約正確。
 
 ## 7. PR 驗收要求
 
 測試結構變更的 PR 必須列出：
 
-- 原本污染或錯誤 patch 的來源。
-- 改用的 Router／dependency／service 邊界。
-- 單檔測試結果。
-- 完整測試結果；若無法執行，明確列出環境限制。
-- 是否仍有需要資料庫、R2、LLM 或外部 API 的 blocked cases。
+- 原本缺少保護或錯誤 patch 的來源。
+- 改用的 Router／dependency／service／前端決策邊界。
+- 單檔或 focused test 結果。
+- 完整後端與前端測試結果；若無法執行，明確列出環境限制。
+- Frontend build 與 bundle budget 結果。
+- 是否仍有需要資料庫、R2、LLM、瀏覽器或外部 API 的 blocked cases。

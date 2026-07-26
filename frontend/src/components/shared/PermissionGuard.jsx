@@ -1,12 +1,13 @@
 import { Navigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../../context/AuthContext';
+import { hasPermission } from '../../lib/accessDecision';
 
 export default function PermissionGuard({ permission, children }) {
   const { permissions = [] } = useAuth();
   const location = useLocation();
 
-  if (!permission || !permissions.includes(permission)) {
+  if (!hasPermission(permissions, permission)) {
     return (
       <Navigate
         to="/403"

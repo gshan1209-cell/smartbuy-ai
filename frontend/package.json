@@ -24,6 +24,7 @@
   },
   "scripts": {
     "start": "vite",
+    "test": "node --test",
     "build": "vite build",
     "build:check": "npm run build && node scripts/check-build-budget.mjs",
     "preview": "vite preview"

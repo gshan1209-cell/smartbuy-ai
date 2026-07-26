@@ -1,6 +1,6 @@
 import { Component } from 'react';
 
-const CHUNK_ERROR_PATTERN = /ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module|Importing a module script failed/i;
+import { getErrorRecoveryContent } from '../../lib/errorRecovery';
 
 export default class AppErrorBoundary extends Component {
   state = { error: null };
@@ -28,19 +28,15 @@ export default class AppErrorBoundary extends Component {
     const { error } = this.state;
     if (!error) return this.props.children;
 
-    const isChunkError = CHUNK_ERROR_PATTERN.test(String(error?.message || error));
+    const recoveryContent = getErrorRecoveryContent(error);
 
     return (
       <main className="app-error-boundary" role="alert">
         <section className="app-error-card">
           <span className="app-error-icon" aria-hidden="true">⚠️</span>
           <p className="app-error-eyebrow">SmartBuy AI</p>
-          <h1>{isChunkError ? '網站已更新，請重新載入' : '這個畫面暫時無法顯示'}</h1>
-          <p>
-            {isChunkError
-              ? '目前分頁仍使用舊版資源，重新載入即可取得最新版本。'
-              : '你的資料與操作不會因此被自動刪除。請重新載入；若問題持續，可先回到首頁使用其他功能。'}
-          </p>
+          <h1>{recoveryContent.title}</h1>
+          <p>{recoveryContent.description}</p>
           <div className="app-error-actions">
             <button type="button" className="app-primary-action" onClick={this.handleRetry}>
               重新載入
