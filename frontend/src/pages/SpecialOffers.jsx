@@ -140,6 +140,21 @@ export default function SpecialOffers() {
           </button>
         </header>
 
+        <section className="special-offers-toolbar" aria-label={`${COPY.title}\u7be9\u9078\u5de5\u5177`}>
+          <label className="special-offers-search">
+            <Search size={18} aria-hidden="true" />
+            <span className="sr-only">{COPY.searchLabel}</span>
+            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={COPY.searchPlaceholder} />
+          </label>
+          <label className="special-offers-sort">
+            {COPY.sortLabel}
+            <select value={sort} onChange={(event) => setSort(event.target.value)}>
+              <option value="savings">{COPY.sortSavings}</option>
+              <option value="price">{COPY.sortPrice}</option>
+            </select>
+          </label>
+        </section>
+
         <section className="special-offers-urgency" aria-label={`${COPY.title}\u6ce8\u610f\u4e8b\u9805`}>
           <span className="special-offers-urgency-badge"><Clock3 size={18} aria-hidden="true" />{COPY.urgencyLabel}</span>
           <div>
@@ -160,21 +175,6 @@ export default function SpecialOffers() {
             <strong>{allOffers.length} {COPY.offerCount}</strong>
             <span>{COPY.summaryHint}</span>
           </div>
-        </section>
-
-        <section className="special-offers-toolbar" aria-label={`${COPY.title}\u7be9\u9078\u5de5\u5177`}>
-          <label className="special-offers-search">
-            <Search size={18} aria-hidden="true" />
-            <span className="sr-only">{COPY.searchLabel}</span>
-            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={COPY.searchPlaceholder} />
-          </label>
-          <label className="special-offers-sort">
-            {COPY.sortLabel}
-            <select value={sort} onChange={(event) => setSort(event.target.value)}>
-              <option value="savings">{COPY.sortSavings}</option>
-              <option value="price">{COPY.sortPrice}</option>
-            </select>
-          </label>
         </section>
 
         {loading && <LoadingState label={COPY.loading} />}

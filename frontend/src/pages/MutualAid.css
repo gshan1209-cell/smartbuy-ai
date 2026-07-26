@@ -24,6 +24,36 @@
 .ma-post-location { flex: 1; }
 .ma-post-content { resize: vertical; font-family: inherit; }
 
+.ma-query-tools {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card, #fff);
+}
+
+.ma-query-row {
+  flex-wrap: wrap;
+}
+
+.ma-query-row .input {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.ma-city-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ma-city-filter .input {
+  min-width: 180px;
+}
+
 .ma-share-kind-tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -213,6 +243,24 @@
 .ma-image-add:disabled { opacity: 0.6; cursor: default; }
 
 @media (max-width: 640px) {
+  .ma-query-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ma-query-row .btn {
+    width: 100%;
+  }
+
+  .ma-city-filter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ma-city-filter .input {
+    width: 100%;
+  }
+
   .ma-share-kind-tabs {
     grid-template-columns: 1fr;
   }

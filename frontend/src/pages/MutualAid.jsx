@@ -619,81 +619,86 @@ function DiscussionBoard({ allowedTypes = POST_TYPES }) {
         </p>
       )}
 
+      <section className="ma-query-tools" aria-label="貼文查詢與篩選">
+        <div className="ma-query-row" style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          <input
+            className="input"
+            placeholder="搜尋貼文內容、地點或發布者..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setViewFilter(v => v === 'saved' ? 'all' : 'saved')}
+            style={{
+              flexShrink: 0, fontSize: 13,
+              background: viewFilter === 'saved' ? 'var(--green)' : 'var(--cream-dark)',
+              color: viewFilter === 'saved' ? '#fff' : 'var(--text)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            ★ 只看收藏
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setViewFilter(v => v === 'mine' ? 'all' : 'mine')}
+            style={{
+              flexShrink: 0, fontSize: 13,
+              background: viewFilter === 'mine' ? 'var(--green)' : 'var(--cream-dark)',
+              color: viewFilter === 'mine' ? '#fff' : 'var(--text)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            🙋 只看我的
+          </button>
+        </div>
+
+        <div className="ma-type-filters" style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+          {['全部', ...availableTypes].map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTypeFilter(t)}
+              style={{
+                padding: '5px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', border: '1px solid',
+                background: typeFilter === t ? 'var(--green)' : '#fff',
+                color: typeFilter === t ? '#fff' : 'var(--text-muted)',
+                borderColor: typeFilter === t ? 'var(--green)' : 'var(--border)',
+              }}
+            >
+              {getMutualAidTypeLabel(t)}
+            </button>
+          ))}
+        </div>
+
+        {infoOnly && (
+          <div className="ma-share-kind-tabs" aria-label="資訊分享分類">
+            <button type="button" className={shareKindFilter === 'all' ? 'active' : ''} onClick={() => setShareKindFilter('all')}>
+              全部資訊
+            </button>
+            {SHARE_KINDS.map(kind => (
+              <button type="button" className={shareKindFilter === kind.value ? 'active' : ''} onClick={() => setShareKindFilter(kind.value)} key={kind.value}>
+                <strong>{kind.label}</strong><small>{kind.description}</small>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <label className="ma-city-filter">
+          <span>縣市</span>
+          <select className="input" value={cityFilter} onChange={e => setCityFilter(e.target.value)}>
+            <option value="全部">所有縣市</option>
+            {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+      </section>
+
       <button type="button" className="card ma-post-trigger" onClick={() => setComposeOpen(true)}>
         <span className="ma-post-trigger-avatar">{myName[0]}</span>
         <span className="ma-post-trigger-text">有產地好康想分享，或想交流採買資訊嗎？點這裡發布...</span>
       </button>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        <input
-          className="input"
-          placeholder="搜尋貼文內容、地點或發布者..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-        />
-        <button
-          type="button"
-          className="btn"
-          onClick={() => setViewFilter(v => v === 'saved' ? 'all' : 'saved')}
-          style={{
-            flexShrink: 0, fontSize: 13,
-            background: viewFilter === 'saved' ? 'var(--green)' : 'var(--cream-dark)',
-            color: viewFilter === 'saved' ? '#fff' : 'var(--text)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          ★ 只看收藏
-        </button>
-        <button
-          type="button"
-          className="btn"
-          onClick={() => setViewFilter(v => v === 'mine' ? 'all' : 'mine')}
-          style={{
-            flexShrink: 0, fontSize: 13,
-            background: viewFilter === 'mine' ? 'var(--green)' : 'var(--cream-dark)',
-            color: viewFilter === 'mine' ? '#fff' : 'var(--text)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          🙋 只看我的
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-        {['全部', ...availableTypes].map(t => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTypeFilter(t)}
-            style={{
-              padding: '5px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', border: '1px solid',
-              background: typeFilter === t ? 'var(--green)' : '#fff',
-              color: typeFilter === t ? '#fff' : 'var(--text-muted)',
-              borderColor: typeFilter === t ? 'var(--green)' : 'var(--border)',
-            }}
-          >
-            {getMutualAidTypeLabel(t)}
-          </button>
-        ))}
-      </div>
-
-      {infoOnly && (
-        <div className="ma-share-kind-tabs" aria-label="資訊分享分類">
-          <button type="button" className={shareKindFilter === 'all' ? 'active' : ''} onClick={() => setShareKindFilter('all')}>
-            全部資訊
-          </button>
-          {SHARE_KINDS.map(kind => (
-            <button type="button" className={shareKindFilter === kind.value ? 'active' : ''} onClick={() => setShareKindFilter(kind.value)} key={kind.value}>
-              <strong>{kind.label}</strong><small>{kind.description}</small>
-            </button>
-          ))}
-        </div>
-      )}
-
-      <select className="input" style={{ marginBottom: 14, maxWidth: 200 }} value={cityFilter} onChange={e => setCityFilter(e.target.value)}>
-        <option value="全部">所有縣市</option>
-        {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-      </select>
 
       {loading && posts.length === 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -930,6 +935,8 @@ export default function MutualAid({ allowedTypes = POST_TYPES }) {
       <h1 className="page-title">{isInfoOnly ? INFO_SHARE_TITLE : '🎁 好康'}</h1>
       <p className="ma-desc">{isInfoOnly ? INFO_SHARE_DESC : '產地特惠媒合、合作互助與栽培交流。'}</p>
 
+      <DiscussionBoard allowedTypes={allowedTypes} />
+
       {!isInfoOnly && (
         <DemoOfferCards
           title="好物推薦卡片"
@@ -937,8 +944,6 @@ export default function MutualAid({ allowedTypes = POST_TYPES }) {
           cards={DEMO_GOOD_RECOMMENDATIONS}
         />
       )}
-
-      <DiscussionBoard allowedTypes={allowedTypes} />
     </div>
   );
 }
