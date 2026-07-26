@@ -49,6 +49,11 @@ def _get_engine():
     return _engine
 
 
+def get_db_engine():
+    """提供需要共用 PostgreSQL session 的應用服務取得既有 engine。"""
+    return _get_engine()
+
+
 def _load_database_url() -> str | None:
     """
     讀取 DATABASE_URL。
@@ -137,7 +142,7 @@ def search_prices(
                 "FROM agri_price_daily "
                 "WHERE 1=1"
             )
-            params: dict[str, any] = {"limit": limit}
+            params: dict[str, object] = {"limit": limit}
             if crop_name:
                 sql += " AND crop_name = :crop_name"
                 params["crop_name"] = crop_name
@@ -187,46 +192,23 @@ def load_price_history(
     days: int = 90,
     reference_date: date | None = None,
 ) -> pd.DataFrame:
-    """
-    載入指定作物與市場在指定天數內的價格歷史走勢。
-
-    參數:
-        crop_name: 作物名稱。
-        crop_code: 作物代號。
-        market_name: 市場名稱。
-        market_code: 市場代號。
-        days: 歷史天數。
-        reference_date: 基準日期。若未提供，則預設為當前系統日期。
-
-    回傳:
-        pd.DataFrame: 歷史價格走勢，含 attrs["source"] 來源標記。
-    """
-    explicit_reference_date = reference_date is not None
-    if isinstance(reference_date, datetime):
+    """載入指定條件在基準日前指定天數內的歷史價格。"""
+    if reference_date is None:
+        reference_date = datetime.now().date()
+    elif isinstance(reference_date, datetime):
         reference_date = reference_date.date()
-    system_date = datetime.now().date()
-    query_reference_date = reference_date or system_date
 
+    start_date = reference_date - timedelta(days=days)
     engine = _get_engine()
     if engine:
         try:
-            if not explicit_reference_date:
-                with engine.connect() as conn:
-                    max_date_row = conn.execute(
-                        text("SELECT MAX(trans_date) FROM agri_price_daily;")
-                    ).first()
-                max_date = max_date_row[0] if max_date_row else None
-                if max_date is not None:
-                    query_reference_date = pd.to_datetime(max_date).date()
-
-            start_date = query_reference_date - timedelta(days=days)
             sql = (
                 "SELECT trans_date, crop_code, crop_name, market_code, market_name, "
                 "       upper_price, middle_price, lower_price, avg_price, volume "
                 "FROM agri_price_daily "
                 "WHERE trans_date >= :start_date"
             )
-            params: dict[str, any] = {"start_date": start_date}
+            params: dict[str, object] = {"start_date": start_date}
 
             if crop_name:
                 sql += " AND crop_name = :crop_name"
@@ -242,19 +224,13 @@ def load_price_history(
                 params["market_code"] = market_code
 
             sql += " ORDER BY trans_date ASC;"
-
             df = pd.read_sql(text(sql), engine, params=params)
             df["product_name"] = df["crop_name"]
             df.attrs["source"] = "Supabase"
-            df.attrs["reference_date"] = str(query_reference_date)
-            df.attrs["age_days"] = max(0, (system_date - query_reference_date).days)
-            df.attrs["is_historical"] = df.attrs["age_days"] > 7
-            if not df.empty:
-                return df
+            return df
         except Exception as e:
             print(f"Supabase load_price_history 失敗，將 fallback 到本機 CSV。錯誤: {e}")
 
-    # Fallback to local CSV
     from src.data.data_loader import load_market_prices
     df = load_market_prices()
     df["crop_name"] = df["product_name"]
@@ -262,43 +238,24 @@ def load_price_history(
     for col in ["upper_price", "middle_price", "lower_price"]:
         df[col] = None
 
-    # 本機過濾
-    if df.empty:
-        df.attrs["source"] = "本機 CSV"
-        df.attrs["reference_date"] = None
-        df.attrs["age_days"] = None
-        df.attrs["is_historical"] = False
-        return df
-
-    df["trans_date_dt"] = pd.to_datetime(df["trans_date"])
-    fallback_reference_date = (
-        reference_date
-        if explicit_reference_date
-        else df["trans_date_dt"].max().date()
-    )
-    start_date = fallback_reference_date - timedelta(days=days)
+    df["trans_date_dt"] = pd.to_datetime(df["trans_date"], errors="coerce")
     df = df[df["trans_date_dt"].dt.date >= start_date]
-
     if crop_name:
         df = df[df["crop_name"] == crop_name]
+    if crop_code:
+        df = df[df["crop_code"] == crop_code]
     if market_name:
         df = df[df["market_name"] == market_name]
+    if market_code and "market_code" in df.columns:
+        df = df[df["market_code"] == market_code]
 
     df = df.sort_values("trans_date").drop(columns=["trans_date_dt"]).copy()
     df.attrs["source"] = "本機 CSV"
-    df.attrs["reference_date"] = str(fallback_reference_date)
-    df.attrs["age_days"] = max(0, (system_date - fallback_reference_date).days)
-    df.attrs["is_historical"] = df.attrs["age_days"] > 7
     return df
 
 
 def get_latest_trans_date() -> tuple[str | None, str]:
-    """
-    取得最新交易日與資料來源。
-
-    回傳:
-        tuple[str | None, str]: (最新交易日字串 YYYY-MM-DD 或 None, 資料來源名稱)
-    """
+    """取得最新交易日與資料來源。"""
     engine = _get_engine()
     if engine:
         try:
@@ -311,7 +268,6 @@ def get_latest_trans_date() -> tuple[str | None, str]:
         except Exception as e:
             print(f"Supabase get_latest_trans_date 失敗，將使用本機 CSV 最新日期。錯誤: {e}")
 
-    # Fallback to CSV
     from src.data.data_loader import load_market_prices
     try:
         df = load_market_prices()
@@ -321,42 +277,4 @@ def get_latest_trans_date() -> tuple[str | None, str]:
             return date_str, "本機 CSV"
     except Exception:
         pass
-
-
-def get_db_engine():
-    """回傳共用 SQLAlchemy engine，供其他模組直接執行 SQL。"""
-    return _get_engine()
-
-
-def get_latest_crop_features(crop_name: str, market_name: str = "") -> dict | None:
-    """
-    從 agri_price_features_daily 取指定品項最新一筆特徵。
-    回傳 dict 含：price_vs_ma_7, price_std_7, price_ma_7, price_ma_14, price_ma_30
-    若查無資料回傳 None。
-    """
-    engine = get_db_engine()
-    if engine is None:
-        return None
-    try:
-        with engine.connect() as conn:
-            sql = text("""
-                SELECT price_vs_ma_7, price_std_7, price_ma_7, price_ma_14, price_ma_30
-                FROM public.agri_price_features_daily
-                WHERE crop_name = :crop_name
-                  AND is_feature_complete = TRUE
-                  AND (:market_name = '' OR market_name = :market_name)
-                ORDER BY trade_date DESC
-                LIMIT 1
-            """)
-            row = conn.execute(sql, {"crop_name": crop_name, "market_name": market_name}).fetchone()
-        if row is None:
-            return None
-        return {
-            "price_vs_ma_7": row.price_vs_ma_7,
-            "price_std_7":   row.price_std_7,
-            "price_ma_7":    row.price_ma_7,
-            "price_ma_14":   row.price_ma_14,
-            "price_ma_30":   row.price_ma_30,
-        }
-    except Exception:
-        return None
+    return None, "本機 CSV"
