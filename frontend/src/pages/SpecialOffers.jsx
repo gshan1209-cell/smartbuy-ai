@@ -241,13 +241,6 @@ export default function SpecialOffers() {
           </section>
         )}
 
-        <section className="special-offers-info-callout" aria-label={COPY.infoTitle}>
-          <div>
-            <strong>{COPY.infoTitle}</strong>
-            <span>{COPY.infoDescription}</span>
-          </div>
-          <Link className="special-offers-info-link" to="/information-sharing">{COPY.infoAction}</Link>
-        </section>
       </div>
     </main>
   );

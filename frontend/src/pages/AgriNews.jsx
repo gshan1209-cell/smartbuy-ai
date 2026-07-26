@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
+import './AgriNews.css';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const PAGE_SIZE = 12;
+const INFO_SHARE_COPY = {
+  title: '資訊分享',
+  description: '產地、栽培、產品與採購相關的實用分享集中在這裡。',
+  action: '前往資訊分享',
+};
 
 function formatDate(raw) {
   if (!raw) return '';
@@ -354,6 +360,14 @@ export default function AgriNews() {
             </span>
           </div>
         )}
+
+        <section className="agri-news-info-callout" aria-label={INFO_SHARE_COPY.title}>
+          <div>
+            <strong>{INFO_SHARE_COPY.title}</strong>
+            <span>{INFO_SHARE_COPY.description}</span>
+          </div>
+          <Link className="agri-news-info-link" to="/information-sharing">{INFO_SHARE_COPY.action}</Link>
+        </section>
       </div>
       <Toast message={toastMsg} />
     </div>
