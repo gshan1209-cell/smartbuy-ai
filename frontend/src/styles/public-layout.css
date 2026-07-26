@@ -208,8 +208,10 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
 
 .public-header,
 .app-main {
+  width: calc(100% - var(--public-sidebar-width));
+  min-width: 0;
   margin-left: var(--public-sidebar-width);
-  transition: margin-left 180ms ease;
+  transition: width 180ms ease, margin-left 180ms ease;
 }
 
 .public-nav {
@@ -386,6 +388,11 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
     margin-left: 0;
   }
 
+  .public-header,
+  .app-main {
+    width: 100%;
+  }
+
   .public-sidebar {
     display: none;
   }
@@ -409,5 +416,6 @@ html[data-layout-mode="mobile"] .public-sidebar {
 
 html[data-layout-mode="mobile"] .public-header,
 html[data-layout-mode="mobile"] .app-main {
+  width: 100%;
   margin-left: 0;
 }
