@@ -24,12 +24,38 @@ async function stubPublicApis(page) {
 }
 
 async function expectNoHorizontalOverflow(page) {
-  const metrics = await page.evaluate(() => ({
-    body: document.body.scrollWidth,
-    root: document.documentElement.scrollWidth,
-    viewport: document.documentElement.clientWidth,
-  }));
-  expect(Math.max(metrics.body, metrics.root)).toBeLessThanOrEqual(metrics.viewport + 1);
+  const metrics = await page.evaluate(() => {
+    const viewport = document.documentElement.clientWidth;
+    const offenders = [...document.querySelectorAll('body *')]
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return {
+          tag: element.tagName.toLowerCase(),
+          id: element.id || null,
+          className: typeof element.className === 'string' ? element.className : null,
+          left: Math.round(rect.left * 10) / 10,
+          right: Math.round(rect.right * 10) / 10,
+          width: Math.round(rect.width * 10) / 10,
+          position: style.position,
+          overflowX: style.overflowX,
+        };
+      })
+      .filter((item) => item.width > 0 && (item.left < -1 || item.right > viewport + 1))
+      .slice(0, 20);
+
+    return {
+      body: document.body.scrollWidth,
+      root: document.documentElement.scrollWidth,
+      viewport,
+      offenders,
+    };
+  });
+
+  expect(
+    Math.max(metrics.body, metrics.root),
+    `Horizontal overflow diagnostics:\n${JSON.stringify(metrics, null, 2)}`,
+  ).toBeLessThanOrEqual(metrics.viewport + 1);
 }
 
 test.beforeEach(async ({ page }) => {
