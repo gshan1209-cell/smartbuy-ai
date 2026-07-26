@@ -36,6 +36,7 @@
 | 新功能、跨層修改、範圍不明的重構 | `smartbuy-task-planner` |
 | 消費者前台、首頁、搜尋、菜籃、提醒、節氣、新知、互助網 | `smartbuy-public-app` |
 | Dashboard、農民／商家／管理員後台、角色權限 | `smartbuy-dashboard-rbac` |
+| 前台／後台情境側欄、頁面專屬導覽、桌機／平板／手機側欄 RWD | `smartbuy-contextual-sidebar` |
 | 菜價、農業部資料、天氣、二十四節氣、產地與價格風險 | `smartbuy-agri-intelligence` |
   | FastAPI、資料庫、登入、API contract、快取、背景任務 | `smartbuy-api-change` |
   | 點數獎勵、登入／推薦回饋、優惠券兌換與優惠券管理 | `smartbuy-rewards-coupons` |
@@ -53,6 +54,7 @@
 - 後台權限必須同時有前端顯示控制與後端驗證。
 - 所有農業、行情、天氣、節氣與 AI 結果都要能辨識資料來源與資料狀態。
 - 新頁面與重大改版至少驗證 Mobile、Tablet、Desktop。
+- 側欄可共用外框、收合與 RWD 行為，但內容必須依畫面情境配置，不得把所有畫面套用成同一組功能入口。
 - 變更 API 時應優先維持相容；破壞性變更必須有 migration 與明確說明。
 - 一個 PR 只處理一個清楚範圍，確保可獨立建置、驗收與回滾。
 
