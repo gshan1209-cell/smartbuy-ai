@@ -18,6 +18,8 @@ data/private/
 frontend/node_modules/
 frontend/dist/
 frontend/.env.local
+frontend/playwright-report/
+frontend/test-results/
 .vite/
 backend/.cache/
 
