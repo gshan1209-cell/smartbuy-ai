@@ -323,10 +323,19 @@ function ComposeModal({ form, availableTypes = POST_TYPES, shareKinds = SHARE_KI
 
 function DiscussionBoard({ allowedTypes = POST_TYPES }) {
   const availableTypes = allowedTypes.length ? allowedTypes : POST_TYPES;
+  const availableTypeString = availableTypes.join('|');
   const initialType = availableTypes.length === 1 ? availableTypes[0] : '全部';
   const infoOnly = availableTypes.length === 1 && availableTypes[0] === INFO_SHARE_TYPE;
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParamString = searchParams.toString();
+  const requestedType = searchParams.get('type');
+  const initialQuery = searchParams.get('q') || '';
+  const initialViewFilter = ['all', 'saved', 'mine'].includes(searchParams.get('view')) ? searchParams.get('view') : 'all';
+  const initialShareKind = ['all', ...SHARE_KINDS.map(kind => kind.value)].includes(searchParams.get('share_kind'))
+    ? searchParams.get('share_kind')
+    : 'all';
+  const initialCity = searchParams.get('city') || '全部';
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -340,7 +349,7 @@ function DiscussionBoard({ allowedTypes = POST_TYPES }) {
   const [submitting, setSubmitting] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ type: '', location_city: '', location_addr: '', content: '', images: [] });
@@ -349,10 +358,10 @@ function DiscussionBoard({ allowedTypes = POST_TYPES }) {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [detailId, setDetailId] = useState(null);
   const [composeOpen, setComposeOpen] = useState(false);
-  const [viewFilter, setViewFilter] = useState('all'); // 'all' | 'saved' | 'mine'
-  const [typeFilter, setTypeFilter] = useState(initialType);
-  const [shareKindFilter, setShareKindFilter] = useState('all');
-  const [cityFilter, setCityFilter] = useState('全部');
+  const [viewFilter, setViewFilter] = useState(initialViewFilter); // 'all' | 'saved' | 'mine'
+  const [typeFilter, setTypeFilter] = useState(requestedType && availableTypes.includes(requestedType) ? requestedType : initialType);
+  const [shareKindFilter, setShareKindFilter] = useState(initialShareKind);
+  const [cityFilter, setCityFilter] = useState(initialCity);
   const [actionError, setActionError] = useState('');
   const [authNotice, setAuthNotice] = useState(false);
   const [lightbox, setLightbox] = useState(null); // { images, index }
@@ -371,6 +380,15 @@ function DiscussionBoard({ allowedTypes = POST_TYPES }) {
       return next;
     }, { replace: true });
   }, [postParam]);
+
+  useEffect(() => {
+    const nextType = searchParams.get('type');
+    setQuery(searchParams.get('q') || '');
+    setViewFilter(['all', 'saved', 'mine'].includes(searchParams.get('view')) ? searchParams.get('view') : 'all');
+    setTypeFilter(nextType && availableTypes.includes(nextType) ? nextType : initialType);
+    setShareKindFilter(['all', ...SHARE_KINDS.map(kind => kind.value)].includes(searchParams.get('share_kind')) ? searchParams.get('share_kind') : 'all');
+    setCityFilter(searchParams.get('city') || '全部');
+  }, [searchParamString, initialType, availableTypeString]);
 
   function reportError(err, fallback) {
     if (err?.status === 401) setAuthNotice(true);

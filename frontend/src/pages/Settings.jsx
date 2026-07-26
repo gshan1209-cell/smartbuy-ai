@@ -297,7 +297,7 @@ export default function Settings() {
         )}
 
         {/* 帳號資料 */}
-        <div className="yz-card" style={sectionStyle}>
+        <div id="profile-settings" className="yz-card" style={sectionStyle}>
           <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>帳號資料</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--yz-gl)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: 'var(--yz-gd)' }}>
@@ -331,6 +331,7 @@ export default function Settings() {
           <hr style={{ border: 'none', borderTop: '1px solid var(--yz-bdr)', margin: '16px 0' }} />
 
           <button
+            id="security-settings"
             type="button"
             className="yz-btn yz-btn-gho yz-btn-sm"
             onClick={openPwModal}
@@ -388,7 +389,7 @@ export default function Settings() {
         </div>
 
         {/* 顯示與版面 */}
-        <div className="yz-card" style={sectionStyle}>
+        <div id="display-settings" className="yz-card" style={sectionStyle}>
           <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 18 }}>顯示與版面</h2>
 
           <div style={{ ...rowStyle, marginBottom: 0 }}>

@@ -302,6 +302,44 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
   letter-spacing: 0.08em;
 }
 
+.public-sidebar-quick-section {
+  display: grid;
+  gap: 8px;
+}
+
+.public-sidebar-quick-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.public-sidebar-quick-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 999px;
+  color: var(--yz-mut);
+  background: var(--yz-bg);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.public-sidebar-quick-tag:hover,
+.public-sidebar-quick-tag:focus-visible {
+  color: var(--yz-g);
+  border-color: var(--yz-g);
+  background: var(--yz-gl);
+}
+
+.public-sidebar.is-collapsed .public-sidebar-quick-section {
+  display: none;
+}
+
 .public-sidebar-link {
   display: flex;
   align-items: center;

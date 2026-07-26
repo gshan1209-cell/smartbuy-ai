@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Clock3, ExternalLink, RefreshCw, Search, Tag, TrendingDown } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import EmptyState from '../components/shared/EmptyState';
 import LoadingState from '../components/shared/LoadingState';
 import DemoOfferCards from '../components/public/DemoOfferCards';
@@ -76,12 +76,19 @@ function getSavings(item) {
 
 export default function SpecialOffers() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const searchParamString = searchParams.toString();
   const [products, setProducts] = useState([]);
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState('savings');
+  const [query, setQuery] = useState(() => searchParams.get('q') || '');
+  const [sort, setSort] = useState(() => searchParams.get('sort') === 'price' ? 'price' : 'savings');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setQuery(searchParams.get('q') || '');
+    setSort(searchParams.get('sort') === 'price' ? 'price' : 'savings');
+  }, [searchParamString]);
 
   function loadOffers(forceRefresh = false) {
     if (forceRefresh) setRefreshing(true);

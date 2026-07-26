@@ -268,7 +268,12 @@ export default function ProductDetail() {
         {detailLoading && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>載入中…</p>}
         {!detailLoading && !detail && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>無法取得詳細資料</p>}
         {!detailLoading && detail && (
-          <DetailContent productName={productName} market={market} detail={detail} />
+          <DetailContent
+            productName={productName}
+            market={market}
+            detail={detail}
+            initialPeriod={searchParams.get('period')}
+          />
         )}
       </div>
     </div>
@@ -385,8 +390,9 @@ const crosshairPlugin = {
 
 // ── 詳情內容 ──────────────────────────────────────────────────────────────────
 
-function DetailContent({ productName, market, detail }) {
-  const [period, setPeriod] = useState('7');
+function DetailContent({ productName, market, detail, initialPeriod }) {
+  const validInitialPeriod = ['7', '14', '30', 'custom'].includes(initialPeriod) ? initialPeriod : '7';
+  const [period, setPeriod] = useState(validInitialPeriod);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [history, setHistory] = useState(null);
@@ -399,6 +405,10 @@ function DetailContent({ productName, market, detail }) {
   });
   const [isSaved, setIsSaved] = useState(false);
   const [toastMessage, showToast] = useToast();
+
+  useEffect(() => {
+    setPeriod(validInitialPeriod);
+  }, [validInitialPeriod]);
 
   useEffect(() => {
     fetchFavorites('product').then((names) => setIsSaved(names.includes(productName))).catch(() => {});

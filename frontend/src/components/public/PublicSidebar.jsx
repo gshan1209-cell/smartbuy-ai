@@ -1,6 +1,7 @@
 import {
   Coins,
   Gift,
+  Hash,
   Home,
   LayoutDashboard,
   Newspaper,
@@ -28,14 +29,29 @@ const ICONS = {
   '/dashboard': LayoutDashboard,
 };
 
-function SidebarLink({ link }) {
-  const Icon = ICONS[link.to] || Gift;
+function resolveSidebarPath(to, location) {
+  if (to === '__current__') return `${location.pathname}${location.search}${location.hash}`;
+  if (to.startsWith('__current__')) {
+    const suffix = to.slice('__current__'.length);
+    const [query = '', hash = ''] = suffix.split('#');
+    const currentParams = new URLSearchParams(location.search);
+    const nextParams = new URLSearchParams(query.replace(/^\?/, ''));
+    nextParams.forEach((value, key) => currentParams.set(key, value));
+    const nextQuery = currentParams.toString();
+    return `${location.pathname}${nextQuery ? `?${nextQuery}` : ''}${hash ? `#${hash}` : ''}`;
+  }
+  return to;
+}
+
+function SidebarLink({ link, location, locationHref }) {
+  const Icon = ICONS[link.to.split('?')[0].split('#')[0]] || Gift;
+  const href = resolveSidebarPath(link.to, location);
+  const isCurrent = href === locationHref;
 
   return (
     <NavLink
-      to={link.to}
-      end={link.to === '/'}
-      className="public-sidebar-link"
+      to={href}
+      className={`public-sidebar-link${isCurrent ? ' active' : ''}`}
       title={link.description}
       aria-label={link.description}
     >
@@ -45,8 +61,26 @@ function SidebarLink({ link }) {
   );
 }
 
+function QuickTag({ item, location }) {
+  const href = resolveSidebarPath(item.to, location);
+
+  return (
+    <NavLink
+      to={href}
+      className="public-sidebar-quick-tag"
+      title={item.description}
+      aria-label={item.description}
+    >
+      <Hash size={14} aria-hidden="true" />
+      <span>{item.label}</span>
+    </NavLink>
+  );
+}
+
 export default function PublicSidebar({ collapsed, onToggle }) {
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
+  const locationHref = `${location.pathname}${location.search}${location.hash}`;
   const { user, isAuthenticated, dashboardAccess } = useAuth();
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
@@ -77,15 +111,26 @@ export default function PublicSidebar({ collapsed, onToggle }) {
         <nav key={section.heading} className="public-sidebar-nav" aria-label={section.heading}>
           <p className="public-sidebar-heading">{section.heading}</p>
           {section.links.map(link => (
-            <SidebarLink key={`${section.heading}-${link.to}-${link.label}`} link={link} />
+            <SidebarLink key={`${section.heading}-${link.to}-${link.label}`} link={link} location={location} locationHref={locationHref} />
           ))}
         </nav>
       ))}
 
+      {sidebarContext.quickTags?.length > 0 && (
+        <section className="public-sidebar-quick-section" aria-label="快速查詢">
+          <p className="public-sidebar-heading">快速查詢</p>
+          <div className="public-sidebar-quick-tags">
+            {sidebarContext.quickTags.map(item => (
+              <QuickTag key={`${item.to}-${item.label}`} item={item} location={location} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {canAccessDashboard && (
         <nav className="public-sidebar-nav public-sidebar-secondary" aria-label="管理入口">
           <p className="public-sidebar-heading">管理入口</p>
-          <SidebarLink link={DASHBOARD_NAV_LINK} />
+          <SidebarLink link={DASHBOARD_NAV_LINK} location={location} locationHref={locationHref} />
         </nav>
       )}
     </aside>

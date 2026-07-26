@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
@@ -14,18 +15,25 @@ function formatDate(raw) {
 }
 
 export default function AgriNews() {
+  const [searchParams] = useSearchParams();
+  const searchParamString = searchParams.toString();
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => searchParams.get('q') || '');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [savedIds, setSavedIds] = useState([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [sources, setSources] = useState([]);
-  const [sourceFilter, setSourceFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState(() => searchParams.get('source') || '');
   const [toastMsg, showToast] = useToast();
+
+  useEffect(() => {
+    setQuery(searchParams.get('q') || '');
+    setSourceFilter(searchParams.get('source') || '');
+  }, [searchParamString]);
 
   useEffect(() => {
     let cancelled = false;

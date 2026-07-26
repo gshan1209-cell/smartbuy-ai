@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check, MessageCircle, RefreshCw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Toast from '../components/Toast';
 import EmptyState from '../components/shared/EmptyState';
 import LoadingState from '../components/shared/LoadingState';
@@ -19,12 +19,19 @@ const CATEGORIES = ['全部', '價格', '天氣', '節氣', '互助網'];
 export default function Alerts() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const searchParamString = searchParams.toString();
   const [toastMessage, showToast] = useToast();
   const [data, setData] = useState({ items: [], total: 0, unreadCount: 0 });
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
-  const [category, setCategory] = useState('全部');
+  const [category, setCategory] = useState(() => CATEGORIES.includes(searchParams.get('category')) ? searchParams.get('category') : '全部');
+
+  useEffect(() => {
+    const nextCategory = searchParams.get('category');
+    setCategory(CATEGORIES.includes(nextCategory) ? nextCategory : '全部');
+  }, [searchParamString]);
 
   const load = useCallback(async (offset = 0) => {
     if (!isAuthenticated) return;
