@@ -32,10 +32,12 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--yz-mut)', display: 'block', marginBottom: 6 }}>Email</label>
+            <label htmlFor="login-email" style={{ fontSize: 12, fontWeight: 600, color: 'var(--yz-mut)', display: 'block', marginBottom: 6 }}>Email</label>
             <input
+              id="login-email"
               className="yz-input"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
@@ -44,17 +46,19 @@ export default function Login() {
             />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--yz-mut)', display: 'block', marginBottom: 6 }}>密碼</label>
+            <label htmlFor="login-password" style={{ fontSize: 12, fontWeight: 600, color: 'var(--yz-mut)', display: 'block', marginBottom: 6 }}>密碼</label>
             <input
+              id="login-password"
               className="yz-input"
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
               style={{ width: '100%' }}
             />
           </div>
-          {error && <p style={{ fontSize: 13, color: 'var(--yz-red, #e53e3e)' }}>{error}</p>}
+          {error && <p role="alert" style={{ fontSize: 13, color: 'var(--yz-red, #e53e3e)' }}>{error}</p>}
           <button className="yz-btn yz-btn-g" type="submit" disabled={loading} style={{ marginTop: 4 }}>
             {loading ? '登入中…' : '登入'}
           </button>
