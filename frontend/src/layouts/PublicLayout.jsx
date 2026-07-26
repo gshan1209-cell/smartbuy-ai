@@ -9,7 +9,8 @@ import { DASHBOARD_NAV_LINK, PUBLIC_MOBILE_LINKS } from '../config/publicNavigat
 export default function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, dashboardAccess } = useAuth();
-  const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(user?.role);
+  const currentRole = dashboardAccess?.role || user?.role;
+  const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
   const menuLinks = dashboardAccess?.dashboardAccess || hasDashboardRole
     ? [...PUBLIC_MOBILE_LINKS, DASHBOARD_NAV_LINK]
     : PUBLIC_MOBILE_LINKS;

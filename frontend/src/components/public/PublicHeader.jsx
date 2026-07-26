@@ -2,14 +2,20 @@ import { NavLink } from 'react-router-dom';
 import { Search, Menu } from 'lucide-react';
 import { NotificationBell } from '../Navbar';
 import { useAuth } from '../../context/AuthContext';
-import { DASHBOARD_NAV_LINK, PUBLIC_NAV_LINKS } from '../../config/publicNavigation';
+import {
+  DASHBOARD_NAV_LINK,
+  POINTS_NAV_LINK,
+  PUBLIC_NAV_LINKS,
+  SETTINGS_NAV_LINK,
+} from '../../config/publicNavigation';
 
 export default function PublicHeader({ onMenu }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
   const links = isAuthenticated
-    ? [...PUBLIC_NAV_LINKS, { to: '/points', label: '🪙 點數', description: '查看點數與優惠券' }]
+    ? [...PUBLIC_NAV_LINKS, POINTS_NAV_LINK, SETTINGS_NAV_LINK]
     : PUBLIC_NAV_LINKS;
-  const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(user?.role);
+  const currentRole = dashboardAccess?.role || user?.role;
+  const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
   if (isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole)) links.push(DASHBOARD_NAV_LINK);
 
   return (

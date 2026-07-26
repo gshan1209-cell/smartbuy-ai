@@ -15,6 +15,18 @@ export const PUBLIC_MOBILE_LINKS = [
   { to: '/settings', label: '⚙️ 設定', description: '管理帳戶設定' },
 ];
 
+export const POINTS_NAV_LINK = {
+  to: '/points',
+  label: '🪙 點數',
+  description: '查看點數與優惠券',
+};
+
+export const SETTINGS_NAV_LINK = {
+  to: '/settings',
+  label: '⚙️ 設定',
+  description: '管理帳戶設定',
+};
+
 export const DASHBOARD_NAV_LINK = {
   to: '/dashboard',
   label: '🛠️ 後台',
