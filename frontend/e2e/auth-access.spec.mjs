@@ -23,7 +23,7 @@ test('管理員取得明確授權後可看到後台導覽', async ({ page }) => 
 
   const navigation = page.getByRole('navigation', { name: '後台主要導覽' });
   await expect(navigation).toBeVisible();
-  await expect(navigation.getByRole('link', { name: '營運總覽' })).toBeVisible();
+  await expect(navigation.getByRole('link', { name: '總覽' })).toBeVisible();
   await expect(navigation.getByRole('link', { name: 'AI 推薦' })).toBeVisible();
   await expect(navigation.getByRole('link', { name: '優惠券管理' })).toBeVisible();
   await expect(page.getByText('系統管理員')).toBeVisible();
