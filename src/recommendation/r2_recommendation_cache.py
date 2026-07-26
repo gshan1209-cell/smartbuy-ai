@@ -7,7 +7,6 @@ import os
 from botocore.exceptions import ClientError
 
 from src.data.r2_sync import _get_r2_client, get_r2_config
-
 from .cache_repository import CacheBackendError, CacheCorruptError, CacheNotFoundError, CacheWriteError
 from .category_catalog import SCHEMA_VERSION
 
@@ -17,11 +16,27 @@ class R2RecommendationCacheRepository:
 
     def __init__(self, client=None, bucket_name: str | None = None, prefix: str | None = None):
         config = get_r2_config()
+        configured_prefix = prefix or os.getenv(
+            "R2_RECOMMENDATION_PREFIX",
+            f"recommendations/v{SCHEMA_VERSION}/",
+        )
         self.bucket_name = bucket_name or config["bucket_name"]
-        self.prefix = (prefix or os.getenv("R2_RECOMMENDATION_PREFIX", "recommendations/v1/")).strip("/")
+        self.prefix = self._normalize_versioned_prefix(configured_prefix)
         self.client = client or _get_r2_client()
         if not self.bucket_name:
             raise ValueError("R2_BUCKET_NAME 未設定")
+
+    @staticmethod
+    def _normalize_versioned_prefix(prefix: str) -> str:
+        """Keep custom base prefixes while routing the active schema to its own version."""
+        normalized = prefix.strip("/")
+        if not normalized:
+            return f"v{SCHEMA_VERSION}"
+        parts = normalized.split("/")
+        tail = parts[-1]
+        if tail.startswith("v") and tail[1:].isdigit():
+            parts[-1] = f"v{SCHEMA_VERSION}"
+        return "/".join(parts)
 
     def object_key(self, cache_key: str) -> str:
         if not cache_key.startswith("v") or "/" not in cache_key:
