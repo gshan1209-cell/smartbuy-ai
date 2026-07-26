@@ -202,10 +202,6 @@ html[data-layout-mode="mobile"] .container { padding-inline: 16px; }
 html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px; }
 
 /* Contextual public sidebar: shared shell, page-specific links. */
-.public-nav {
-  display: none;
-}
-
 .public-layout {
   --public-sidebar-width: 248px;
 }
@@ -214,6 +210,12 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
 .app-main {
   margin-left: var(--public-sidebar-width);
   transition: margin-left 180ms ease;
+}
+
+.public-nav {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .public-sidebar {
@@ -379,16 +381,6 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
   .public-sidebar {
     display: none;
   }
-}
-
-html[data-layout-mode="desktop"] .public-nav,
-html[data-layout-mode="tablet"] .public-nav {
-  display: none;
-}
-
-html[data-layout-mode="desktop"] .public-header .brand,
-html[data-layout-mode="tablet"] .public-header .brand {
-  display: none;
 }
 
 html[data-layout-mode="tablet"] .public-layout {
