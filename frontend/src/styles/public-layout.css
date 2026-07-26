@@ -141,3 +141,62 @@
     font-weight: 700;
   }
 }
+
+/* 手動版型切換：不依賴瀏覽器視窗寬度，方便在同一裝置預覽三種畫面。 */
+html[data-layout-mode="desktop"] .public-nav { display: flex; }
+html[data-layout-mode="desktop"] .settings-link { display: block; }
+html[data-layout-mode="desktop"] .mobile-icon,
+html[data-layout-mode="desktop"] .menu-button,
+html[data-layout-mode="desktop"] .mobile-bottom-nav { display: none; }
+
+html[data-layout-mode="tablet"] .public-header {
+  gap: 16px;
+  padding-inline: 20px;
+}
+html[data-layout-mode="tablet"] .public-nav { display: flex; overflow-x: auto; }
+html[data-layout-mode="tablet"] .public-nav a,
+html[data-layout-mode="tablet"] .settings-link { padding-inline: 8px; }
+html[data-layout-mode="tablet"] .mobile-icon,
+html[data-layout-mode="tablet"] .menu-button,
+html[data-layout-mode="tablet"] .mobile-bottom-nav { display: none; }
+html[data-layout-mode="tablet"] .container { max-width: 860px; padding-inline: 20px; }
+html[data-layout-mode="tablet"] .special-offers-inner { padding: 30px 24px 84px; }
+
+html[data-layout-mode="mobile"] .public-header {
+  gap: 8px;
+  padding-inline: 12px;
+}
+html[data-layout-mode="mobile"] .brand { font-size: 16px; flex: 1; }
+html[data-layout-mode="mobile"] .public-nav,
+html[data-layout-mode="mobile"] .settings-link { display: none; }
+html[data-layout-mode="mobile"] .mobile-icon { display: grid; }
+html[data-layout-mode="mobile"] .menu-button { display: grid; }
+html[data-layout-mode="mobile"] .mobile-bottom-nav {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: var(--yz-card-bg);
+  border-top: 1px solid var(--yz-bdr);
+  z-index: 30;
+  justify-content: space-around;
+}
+html[data-layout-mode="mobile"] .mobile-bottom-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 56px;
+  color: var(--yz-mut);
+  font-size: 12px;
+}
+html[data-layout-mode="mobile"] .mobile-bottom-nav a.active {
+  color: var(--yz-g);
+  font-weight: 700;
+}
+html[data-layout-mode="mobile"] .app-main { padding-bottom: 72px; }
+html[data-layout-mode="mobile"] .container { padding-inline: 16px; }
+html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px; }

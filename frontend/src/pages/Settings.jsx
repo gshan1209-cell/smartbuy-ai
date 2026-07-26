@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
-import { applyDisplayFontSize, FONT_SIZE_OPTIONS } from '../hooks/useDisplayFontSize';
+import { applyLayoutMode, DEFAULT_LAYOUT_MODE, LAYOUT_MODE_OPTIONS } from '../hooks/useLayoutMode';
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 const LS_KEY = 'smartbuy_notif_prefs';
 const DEFAULT_PREFS = { weatherAlert: true, mutualAidReply: true, mutualAidLike: true };
 
 const LS_DISPLAY_KEY = 'smartbuy_display_prefs';
-const DEFAULT_DISPLAY = { theme: 'light', fontSize: 'md' };
+const DEFAULT_DISPLAY = { theme: 'light', layoutMode: DEFAULT_LAYOUT_MODE };
 
 function loadPrefs() {
   try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(LS_KEY)) }; }
@@ -24,8 +24,8 @@ function loadDisplayPrefs() {
 function saveDisplayPrefs(next) {
   localStorage.setItem(LS_DISPLAY_KEY, JSON.stringify(next));
   document.documentElement.setAttribute('data-theme', next.theme);
-  applyDisplayFontSize(next.fontSize);
-  window.dispatchEvent(new CustomEvent('smartbuy:display-font-size', { detail: { fontSize: next.fontSize } }));
+  applyLayoutMode(next.layoutMode);
+  window.dispatchEvent(new CustomEvent('smartbuy:layout-mode', { detail: { layoutMode: next.layoutMode } }));
 }
 
 function splitPrefs(data) {
@@ -37,7 +37,7 @@ function splitPrefs(data) {
     },
     display: {
       theme: data.theme ?? DEFAULT_DISPLAY.theme,
-      fontSize: data.fontSize ?? DEFAULT_DISPLAY.fontSize,
+      layoutMode: loadDisplayPrefs().layoutMode ?? DEFAULT_DISPLAY.layoutMode,
     },
   };
 }
@@ -209,6 +209,7 @@ export default function Settings() {
     const nextDisplay = { ...displayPrefs, [key]: val };
     setDisplayPrefs(nextDisplay);
     saveDisplayPrefs(nextDisplay);
+    if (key === 'layoutMode') return;
     savePreferences({ [key]: val })
       .catch(err => {
         setDisplayPrefs(prevDisplay);
@@ -403,13 +404,13 @@ export default function Settings() {
           </div>
           <div style={{ ...rowStyle, marginTop: 20, marginBottom: 0 }}>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>版面尺寸</p>
-              <p style={{ fontSize: 12, color: 'var(--yz-mut)' }}>調整全站文字與版面比例</p>
+              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>版面模式</p>
+              <p style={{ fontSize: 12, color: 'var(--yz-mut)' }}>切換電腦、平板或手機整體版型</p>
             </div>
             <OptionGroup
-              options={FONT_SIZE_OPTIONS.map(option => ({ val: option.value, label: option.label }))}
-              value={displayPrefs.fontSize}
-              onChange={val => updateDisplay('fontSize', val)}
+              options={LAYOUT_MODE_OPTIONS.map(option => ({ val: option.value, label: option.label }))}
+              value={displayPrefs.layoutMode}
+              onChange={val => updateDisplay('layoutMode', val)}
             />
           </div>
         </div>

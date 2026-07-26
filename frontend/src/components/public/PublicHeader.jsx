@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { Search, Menu } from 'lucide-react';
 import { NotificationBell } from '../Navbar';
 import { useAuth } from '../../context/AuthContext';
-import useDisplayFontSize, { FONT_SIZE_OPTIONS } from '../../hooks/useDisplayFontSize';
+import useLayoutMode, { LAYOUT_MODE_OPTIONS } from '../../hooks/useLayoutMode';
 import {
   DASHBOARD_NAV_LINK,
   POINTS_NAV_LINK,
@@ -12,7 +12,7 @@ import {
 
 export default function PublicHeader({ onMenu }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
-  const { fontSize, updateFontSize } = useDisplayFontSize({ isAuthenticated });
+  const { layoutMode, updateLayoutMode } = useLayoutMode();
   const links = isAuthenticated
     ? [...PUBLIC_NAV_LINKS, POINTS_NAV_LINK, SETTINGS_NAV_LINK]
     : PUBLIC_NAV_LINKS;
@@ -31,16 +31,16 @@ export default function PublicHeader({ onMenu }) {
         ))}
       </nav>
       <div className="header-actions">
-        <div className="display-size-switch" role="group" aria-label="版面尺寸">
-          {FONT_SIZE_OPTIONS.map(option => (
+        <div className="layout-mode-switch" role="group" aria-label="版面模式">
+          {LAYOUT_MODE_OPTIONS.map(option => (
             <button
               key={option.value}
               type="button"
-              className={fontSize === option.value ? 'active' : ''}
-              onClick={() => updateFontSize(option.value)}
+              className={layoutMode === option.value ? 'active' : ''}
+              onClick={() => updateLayoutMode(option.value)}
               title={option.description}
               aria-label={option.description}
-              aria-pressed={fontSize === option.value}
+              aria-pressed={layoutMode === option.value}
             >
               {option.label}
             </button>
