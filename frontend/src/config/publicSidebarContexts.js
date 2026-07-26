@@ -41,14 +41,14 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
       ],
     },
   ]),
-  '/news': context('農產新知', [
+  '/news': context('📰 農產新知', [
     {
       heading: '查詢條件',
       links: [
         link('/news', '全部文章', '清除條件並查看全部文章'),
       ],
     },
-  ]),
+  ], '彙整農業部、各大媒體農業相關報導，掌握最新產銷動態。'),
   '/special-offers': context('好康推薦', [
     {
       heading: '查詢條件',
