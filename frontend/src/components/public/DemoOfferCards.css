@@ -10,6 +10,9 @@
 .demo-offer-heading h2 { margin: 3px 0 4px; color: var(--yz-gd); font-size: 20px; }
 .demo-offer-heading p { margin: 0; color: var(--yz-mut); font-size: 13px; }
 .demo-offer-note, .demo-offer-badge { border-radius: 999px; padding: 5px 9px; background: var(--yz-orl); color: var(--yz-or); font-size: 11px; font-weight: 800; white-space: nowrap; }
+.demo-offer-category-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.demo-offer-category-filter button { min-height: 34px; padding: 6px 12px; border: 1px solid var(--yz-bdr); border-radius: 999px; color: var(--yz-mut); background: var(--yz-card-bg); font-size: 12px; font-weight: 800; cursor: pointer; }
+.demo-offer-category-filter button:hover, .demo-offer-category-filter button:focus-visible, .demo-offer-category-filter button.active { border-color: var(--yz-g); color: var(--yz-gd); background: var(--yz-gl); }
 .demo-offer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .demo-offer-card { overflow: hidden; border: 1px solid var(--yz-bdr); border-radius: 14px; background: var(--yz-card-bg); box-shadow: var(--yz-shd); }
 .demo-offer-image-wrap { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--yz-bgs); }
@@ -18,6 +21,9 @@
 .demo-offer-card-body { padding: 15px 16px 16px; }
 .demo-offer-merchant { display: flex; align-items: center; gap: 7px; color: var(--yz-mut); font-size: 12px; font-weight: 700; }
 .demo-offer-merchant-icon { display: inline-grid; width: 27px; height: 27px; place-items: center; border-radius: 50%; background: var(--yz-gl); font-size: 16px; }
+.demo-offer-categories { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.demo-offer-categories span { padding: 3px 7px; border-radius: 999px; color: var(--yz-gd); background: var(--yz-gl); font-size: 11px; font-weight: 800; }
+.demo-offer-categories span.is-free { color: #166534; background: #dcfce7; }
 .demo-offer-card h3 { margin: 11px 0 5px; color: var(--yz-txt); font-size: 18px; }
 .demo-offer-description { min-height: 42px; margin: 0 0 11px; color: var(--yz-mut); font-size: 13px; line-height: 1.65; }
 .demo-offer-price-row { display: flex; align-items: baseline; gap: 8px; }

@@ -174,6 +174,7 @@ export default function SpecialOffers() {
           title="特賣卡片"
           description="先用卡片快速看懂商家、商品、優惠與限時資訊。"
           cards={DEMO_SPECIAL_OFFERS}
+          categoryOptions={['限時', '限量', '免費贈送']}
         />
 
         <section className="special-offers-summary" aria-label={COPY.summaryLabel}>

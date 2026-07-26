@@ -2,6 +2,7 @@ export const DEMO_SPECIAL_OFFERS = [
   {
     id: 'demo-fruit-basket',
     badge: '限時特賣',
+    categories: ['限時', '限量'],
     merchantIcon: '🍊',
     merchantName: '好日子果園',
     title: '當季鮮果分享籃',
@@ -15,6 +16,7 @@ export const DEMO_SPECIAL_OFFERS = [
   {
     id: 'demo-leafy-vegetables',
     badge: '今日好價',
+    categories: ['限量'],
     merchantIcon: '🥬',
     merchantName: '田邊鮮蔬合作社',
     title: '清爽綠葉蔬菜箱',
@@ -28,6 +30,7 @@ export const DEMO_SPECIAL_OFFERS = [
   {
     id: 'demo-root-vegetable-box',
     badge: '產地直送',
+    categories: ['限時', '限量'],
     merchantIcon: '🥕',
     merchantName: '日光根莖農場',
     title: '根莖蔬菜耐放箱',
@@ -41,6 +44,7 @@ export const DEMO_SPECIAL_OFFERS = [
   {
     id: 'demo-tomato-bundle',
     badge: '即期超低價',
+    categories: ['限時', '限量'],
     merchantIcon: '🍅',
     merchantName: '紅日番茄園',
     title: '熟成番茄料理包',
@@ -54,6 +58,7 @@ export const DEMO_SPECIAL_OFFERS = [
   {
     id: 'demo-citrus-box',
     badge: '季節好康',
+    categories: ['限量'],
     merchantIcon: '🍊',
     merchantName: '山線柑橘果園',
     title: '小果柑橘家庭箱',
@@ -67,6 +72,7 @@ export const DEMO_SPECIAL_OFFERS = [
   {
     id: 'demo-sweet-potato-pack',
     badge: '今日下單',
+    categories: ['限時'],
     merchantIcon: '🍠',
     merchantName: '暖土台農小舖',
     title: '香甜地瓜分享包',
@@ -80,6 +86,7 @@ export const DEMO_SPECIAL_OFFERS = [
   {
     id: 'demo-mushroom-cooking-set',
     badge: '料理組合',
+    categories: ['限量'],
     merchantIcon: '🍄',
     merchantName: '森林鮮菇農場',
     title: '火鍋綜合菇菇組',
@@ -93,6 +100,7 @@ export const DEMO_SPECIAL_OFFERS = [
   {
     id: 'demo-rice-family-pack',
     badge: '家庭補給',
+    categories: ['限時'],
     merchantIcon: '🍚',
     merchantName: '禾日米作',
     title: '當季白米家庭包',
@@ -105,20 +113,22 @@ export const DEMO_SPECIAL_OFFERS = [
   },
   {
     id: 'demo-honey-jar',
-    badge: '在地好味',
+    badge: '免費贈送',
+    categories: ['免費贈送', '限量'],
     merchantIcon: '🍯',
     merchantName: '花田蜂采坊',
-    title: '百花蜂蜜分享瓶',
-    description: '花香溫潤、沖泡飲品或搭配優格都很適合。',
-    price: 'NT$ 299',
-    originalPrice: 'NT$ 380',
-    offerNote: '限量 28 瓶．產地直送',
+    title: '百花蜂蜜試飲瓶',
+    description: '花香溫潤，搭配飲品或優格都很適合，首次體驗免費帶回家。',
+    price: '免費',
+    originalPrice: '購物滿額贈',
+    offerNote: '每日限量 10 瓶．滿 NT$ 500 贈送',
     image: '/demo/recommendation-sesame-oil.png',
     websiteUrl: 'https://example.com/honey-jar',
   },
   {
     id: 'demo-dried-mushroom-pack',
     badge: '常備食材',
+    categories: ['限時', '限量'],
     merchantIcon: '🫛',
     merchantName: '山間乾物舖',
     title: '日曬菇菇乾貨包',
