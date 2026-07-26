@@ -8,6 +8,7 @@ import {
   Database,
   LayoutDashboard,
   MessageSquareMore,
+  Sparkles,
   Settings,
   Users,
 } from 'lucide-react';
@@ -38,6 +39,12 @@ export const dashboardNavigation = [
     label: 'AI 預測',
     permission: PERMISSIONS.PREDICTIONS_VIEW,
     icon: Bot,
+  },
+  {
+    to: '/dashboard/recommendations',
+    label: 'AI 推薦',
+    permission: PERMISSIONS.RECOMMENDATIONS_VIEW,
+    icon: Sparkles,
   },
   {
     to: '/dashboard/weather',

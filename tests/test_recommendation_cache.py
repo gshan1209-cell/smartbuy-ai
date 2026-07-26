@@ -1,0 +1,254 @@
+from __future__ import annotations
+
+from concurrent.futures import ThreadPoolExecutor
+import threading
+import time
+
+import pandas as pd
+import pytest
+
+from src.recommendation.cache_repository import CacheCorruptError, CacheWriteError
+from src.recommendation.category_catalog import cache_key_for
+from src.recommendation.local_recommendation_cache import LocalRecommendationCacheRepository
+from src.recommendation.r2_recommendation_cache import R2RecommendationCacheRepository
+from src.recommendation.recommendation_service import RecommendationService
+
+
+class FakeCacheRepository:
+    backend_name = "r2"
+
+    def __init__(self):
+        self.objects: dict[str, dict] = {}
+        self.lock = threading.Lock()
+
+    def exists(self, cache_key):
+        with self.lock:
+            return cache_key in self.objects
+
+    def read(self, cache_key):
+        with self.lock:
+            return self.objects[cache_key]
+
+    def create_if_absent(self, cache_key, payload):
+        with self.lock:
+            if cache_key in self.objects:
+                return False
+            self.objects[cache_key] = payload
+            return True
+
+
+class FailingWriteRepository(FakeCacheRepository):
+    def create_if_absent(self, cache_key, payload):
+        raise CacheWriteError("write failed")
+
+
+class CountingLLM:
+    provider = "test-provider"
+    model = "test-model"
+
+    def __init__(self, failure=False, delay=0):
+        self.calls = 0
+        self.failure = failure
+        self.delay = delay
+        self.lock = threading.Lock()
+
+    def generate(self, prompt):
+        with self.lock:
+            self.calls += 1
+        if self.delay:
+            time.sleep(self.delay)
+        if self.failure:
+            raise RuntimeError("LLM unavailable")
+        return {
+            "summary": "可依行情比較採買。",
+            "market_outlook": "目前資料僅供保守判斷。",
+            "shopping_strategy": "優先比較價格便宜的品項。",
+            "items": [
+                {
+                    "product_name": "菠菜",
+                    "market_name": "台北一",
+                    "price_status": "正常",
+                    "today_price": 20,
+                    "recent_average": 21,
+                    "action": "依需求採買",
+                    "reason": "今日價格接近近期平均。",
+                    "priority": "medium",
+                    "substitute": None,
+                }
+            ],
+        }
+
+
+class InvalidPriceLLM(CountingLLM):
+    def generate(self, prompt):
+        payload = super().generate(prompt)
+        payload["items"][0]["today_price"] = 999
+        return payload
+
+
+def prices():
+    rows = []
+    for product, values in {
+        "菠菜": [20, 21, 22, 20],
+        "高麗菜": [30, 31, 29, 28],
+        "香蕉": [35, 36, 34, 35],
+    }.items():
+        for index, value in enumerate(values):
+            rows.append(
+                {
+                    "product_name": product,
+                    "market_name": "台北一",
+                    "avg_price": value,
+                    "trans_date": pd.Timestamp("2026-07-20") + pd.Timedelta(days=index),
+                }
+            )
+    frame = pd.DataFrame(rows)
+    frame.attrs["source"] = "Supabase"
+    frame.attrs["is_historical"] = False
+    return frame
+
+
+@pytest.fixture(autouse=True)
+def clear_price_cache():
+    from backend.cache import price_cache
+
+    previous = price_cache.pop("prices", None)
+    yield
+    if previous is not None:
+        price_cache["prices"] = previous
+
+
+def make_service(repository=None, llm=None):
+    return RecommendationService(
+        repository or FakeCacheRepository(),
+        llm or CountingLLM(),
+        price_loader=prices,
+    )
+
+
+def test_missing_json_calls_llm_once_then_hits_cache():
+    llm = CountingLLM()
+    service = make_service(llm=llm)
+
+    first = service.get_recommendation("leafy-vegetables")
+    second = service.get_recommendation("leafy-vegetables")
+
+    assert first.cache_hit is False
+    assert first.llm_called is True
+    assert second.cache_hit is True
+    assert second.llm_called is False
+    assert llm.calls == 1
+
+
+def test_existing_json_never_calls_llm():
+    repository = FakeCacheRepository()
+    llm = CountingLLM()
+    service = make_service(repository=repository, llm=llm)
+    service.get_recommendation("leafy-vegetables")
+    llm.calls = 0
+
+    result = service.get_recommendation("leafy-vegetables")
+
+    assert result.cache_hit is True
+    assert result.llm_called is False
+    assert llm.calls == 0
+
+
+def test_corrupt_json_never_calls_llm():
+    repository = FakeCacheRepository()
+    repository.objects[cache_key_for("leafy-vegetables")] = {"schema_version": 999}
+    llm = CountingLLM()
+    service = make_service(repository=repository, llm=llm)
+
+    with pytest.raises(CacheCorruptError):
+        service.get_recommendation("leafy-vegetables")
+
+    assert llm.calls == 0
+
+
+def test_same_category_concurrent_requests_call_llm_once():
+    llm = CountingLLM(delay=0.1)
+    service = make_service(llm=llm)
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(lambda _: service.get_recommendation("leafy-vegetables"), range(6)))
+
+    assert llm.calls == 1
+    assert sum(result.llm_called for result in results) == 1
+    assert sum(result.cache_hit for result in results) == 5
+
+
+def test_different_categories_use_different_keys():
+    repository = FakeCacheRepository()
+    service = make_service(repository=repository, llm=CountingLLM())
+
+    service.get_recommendation("leafy-vegetables")
+    service.get_recommendation("fruit")
+
+    assert set(repository.objects) == {
+        cache_key_for("leafy-vegetables"),
+        cache_key_for("fruit"),
+    }
+
+
+def test_unknown_category_is_rejected():
+    service = make_service()
+
+    with pytest.raises(ValueError):
+        service.get_recommendation("../not-allowed")
+
+
+def test_llm_failure_writes_rules_fallback_and_next_request_is_cached():
+    llm = CountingLLM(failure=True)
+    service = make_service(llm=llm)
+
+    first = service.get_recommendation("leafy-vegetables")
+    second = service.get_recommendation("leafy-vegetables")
+
+    assert first.document.generator == "rules-fallback"
+    assert first.llm_called is True
+    assert second.cache_hit is True
+    assert second.llm_called is False
+    assert llm.calls == 1
+
+
+def test_cache_write_failure_is_not_reported_as_success():
+    service = make_service(repository=FailingWriteRepository())
+
+    with pytest.raises(CacheWriteError):
+        service.get_recommendation("leafy-vegetables")
+
+
+def test_invalid_llm_price_is_replaced_by_rules_fallback():
+    llm = InvalidPriceLLM()
+    service = make_service(llm=llm)
+
+    result = service.get_recommendation("leafy-vegetables")
+
+    assert result.document.generator == "rules-fallback"
+    assert llm.calls == 1
+
+
+def test_local_repository_uses_create_only_and_detects_corrupt_json(tmp_path):
+    repository = LocalRecommendationCacheRepository(tmp_path)
+    key = cache_key_for("leafy-vegetables")
+    payload = {"schema_version": 1}
+
+    assert repository.create_if_absent(key, payload) is True
+    assert repository.create_if_absent(key, {"schema_version": 2}) is False
+    assert repository.read(key) == payload
+
+    repository._path(cache_key_for("fruit")).parent.mkdir(parents=True, exist_ok=True)
+    repository._path(cache_key_for("fruit")).write_text("{broken", encoding="utf-8")
+    with pytest.raises(CacheCorruptError):
+        repository.read(cache_key_for("fruit"))
+
+
+def test_r2_repository_uses_expected_persistent_object_key():
+    repository = R2RecommendationCacheRepository(
+        client=object(),
+        bucket_name="test-bucket",
+        prefix="recommendations/v1/",
+    )
+
+    assert repository.object_key(cache_key_for("leafy-vegetables")) == "recommendations/v1/leafy-vegetables.json"

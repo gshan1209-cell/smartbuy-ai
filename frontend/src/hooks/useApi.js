@@ -55,6 +55,7 @@ export async function get(path, { timeoutMs = 8000 } = {}) {
   try {
     const res = await fetch(BASE + path, {
       headers: authHeaders(),
+      credentials: 'include',
       signal: controller.signal,
     });
     if (!res.ok) {
