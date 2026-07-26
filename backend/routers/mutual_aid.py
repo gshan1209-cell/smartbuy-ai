@@ -1,7 +1,7 @@
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from backend.routers.auth import _get_current_member_id, _get_current_member_id_optional
 from src.data.mutual_aid_repository import (
@@ -18,6 +18,7 @@ from src.data.mutual_aid_repository import (
     list_saved_posts,
     upload_post_image,
 )
+from src.data.rewards_repository import grant_recommendation_points
 
 router = APIRouter(prefix="/api/mutual-aid")
 
@@ -25,9 +26,23 @@ _ALLOWED_IMAGE_EXT = {"jpg", "jpeg", "png", "webp"}
 _MAX_IMAGE_SIZE = 5 * 1024 * 1024
 
 
+def _normalize_website_url(value: str | None) -> str | None:
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    if not value.startswith(('http://', 'https://')):
+        raise ValueError('website_url must start with http:// or https://')
+    return value
+
+
 class PostCreate(BaseModel):
     type: Literal["滯銷急售", "求助", "資訊分享"]
     content: str
+    share_kind: Optional[Literal["special_offer", "product_recommendation"]] = None
+    title: Optional[str] = None
+    website_url: Optional[str] = None
     farm_name: Optional[str] = None
     location_city: Optional[str] = None
     location_addr: Optional[str] = None
@@ -37,10 +52,15 @@ class PostCreate(BaseModel):
 
     model_config = {"extra": "forbid"}
 
+    _validate_website_url = field_validator('website_url')(_normalize_website_url)
+
 
 class PostUpdate(BaseModel):
     type: Optional[Literal["滯銷急售", "求助", "資訊分享"]] = None
     content: Optional[str] = None
+    share_kind: Optional[Literal["special_offer", "product_recommendation"]] = None
+    title: Optional[str] = None
+    website_url: Optional[str] = None
     farm_name: Optional[str] = None
     location_city: Optional[str] = None
     location_addr: Optional[str] = None
@@ -49,6 +69,8 @@ class PostUpdate(BaseModel):
     images: Optional[list[str]] = None
 
     model_config = {"extra": "forbid"}
+
+    _validate_website_url = field_validator('website_url')(_normalize_website_url)
 
 
 class PostStatusUpdate(BaseModel):
@@ -76,6 +98,7 @@ def _handle_repo_error(exc: Exception):
 @router.get("/posts")
 def mutual_aid_list_posts(
     type: Optional[Literal["滯銷急售", "求助", "資訊分享"]] = Query(None),
+    share_kind: Optional[Literal["special_offer", "product_recommendation"]] = Query(None),
     city: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
     mine: bool = Query(False),
@@ -88,7 +111,7 @@ def mutual_aid_list_posts(
     if mine and member_id is None:
         raise HTTPException(status_code=401, detail="請先登入才能查看自己的貼文。")
     return list_posts(
-        type=type, city=city, q=q, sort=sort, limit=limit, offset=offset,
+        type=type, share_kind=share_kind, city=city, q=q, sort=sort, limit=limit, offset=offset,
         member_id=member_id, mine=mine,
     )
 
@@ -118,7 +141,14 @@ def mutual_aid_create_post(
 ):
     """發布新貼文。"""
     try:
-        return create_post(member_id=member_id, **payload.model_dump())
+        post = create_post(member_id=member_id, **payload.model_dump())
+        if payload.type == "資訊分享" and payload.share_kind == "product_recommendation":
+            try:
+                post["points_reward"] = grant_recommendation_points(member_id, post["id"])
+            except Exception:
+                # 點數 migration 尚未套用或獎勵服務暫時不可用時，貼文仍應成功建立。
+                post["points_reward"] = None
+        return post
     except (ValueError, LookupError, PermissionError) as exc:
         _handle_repo_error(exc)
 

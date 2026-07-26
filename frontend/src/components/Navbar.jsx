@@ -11,7 +11,7 @@ const links = [
   { to: '/',           label: '首頁',     ready: true },
   { to: '/search',     label: '售價動態', ready: true },
   { to: '/news',       label: '農產新知', ready: true },
-  { to: '/mutual-aid', label: '互助網',   ready: true },
+  { to: '/special-offers', label: '特賣會', ready: true },
   { to: '/basket',     label: '我的菜籃', ready: true },
   { to: '/settings',   label: '設定',     ready: true },
 ];
@@ -84,7 +84,7 @@ export function NotificationBell() {
       setUnreadCount(c => Math.max(c - 1, 0));
       markNotificationRead(item.id).catch(() => {});
     }
-    navigate(`/mutual-aid?post=${item.postId}`);
+    navigate('/alerts');
   }
 
   function handleMarkAllRead() {

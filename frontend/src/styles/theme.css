@@ -13,6 +13,34 @@
   --yz-btn-bg: #ffffff;
 }
 
+.layout-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  background: var(--yz-bgs);
+}
+
+.layout-mode-switch button {
+  min-width: 26px;
+  min-height: 26px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yz-mut);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.layout-mode-switch button:hover,
+.layout-mode-switch button.active {
+  background: var(--yz-g);
+  color: #fff;
+}
+
 [data-theme="dark"] {
   --yz-bg: #1a1a1a;  --yz-bgs: #242424; --yz-bdr: #3a3a3a;
   --yz-txt: #f0f0f0; --yz-mut: #aaaaaa; --yz-dim: #777777;

@@ -58,7 +58,7 @@
 
 另外，**已上線但本文件從未規劃、未列入原始 MVP 範圍的功能**，說明如下（反向落差：網站有做、規劃書沒寫）：
 
-- **互助網（社群互助板）**：`frontend/src/pages/MutualAid.jsx` 與 `backend/routers/mutual_aid.py`。提供貼文（滯銷急售 / 求助 / 資訊分享）、留言、按讚、收藏、狀態流程（待處理 / 處理中 / 已結案）、圖片上傳、地理位置欄位等完整社群功能。本文件原始章節從未提及此功能，非「規劃後移除」，而是規劃書從未涵蓋
+- **互助網（社群互助板）**：`frontend/src/pages/MutualAid.jsx` 與 `backend/routers/mutual_aid.py`。提供貼文（產地特惠 / 合作互助 / 資訊分享）、留言、按讚、收藏、狀態流程（待處理 / 處理中 / 已結案）、圖片上傳、地理位置欄位等完整社群功能。本文件原始章節從未提及此功能，非「規劃後移除」，而是規劃書從未涵蓋
 - **完整帳號系統**：`backend/routers/auth.py`、`frontend/src/pages/Settings.jsx`、`Login.jsx`、`Register.jsx`。實作 bcrypt 密碼雜湊、JWT httpOnly cookie、註冊 / 登入 / 登出、個人資料修改、需驗證舊密碼的改密碼流程。原規格 4.3 節明確將「使用者帳號系統」列為非 MVP 功能，並建議「MVP 可先用本機 / session / JSON 儲存」，實際上線的是正式帳號系統，範圍已超出原規劃
 - **通知中心**：`backend/routers/notifications.py`，含持久化通知列表、未讀數、標記已讀 / 全部已讀，並在 `auth.py` 提供互助網回覆、按讚、菜價提醒、天氣提醒等偏好開關。原規格 4.3 節將「即時推播通知」列為非 MVP，建議「先用首頁提醒即可」，實際做出的通知中心已超出此範圍
 - **農業新聞頁與新聞收藏**：`frontend/src/pages/AgriNews.jsx`，並透過 `backend/routers/favorites.py` 支援 `"news"` 類型收藏（`"product"` 類型對應原規格 F08 我的菜籃）。本文件原始章節從未提及新聞瀏覽或新聞收藏功能

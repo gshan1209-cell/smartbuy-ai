@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export const TAIWAN_REGIONS = [
   {
@@ -23,13 +23,19 @@ export const TAIWAN_REGIONS = [
   },
 ];
 
-export const ALL_COUNTIES = TAIWAN_REGIONS.flatMap((r) => r.counties);
+export const ALL_COUNTY_OPTION = '全部';
+export const ALL_COUNTIES = [ALL_COUNTY_OPTION, ...TAIWAN_REGIONS.flatMap((r) => r.counties)];
 
 export default function CountySelector({ selectedCounty, onSelectCounty }) {
   const [selectedRegionId, setSelectedRegionId] = useState(() => {
     const found = TAIWAN_REGIONS.find((r) => r.counties.includes(selectedCounty));
-    return found ? found.id : 'north';
+    return found ? found.id : selectedCounty === ALL_COUNTY_OPTION ? 'all' : 'north';
   });
+
+  useEffect(() => {
+    const found = TAIWAN_REGIONS.find((r) => r.counties.includes(selectedCounty));
+    setSelectedRegionId(found ? found.id : selectedCounty === ALL_COUNTY_OPTION ? 'all' : 'north');
+  }, [selectedCounty]);
 
   const activeRegion = useMemo(() => (
     TAIWAN_REGIONS.find((r) => r.id === selectedRegionId) || TAIWAN_REGIONS[0]
@@ -55,7 +61,7 @@ export default function CountySelector({ selectedCounty, onSelectCounty }) {
             const county = e.target.value;
             onSelectCounty(county);
             const found = TAIWAN_REGIONS.find((r) => r.counties.includes(county));
-            if (found) setSelectedRegionId(found.id);
+            setSelectedRegionId(found ? found.id : 'all');
           }}
         >
           {ALL_COUNTIES.map((c) => (
@@ -64,6 +70,18 @@ export default function CountySelector({ selectedCounty, onSelectCounty }) {
         </select>
 
         <div className="region-chips" role="radiogroup" aria-label="臺灣分區切換">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={selectedRegionId === 'all'}
+            className={`region-chip ${selectedRegionId === 'all' ? 'region-chip--active' : ''}`}
+            onClick={() => {
+              setSelectedRegionId('all');
+              onSelectCounty(ALL_COUNTY_OPTION);
+            }}
+          >
+            全部
+          </button>
           {TAIWAN_REGIONS.map((r) => (
             <button
               key={r.id}
@@ -80,6 +98,15 @@ export default function CountySelector({ selectedCounty, onSelectCounty }) {
       </div>
 
       <div className="county-chips" role="radiogroup" aria-label="縣市選取">
+        <button
+          type="button"
+          role="radio"
+          aria-checked={selectedCounty === ALL_COUNTY_OPTION}
+          className={`county-chip ${selectedCounty === ALL_COUNTY_OPTION ? 'county-chip--selected' : ''}`}
+          onClick={() => onSelectCounty(ALL_COUNTY_OPTION)}
+        >
+          全部
+        </button>
         {activeRegion.counties.map((county) => {
           const isSelected = selectedCounty === county;
           return (

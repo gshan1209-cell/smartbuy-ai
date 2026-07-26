@@ -14,7 +14,7 @@ export function normalizeNotification(item) {
     actorName,
     category: '互助網',
     isRead: Boolean(item.isRead),
-    target: item.postId ? `/mutual-aid?post=${item.postId}` : '/mutual-aid',
+    target: '/alerts',
     title: isReply
       ? `${actorName} 回覆了你的貼文`
       : `${actorName} 按讚了你的貼文`,

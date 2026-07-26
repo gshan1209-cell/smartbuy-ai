@@ -8,7 +8,10 @@
 from __future__ import annotations
 
 import math
+import json
 from datetime import date, timedelta
+from functools import lru_cache
+from pathlib import Path
 
 # 24 節氣名稱，依太陽黃道經度 0°、15°、30°… 排列
 # 起點春分（0°）
@@ -22,6 +25,8 @@ _TERM_NAMES = [
     "冬至", "小寒", "大寒",
     "立春", "雨水", "驚蟄",
 ]
+
+_LOCAL_TERMS_PATH = Path(__file__).resolve().parents[2] / "data" / "processed" / "solar_terms.json"
 
 
 def _sun_longitude(jde: float) -> float:
@@ -87,6 +92,29 @@ def _build_year_terms(year: int) -> list[tuple[date, str]]:
     return terms
 
 
+@lru_cache(maxsize=8)
+def _load_local_year_terms(year: int) -> list[tuple[date, str]] | None:
+    """優先讀取本機節氣 JSON；沒有該年份時交回公式計算。"""
+    try:
+        payload = json.loads(_LOCAL_TERMS_PATH.read_text(encoding="utf-8"))
+        rows = payload.get("years", {}).get(str(year), [])
+        terms = sorted(
+            (date.fromisoformat(row["date"]), row["name"])
+            for row in rows
+            if row.get("date") and row.get("name")
+        )
+        return terms or None
+    except (OSError, TypeError, ValueError, KeyError, json.JSONDecodeError):
+        return None
+
+
+def _get_year_terms(year: int) -> tuple[list[tuple[date, str]], str]:
+    local_terms = _load_local_year_terms(year)
+    if local_terms:
+        return local_terms, "local_json"
+    return _build_year_terms(year), "local_calculation"
+
+
 def get_current_solar_term(today: date | None = None) -> dict:
     """
     回傳當前節氣與下個節氣資訊：
@@ -96,7 +124,10 @@ def get_current_solar_term(today: date | None = None) -> dict:
     year = target.year
 
     # 涵蓋跨年邊界：取前一年末 + 當年 + 次年初
-    terms = _build_year_terms(year - 1)[-4:] + _build_year_terms(year) + _build_year_terms(year + 1)[:4]
+    previous_terms, previous_source = _get_year_terms(year - 1)
+    current_terms, current_source = _get_year_terms(year)
+    next_terms, next_source = _get_year_terms(year + 1)
+    terms = previous_terms[-4:] + current_terms + next_terms[:4]
 
     current_name = None
     next_name = None
@@ -117,4 +148,5 @@ def get_current_solar_term(today: date | None = None) -> dict:
         "term_name": current_name,
         "next_term_name": next_name,
         "days_until_next": days_until_next,
+        "data_source": "local_json" if current_source == "local_json" else "local_calculation",
     }

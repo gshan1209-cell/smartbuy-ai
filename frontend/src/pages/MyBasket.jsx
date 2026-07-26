@@ -171,7 +171,7 @@ export default function MyBasket() {
       {favLoading && <div className="spinner" />}
 
       {/* 收藏品項（來自售價動態頁） */}
-      <h2 className="page-title" style={{ fontSize: 20, marginTop: 40 }}>⭐ 收藏品項</h2>
+        <h2 id="saved-products" className="page-title" style={{ fontSize: 20, marginTop: 40 }}>⭐ 收藏品項</h2>
       {!favLoading && savedProducts.length === 0 ? (
         <p className="empty">還沒有收藏的品項，前往<a href="/search" onClick={e => { e.preventDefault(); navigate('/search'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>售價動態</a>收藏</p>
       ) : (
@@ -179,7 +179,7 @@ export default function MyBasket() {
       )}
 
       {/* 收藏文章（來自農產新知頁，獨立於品項清單） */}
-      <h2 className="page-title" style={{ fontSize: 20, marginTop: 40 }}>📰 收藏文章</h2>
+        <h2 id="saved-news" className="page-title" style={{ fontSize: 20, marginTop: 40 }}>📰 收藏文章</h2>
       {!favLoading && savedNews.length === 0 ? (
         <p className="empty">還沒有收藏的文章，前往<a href="/news" onClick={e => { e.preventDefault(); navigate('/news'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>農產新知</a>看看</p>
       ) : (

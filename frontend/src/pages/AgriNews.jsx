@@ -1,10 +1,55 @@
 import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
+import './AgriNews.css';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const PAGE_SIZE = 12;
+const NEWS_CACHE_PREFIX = 'smartbuy:agri-news:v1:';
+const INFO_SHARE_COPY = {
+  title: '資訊分享',
+  description: '產地、栽培、產品與採購相關的實用分享集中在這裡。',
+  action: '前往資訊分享',
+};
+
+function getNewsCacheKey({ query = '', source = '', page = 1 } = {}) {
+  return `${NEWS_CACHE_PREFIX}${JSON.stringify({ query: query.trim(), source, page })}`;
+}
+
+function readNewsCache(key) {
+  try {
+    const cached = JSON.parse(window.localStorage.getItem(key) || 'null');
+    return cached && Array.isArray(cached.articles) ? cached : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeNewsCache(key, payload) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(payload));
+  } catch (_) {
+    // Storage may be disabled or full; the API result remains usable.
+  }
+}
+
+function normalizeNewsResponse(data) {
+  const rows = Array.isArray(data) ? data : (Array.isArray(data?.articles) ? data.articles : []);
+  return {
+    total: Number.isFinite(Number(data?.total)) ? Number(data.total) : rows.length,
+    articles: rows.map(row => ({
+      id:          row.id ?? `fallback-${Math.random()}`,
+      title:       row.title ?? '',
+      date:        formatDate(row.published_date),
+      source:      row.source_name ?? '',
+      url:         row.source_url ?? '',
+      summary:     (row.content_text ?? '').slice(0, 200).trim(),
+      fullContent: row.content_text ?? '',
+    })),
+  };
+}
 
 function formatDate(raw) {
   if (!raw) return '';
@@ -14,18 +59,32 @@ function formatDate(raw) {
 }
 
 export default function AgriNews() {
-  const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+  const searchParamString = searchParams.toString();
+  const initialCache = readNewsCache(getNewsCacheKey({
+    query: searchParams.get('q') || '',
+    source: searchParams.get('source') || '',
+    page: 1,
+  }));
+  const [articles, setArticles] = useState(initialCache?.articles || []);
+  const [loading, setLoading] = useState(!initialCache);
   const [error, setError] = useState(null);
+  const [stale, setStale] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [query, setQuery] = useState(() => searchParams.get('q') || '');
+  const [debouncedQuery, setDebouncedQuery] = useState(() => searchParams.get('q') || '');
   const [savedIds, setSavedIds] = useState([]);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [total, setTotal] = useState(initialCache?.total || 0);
   const [sources, setSources] = useState([]);
-  const [sourceFilter, setSourceFilter] = useState('');
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const [sourceFilter, setSourceFilter] = useState(() => searchParams.get('source') || '');
   const [toastMsg, showToast] = useToast();
+
+  useEffect(() => {
+    setQuery(searchParams.get('q') || '');
+    setSourceFilter(searchParams.get('source') || '');
+  }, [searchParamString]);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +113,14 @@ export default function AgriNews() {
 
   useEffect(() => {
     setExpandedId(null);
-    setLoading(true);
+    const cacheKey = getNewsCacheKey({ query: debouncedQuery, source: sourceFilter, page });
+    const cached = readNewsCache(cacheKey);
+    if (cached) {
+      setArticles(cached.articles);
+      setTotal(cached.total);
+    }
+    setStale(false);
+    setLoading(!cached);
     setError(null);
     const params = new URLSearchParams({
       limit: PAGE_SIZE,
@@ -75,21 +141,18 @@ export default function AgriNews() {
         return r.json();
       })
       .then(data => {
-        const rows = Array.isArray(data) ? data : (data.articles ?? []);
-        setTotal(data.total ?? 0);
-        setArticles(rows.map(row => ({
-          id:          row.id ?? `fallback-${Math.random()}`,
-          title:       row.title ?? '',
-          date:        formatDate(row.published_date),
-          source:      row.source_name ?? '',
-          url:         row.source_url ?? '',
-          summary:     (row.content_text ?? '').slice(0, 200).trim(),
-          fullContent: row.content_text ?? '',
-        })));
+        const normalized = normalizeNewsResponse(data);
+        setTotal(normalized.total);
+        setArticles(normalized.articles);
+        setStale(false);
+        writeNewsCache(cacheKey, normalized);
       })
-      .catch(err => setError(err.message))
+      .catch(err => {
+        if (!cached) setError(err.message);
+        setStale(Boolean(cached));
+      })
       .finally(() => setLoading(false));
-  }, [debouncedQuery, page, sourceFilter]);
+  }, [debouncedQuery, page, sourceFilter, reloadNonce]);
 
   function handleToggleSave(e, article) {
     e.stopPropagation();
@@ -124,11 +187,6 @@ export default function AgriNews() {
   return (
     <div className="yz-page" style={{ padding: '32px 40px 60px' }}>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>📰 農產新知</h1>
-        <p style={{ fontSize: 13, color: 'var(--yz-mut)', marginBottom: 20 }}>
-          彙整農業部、各大媒體農業相關報導，掌握最新產銷動態。
-        </p>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <input
@@ -189,7 +247,18 @@ export default function AgriNews() {
         )}
         {!loading && error && (
           <p style={{ fontSize: 13, color: '#e53e3e', padding: '32px 0', textAlign: 'center' }}>
-            資料載入失敗：{error}
+            資料暫時無法取得：{error}{' '}
+            <button type="button" onClick={() => setReloadNonce(value => value + 1)} style={{ color: 'var(--yz-g)', background: 'none', border: 0, cursor: 'pointer' }}>
+              重試
+            </button>
+          </p>
+        )}
+        {!loading && stale && (
+          <p style={{ fontSize: 12, color: 'var(--yz-or)', margin: '0 0 16px' }}>
+            目前顯示本機快取的新知，最新資料暫時無法取得；{` `}
+            <button type="button" onClick={() => setReloadNonce(value => value + 1)} style={{ color: 'var(--yz-g)', background: 'none', border: 0, cursor: 'pointer', padding: 0 }}>
+              重新整理
+            </button>
           </p>
         )}
         {!loading && !error && articles.length === 0 && (
@@ -346,6 +415,14 @@ export default function AgriNews() {
             </span>
           </div>
         )}
+
+        <section className="agri-news-info-callout" aria-label={INFO_SHARE_COPY.title}>
+          <div>
+            <strong>{INFO_SHARE_COPY.title}</strong>
+            <span>{INFO_SHARE_COPY.description}</span>
+          </div>
+          <Link className="agri-news-info-link" to="/information-sharing">{INFO_SHARE_COPY.action}</Link>
+        </section>
       </div>
       <Toast message={toastMsg} />
     </div>

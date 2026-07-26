@@ -108,6 +108,9 @@ CREATE TABLE IF NOT EXISTS public.mutual_aid_posts (
     member_id integer NOT NULL,
     type text NOT NULL,
     content text NOT NULL,
+    share_kind text,
+    title text,
+    website_url text,
     farm_name text,
     location_city text,
     location_addr text,
@@ -123,6 +126,10 @@ CREATE TABLE IF NOT EXISTS public.mutual_aid_posts (
         FOREIGN KEY (member_id) REFERENCES public.members(id) ON DELETE CASCADE,
     CONSTRAINT mutual_aid_posts_type_check
         CHECK (type IN ('滯銷急售', '求助', '資訊分享')),
+    CONSTRAINT mutual_aid_posts_share_kind_check
+        CHECK (share_kind IS NULL OR share_kind IN ('special_offer', 'product_recommendation')),
+    CONSTRAINT mutual_aid_posts_website_url_check
+        CHECK (website_url IS NULL OR website_url ~ '^https?://'),
     CONSTRAINT mutual_aid_posts_content_not_blank
         CHECK (btrim(content) <> ''),
     CONSTRAINT mutual_aid_posts_images_max_check
@@ -142,6 +149,9 @@ ALTER TABLE public.mutual_aid_posts
     ADD COLUMN IF NOT EXISTS member_id integer,
     ADD COLUMN IF NOT EXISTS type text,
     ADD COLUMN IF NOT EXISTS content text,
+    ADD COLUMN IF NOT EXISTS share_kind text,
+    ADD COLUMN IF NOT EXISTS title text,
+    ADD COLUMN IF NOT EXISTS website_url text,
     ADD COLUMN IF NOT EXISTS farm_name text,
     ADD COLUMN IF NOT EXISTS location_city text,
     ADD COLUMN IF NOT EXISTS location_addr text,
@@ -154,6 +164,7 @@ ALTER TABLE public.mutual_aid_posts
     ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now();
 
 UPDATE public.mutual_aid_posts SET images = ARRAY[]::text[] WHERE images IS NULL;
+UPDATE public.mutual_aid_posts SET share_kind = 'product_recommendation' WHERE type = '資訊分享' AND share_kind IS NULL;
 UPDATE public.mutual_aid_posts SET status = 'open' WHERE status IS NULL;
 UPDATE public.mutual_aid_posts SET like_count = 0 WHERE like_count IS NULL;
 UPDATE public.mutual_aid_posts SET created_at = now() WHERE created_at IS NULL;
@@ -359,6 +370,9 @@ CREATE INDEX IF NOT EXISTS mutual_aid_posts_created_at_idx
 
 CREATE INDEX IF NOT EXISTS mutual_aid_posts_type_idx
     ON public.mutual_aid_posts (type);
+
+CREATE INDEX IF NOT EXISTS mutual_aid_posts_share_kind_idx
+    ON public.mutual_aid_posts (share_kind);
 
 CREATE INDEX IF NOT EXISTS mutual_aid_posts_location_city_idx
     ON public.mutual_aid_posts (location_city);

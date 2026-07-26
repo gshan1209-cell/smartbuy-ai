@@ -24,6 +24,7 @@ import './PriceSearch.css';
 
 const DEFAULT_SORT = 'volume:desc';
 const DEFAULT_PRICE_RANGE = [0, 1000];
+const RECOMMENDATION_PAGE_SIZE = 9;
 const STATUS_OPTIONS = ['', '便宜', '正常', '偏貴'];
 const STATUS_ICONS = {
   便宜: TrendingDown,
@@ -64,6 +65,18 @@ function normalizeRange(range) {
     return null;
   }
   return [min, max];
+}
+
+function getPageItems(currentPage, totalPages) {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
+  const pages = new Set([1, totalPages, currentPage, currentPage - 1, currentPage + 1]);
+  const sorted = [...pages].filter((page) => page > 0 && page <= totalPages).sort((a, b) => a - b);
+  return sorted.flatMap((page, index) => {
+    const previous = sorted[index - 1];
+    return index > 0 && page - previous > 1
+      ? [`ellipsis-${previous}`, page]
+      : [page];
+  });
 }
 
 function FilterFields({ values, markets, priceRange, onChange, onPriceChange }) {
@@ -385,6 +398,7 @@ export default function PriceSearch() {
   const market = params.get('market') || '';
   const status = params.get('filter') || '';
   const sort = params.get('sort') || DEFAULT_SORT;
+  const requestedPage = Math.max(1, Number.parseInt(params.get('page') || '1', 10) || 1);
 
   const [input, setInput] = useState(query);
   const [markets, setMarkets] = useState([]);
@@ -444,7 +458,7 @@ export default function PriceSearch() {
 
   function handleDesktopFilterChange(key, value) {
     const paramKey = key === 'status' ? 'filter' : key;
-    updateSearchParams({ [paramKey]: value });
+    updateSearchParams({ [paramKey]: value, page: '' });
   }
 
   function handleDesktopPriceChange(nextRange) {
@@ -472,13 +486,14 @@ export default function PriceSearch() {
       market: draftFilters.market,
       filter: draftFilters.status,
       sort: draftFilters.sort,
+      page: '',
     });
     setDrawerOpen(false);
   }
 
   function submitSearch(event) {
     event.preventDefault();
-    updateSearchParams({ q: input.trim() });
+    updateSearchParams({ q: input.trim(), page: '' });
   }
 
   const visibleItems = useMemo(() => {
@@ -510,6 +525,26 @@ export default function PriceSearch() {
         return compareNullableNumbers(a.volume, b.volume, sortDirection);
       });
   }, [items, priceRange, query, sort, status]);
+
+  const totalPages = Math.max(1, Math.ceil(visibleItems.length / RECOMMENDATION_PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const pageItems = getPageItems(currentPage, totalPages);
+  const pagedItems = useMemo(() => {
+    const start = (currentPage - 1) * RECOMMENDATION_PAGE_SIZE;
+    return visibleItems.slice(start, start + RECOMMENDATION_PAGE_SIZE);
+  }, [currentPage, visibleItems]);
+
+  useEffect(() => {
+    if (visibleItems.length > 0 && requestedPage > totalPages) {
+      updateSearchParams({ page: totalPages === 1 ? '' : String(totalPages) });
+    }
+  }, [requestedPage, totalPages, visibleItems.length]);
+
+  function changePage(nextPage) {
+    const page = Math.min(Math.max(1, nextPage), totalPages);
+    updateSearchParams({ page: page === 1 ? '' : String(page) });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   async function toggleSavedProduct(name) {
     const wasSaved = savedProducts.includes(name);
@@ -611,7 +646,7 @@ export default function PriceSearch() {
           )}
           {!loading && !error && visibleItems.length > 0 && (
             <div className="price-result-grid">
-              {visibleItems.map((item) => {
+              {pagedItems.map((item) => {
                 const detailParams = params.toString();
                 const detailUrl = `/product/${encodeURIComponent(item.product_name)}${detailParams ? `?${detailParams}` : ''}`;
                 return (
@@ -625,6 +660,38 @@ export default function PriceSearch() {
                 );
               })}
             </div>
+          )}
+          {!loading && !error && visibleItems.length > RECOMMENDATION_PAGE_SIZE && (
+            <nav className="result-pagination" aria-label="推薦品項分頁">
+              <button
+                type="button"
+                className="result-page-arrow"
+                onClick={() => changePage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >上一頁</button>
+              <div className="result-page-numbers">
+                {pageItems.map((page) => (
+                  typeof page === 'string'
+                    ? <span className="result-page-ellipsis" key={page}>…</span>
+                    : (
+                      <button
+                        type="button"
+                        key={page}
+                        className={page === currentPage ? 'active' : ''}
+                        aria-label={`第 ${page} 頁`}
+                        aria-current={page === currentPage ? 'page' : undefined}
+                        onClick={() => changePage(page)}
+                      >{page}</button>
+                    )
+                ))}
+              </div>
+              <button
+                type="button"
+                className="result-page-arrow"
+                onClick={() => changePage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >下一頁</button>
+            </nav>
           )}
         </section>
       </div>

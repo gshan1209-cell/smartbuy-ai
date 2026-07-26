@@ -1,5 +1,6 @@
 import { seasonalRecommendations } from '../data/seasonalRecommendations';
-import { get } from '../hooks/useApi';
+import { clearCachedGet, getCached } from '../hooks/useApi';
+import { classifyAgricultureItem } from '../config/agricultureCategories';
 
 export const COUNTY_AGRICULTURE_SOURCES = {
   publication: {
@@ -18,51 +19,8 @@ const SHARED_CACHE_TTL_MS = 5 * 60 * 1000;
 const COUNTY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SHARED_REQUEST_TIMEOUT_MS = 4000;
 const COUNTY_REQUEST_TIMEOUT_MS = 6000;
-const requestCache = new Map();
-
-function cachedGet(path, ttlMs, forceRefresh = false, timeoutMs = SHARED_REQUEST_TIMEOUT_MS) {
-  const now = Date.now();
-  const cached = requestCache.get(path);
-
-  if (!forceRefresh && cached?.value !== undefined && cached.expiresAt > now) {
-    return Promise.resolve(cached.value);
-  }
-  if (!forceRefresh && cached?.promise) {
-    return cached.promise;
-  }
-
-  const promise = get(path, { timeoutMs })
-    .then((value) => {
-      if (requestCache.get(path)?.promise === promise) {
-        requestCache.set(path, {
-          value,
-          expiresAt: Date.now() + ttlMs,
-          promise: null,
-        });
-      }
-      return value;
-    })
-    .catch((error) => {
-      if (requestCache.get(path)?.promise === promise) {
-        if (cached?.value !== undefined) {
-          requestCache.set(path, { ...cached, promise: null });
-        } else {
-          requestCache.delete(path);
-        }
-      }
-      throw error;
-    });
-
-  requestCache.set(path, {
-    value: cached?.value,
-    expiresAt: cached?.expiresAt || 0,
-    promise,
-  });
-  return promise;
-}
-
 export function clearHomeAgricultureExplorerCache() {
-  requestCache.clear();
+  clearCachedGet();
 }
 
 // Only a very small, explicitly labelled demo set is kept to demonstrate the
@@ -147,18 +105,22 @@ function findProduct(products, targetName) {
 
 function normalizePriceFields(product, productsSource) {
   const matched = Boolean(product);
+  const status = matched
+    ? product.status
+      || product.price_status
+      || product.price_detail?.status
+      || '資料不足'
+    : productsSource.status === 'error'
+      ? '載入失敗'
+      : '尚無行情';
   const sourceAvailable = ['ready', 'stale'].includes(productsSource.status);
 
   return {
     todayPrice: product?.today_price ?? product?.price_detail?.today_price ?? null,
-    status: matched
-      ? product.status
-        || product.price_status
-        || product.price_detail?.status
-        || '資料不足'
-      : productsSource.status === 'error'
-        ? '載入失敗'
-        : '尚無行情',
+    status,
+    availabilityStatus: !matched
+      ? productsSource.status === 'error' ? '資料不足' : '尚無行情'
+      : ['資料不足', '載入失敗'].includes(status) ? '資料不足' : '正常',
     transDate: product?.trans_date
       || product?.latest_trade_date
       || product?.updated_at
@@ -173,29 +135,36 @@ function normalizePriceFields(product, productsSource) {
 }
 
 export async function loadHomeAgricultureExplorer(
-  selectedCounty = '宜蘭縣',
+  selectedCounty = '全部',
   previous = null,
   forceRefresh = false,
 ) {
-  const countyPath = `/api/agriculture/county-crops?county=${encodeURIComponent(selectedCounty)}&limit=24`;
+  const countyLimit = selectedCounty === '全部' ? 100 : 24;
+  const countyPath = `/api/agriculture/county-crops?county=${encodeURIComponent(selectedCounty)}&limit=${countyLimit}`;
   const [solarTermResult, productsResult, countyCropsResult] = await Promise.allSettled([
-    cachedGet(
+    getCached(
       '/api/solar-term',
-      SHARED_CACHE_TTL_MS,
-      forceRefresh,
-      SHARED_REQUEST_TIMEOUT_MS,
+      {
+        ttlMs: SHARED_CACHE_TTL_MS,
+        forceRefresh,
+        timeoutMs: SHARED_REQUEST_TIMEOUT_MS,
+      },
     ),
-    cachedGet(
+    getCached(
       '/api/products',
-      SHARED_CACHE_TTL_MS,
-      forceRefresh,
-      SHARED_REQUEST_TIMEOUT_MS,
+      {
+        ttlMs: SHARED_CACHE_TTL_MS,
+        forceRefresh,
+        timeoutMs: SHARED_REQUEST_TIMEOUT_MS,
+      },
     ),
-    cachedGet(
+    getCached(
       countyPath,
-      COUNTY_CACHE_TTL_MS,
-      forceRefresh,
-      COUNTY_REQUEST_TIMEOUT_MS,
+      {
+        ttlMs: COUNTY_CACHE_TTL_MS,
+        forceRefresh,
+        timeoutMs: COUNTY_REQUEST_TIMEOUT_MS,
+      },
     ),
   ]);
 
@@ -226,6 +195,7 @@ export async function loadHomeAgricultureExplorer(
     const matched = findProduct(products, specialty.name);
     return {
       name: specialty.name,
+      category: classifyAgricultureItem(specialty.name).key,
       description: `${specialty.township || selectedCounty} · ${specialty.year || '年度資料'}，種植面積 ${specialty.plantingArea ?? '—'} 公頃。`,
       metadataSourceType: 'Official API',
       ...normalizePriceFields(matched, productsSource),
@@ -236,6 +206,7 @@ export async function loadHomeAgricultureExplorer(
     const matched = findProduct(products, productName);
     return {
       name: productName,
+      category: classifyAgricultureItem(productName).key,
       recommendationSourceType: 'Static Seed',
       ...normalizePriceFields(matched, productsSource),
     };
