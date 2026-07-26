@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from backend.routers import rewards
 from backend.security.roles import get_current_member
+from src.data import rewards_repository
 
 
 def _coupon(**overrides):
@@ -89,11 +90,37 @@ def test_valid_partial_update_returns_only_submitted_fields(monkeypatch):
     assert patch == {"status": "paused", "discount_value": 25.0}
 
 
+def test_nullable_coupon_fields_can_be_cleared(monkeypatch):
+    _install_coupon(monkeypatch)
+
+    patch = rewards._validated_coupon_patch(
+        7,
+        rewards.CouponUpdate(description=None, expires_at=None, stock=None),
+    )
+
+    assert patch == {"description": None, "expires_at": None, "stock": None}
+    rewards_repository._validate_coupon_values(patch, partial=True)
+
+
 def test_missing_coupon_raises_lookup_error(monkeypatch):
     monkeypatch.setattr(rewards, "list_coupons_for_admin", lambda: [])
 
     with pytest.raises(LookupError, match="coupon_not_found"):
         rewards._validated_coupon_patch(999, rewards.CouponUpdate(status="paused"))
+
+
+def test_rewards_repository_reuses_project_engine(monkeypatch):
+    sentinel = object()
+    monkeypatch.setattr(rewards_repository, "get_db_engine", lambda: sentinel)
+
+    assert rewards_repository._get_engine() is sentinel
+
+
+def test_rewards_repository_requires_database_url(monkeypatch):
+    monkeypatch.setattr(rewards_repository, "get_db_engine", lambda: None)
+
+    with pytest.raises(RuntimeError, match="DATABASE_URL 未設定"):
+        rewards_repository._get_engine()
 
 
 @pytest.mark.parametrize("role", ["consumer", "farmer", "merchant"])
