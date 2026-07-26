@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
+import { applyDisplayFontSize, FONT_SIZE_OPTIONS } from '../hooks/useDisplayFontSize';
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 const LS_KEY = 'smartbuy_notif_prefs';
 const DEFAULT_PREFS = { weatherAlert: true, mutualAidReply: true, mutualAidLike: true };
 
 const LS_DISPLAY_KEY = 'smartbuy_display_prefs';
-const DEFAULT_DISPLAY = { theme: 'light' };
+const DEFAULT_DISPLAY = { theme: 'light', fontSize: 'md' };
 
 function loadPrefs() {
   try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(LS_KEY)) }; }
@@ -23,6 +24,8 @@ function loadDisplayPrefs() {
 function saveDisplayPrefs(next) {
   localStorage.setItem(LS_DISPLAY_KEY, JSON.stringify(next));
   document.documentElement.setAttribute('data-theme', next.theme);
+  applyDisplayFontSize(next.fontSize);
+  window.dispatchEvent(new CustomEvent('smartbuy:display-font-size', { detail: { fontSize: next.fontSize } }));
 }
 
 function splitPrefs(data) {
@@ -34,6 +37,7 @@ function splitPrefs(data) {
     },
     display: {
       theme: data.theme ?? DEFAULT_DISPLAY.theme,
+      fontSize: data.fontSize ?? DEFAULT_DISPLAY.fontSize,
     },
   };
 }
@@ -395,6 +399,17 @@ export default function Settings() {
               options={[{ val: 'light', label: '亮色' }, { val: 'dark', label: '暗色' }]}
               value={displayPrefs.theme}
               onChange={val => updateDisplay('theme', val)}
+            />
+          </div>
+          <div style={{ ...rowStyle, marginTop: 20, marginBottom: 0 }}>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>版面尺寸</p>
+              <p style={{ fontSize: 12, color: 'var(--yz-mut)' }}>調整全站文字與版面比例</p>
+            </div>
+            <OptionGroup
+              options={FONT_SIZE_OPTIONS.map(option => ({ val: option.value, label: option.label }))}
+              value={displayPrefs.fontSize}
+              onChange={val => updateDisplay('fontSize', val)}
             />
           </div>
         </div>

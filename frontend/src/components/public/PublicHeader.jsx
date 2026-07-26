@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { Search, Menu } from 'lucide-react';
 import { NotificationBell } from '../Navbar';
 import { useAuth } from '../../context/AuthContext';
+import useDisplayFontSize, { FONT_SIZE_OPTIONS } from '../../hooks/useDisplayFontSize';
 import {
   DASHBOARD_NAV_LINK,
   POINTS_NAV_LINK,
@@ -11,6 +12,7 @@ import {
 
 export default function PublicHeader({ onMenu }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
+  const { fontSize, updateFontSize } = useDisplayFontSize({ isAuthenticated });
   const links = isAuthenticated
     ? [...PUBLIC_NAV_LINKS, POINTS_NAV_LINK, SETTINGS_NAV_LINK]
     : PUBLIC_NAV_LINKS;
@@ -29,6 +31,21 @@ export default function PublicHeader({ onMenu }) {
         ))}
       </nav>
       <div className="header-actions">
+        <div className="display-size-switch" role="group" aria-label="版面尺寸">
+          {FONT_SIZE_OPTIONS.map(option => (
+            <button
+              key={option.value}
+              type="button"
+              className={fontSize === option.value ? 'active' : ''}
+              onClick={() => updateFontSize(option.value)}
+              title={option.description}
+              aria-label={option.description}
+              aria-pressed={fontSize === option.value}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
         <NavLink className="mobile-icon" aria-label="搜尋" to="/search"><Search size={20} /></NavLink>
         {isAuthenticated && <NotificationBell />}
         <NavLink className="settings-link" to={isAuthenticated ? '/settings' : '/login'} title={isAuthenticated ? '管理帳戶設定' : '登入帳戶'}>
