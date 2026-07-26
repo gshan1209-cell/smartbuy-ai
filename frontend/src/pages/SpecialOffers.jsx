@@ -231,7 +231,7 @@ export default function SpecialOffers() {
             <strong>{COPY.infoTitle}</strong>
             <span>{COPY.infoDescription}</span>
           </div>
-          <Link className="special-offers-info-link" to="/mutual-aid">{COPY.infoAction}</Link>
+          <Link className="special-offers-info-link" to="/information-sharing">{COPY.infoAction}</Link>
         </section>
       </div>
     </main>
