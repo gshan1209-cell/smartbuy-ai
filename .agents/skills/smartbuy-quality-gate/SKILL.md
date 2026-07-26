@@ -35,10 +35,19 @@ Prevent incomplete delivery that only compiles while existing behavior, permissi
 
 ```bash
 python -m pip install -r requirements.txt
+python -m compileall -q backend src tests
 python -m pytest
 ```
 
 Use narrower test commands first when appropriate, then the broader suite if the environment permits.
+
+When changing Python tests, also read `docs/architecture/TESTING_STRUCTURE.md` and verify:
+
+- Router unit tests use a minimal app rather than importing the deployment entry without need.
+- FastAPI authentication and other `Depends` values use `dependency_overrides`.
+- `monkeypatch` targets the module that actually looks up the dependency.
+- No test installs fake modules into `sys.modules` at module import time.
+- Focused tests pass together with the full suite, so test-order pollution is not hidden.
 
 6. Frontend baseline when affected:
 
@@ -80,6 +89,7 @@ Treat these as requiring explicit explanation:
 - New external data source.
 - Changed meaning of price, weather risk, seasonal advice, or AI prediction.
 - New destructive management action.
+- Module-level `sys.modules` replacement, shared mutable test state, or a test that only passes when run alone.
 
 ## Required delivery report
 
@@ -114,6 +124,7 @@ Treat these as requiring explicit explanation:
 - Do not approve a task that silently reduces existing functionality.
 - Do not mark unavailable external dependencies as successfully verified.
 - Do not invent test results.
+- Do not permanently exclude a test merely because it pollutes imports or depends on execution order; fix the isolation boundary.
 
 ## Completion criteria
 

@@ -1,58 +1,11 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-import sys
-import types
 
-from fastapi.testclient import TestClient
-from fastapi import APIRouter
+import pytest
 
-from src.data import agri_news_repository
-
-
-fake_db = types.ModuleType("backend.db")
-fake_db.get_session = lambda: None
-sys.modules.setdefault("backend.db", fake_db)
-
-fake_price_status = types.ModuleType("src.anomaly.price_status")
-fake_price_status.get_all_price_statuses = lambda prices=None: []
-sys.modules.setdefault("src.anomaly.price_status", fake_price_status)
-
-fake_purchase_advisor = types.ModuleType("src.recommendation.purchase_advisor")
-fake_purchase_advisor.get_bargain_recommendations = lambda prices=None: []
-fake_purchase_advisor.get_purchase_advice = lambda name: {"product_name": name}
-sys.modules.setdefault("src.recommendation.purchase_advisor", fake_purchase_advisor)
-
-fake_price_repository = types.ModuleType("src.data.price_repository")
-fake_price_repository.load_price_history = lambda days=30: []
-fake_price_repository.load_latest_prices = lambda: types.SimpleNamespace(
-    __getitem__=lambda self, key: self,
-    unique=lambda: [],
-    tolist=lambda: [],
-)
-sys.modules.setdefault("src.data.price_repository", fake_price_repository)
-
-fake_cache = types.ModuleType("backend.cache")
-fake_cache.price_cache = {}
-fake_cache.compute_market_intel = lambda: {}
-sys.modules.setdefault("backend.cache", fake_cache)
-
-fake_solar_terms = types.ModuleType("src.calendar.solar_terms")
-fake_solar_terms.get_current_solar_term = lambda: {}
-sys.modules.setdefault("src.calendar.solar_terms", fake_solar_terms)
-
-for router_module_name in [
-    "backend.routers.auth",
-    "backend.routers.market",
-    "backend.routers.product",
-    "backend.routers.prediction",
-]:
-    fake_router_module = types.ModuleType(router_module_name)
-    fake_router_module.router = APIRouter()
-    sys.modules.setdefault(router_module_name, fake_router_module)
-
-import backend.main as main
 import backend.routers.misc as misc
+from src.data import agri_news_repository
 
 
 NEWS_ROW = {
@@ -72,24 +25,49 @@ NEWS_ROW = {
 }
 
 
-def test_news_api_returns_200_and_news_array(monkeypatch):
-    monkeypatch.setattr(misc, "query_agri_news", lambda **kwargs: [NEWS_ROW])
-    client = TestClient(main.app)
+@pytest.fixture(autouse=True)
+def isolate_news_router(monkeypatch):
+    """每個案例使用獨立快取與 repository stub，避免測試順序互相污染。"""
+    misc._news_cache.clear()
+    monkeypatch.setattr(misc, "query_agri_news", lambda **kwargs: [])
+    monkeypatch.setattr(misc, "query_agri_news_count", lambda **kwargs: 0)
+    monkeypatch.setattr(misc, "query_news_sources", lambda: [])
+    yield
+    misc._news_cache.clear()
+
+
+def _set_news_rows(monkeypatch, rows, total=None):
+    monkeypatch.setattr(misc, "query_agri_news", lambda **kwargs: rows)
+    monkeypatch.setattr(
+        misc,
+        "query_agri_news_count",
+        lambda **kwargs: len(rows) if total is None else total,
+    )
+
+
+def test_news_api_returns_200_and_articles_array(monkeypatch, router_client_factory):
+    _set_news_rows(monkeypatch, [NEWS_ROW])
+    client = router_client_factory(misc.router)
 
     response = client.get("/api/news")
 
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
-    assert response.json()[0]["article_key"] == "agri_news:abc"
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["limit"] == 12
+    assert payload["offset"] == 0
+    assert isinstance(payload["articles"], list)
+    assert payload["articles"][0]["article_key"] == "agri_news:abc"
 
 
-def test_news_api_returns_only_public_fields(monkeypatch):
-    monkeypatch.setattr(misc, "query_agri_news", lambda **kwargs: [NEWS_ROW])
-    client = TestClient(main.app)
+def test_news_api_returns_only_public_fields(monkeypatch, router_client_factory):
+    _set_news_rows(monkeypatch, [NEWS_ROW])
+    client = router_client_factory(misc.router)
 
     response = client.get("/api/news")
 
-    assert set(response.json()[0].keys()) == {
+    article = response.json()["articles"][0]
+    assert set(article.keys()) == {
         "id",
         "article_key",
         "source_name",
@@ -100,21 +78,26 @@ def test_news_api_returns_only_public_fields(monkeypatch):
         "content_text",
         "updated_at",
     }
-    assert "parse_error" not in response.json()[0]
-    assert "content_hash" not in response.json()[0]
-    assert "first_fetched_at" not in response.json()[0]
-    assert "last_fetched_at" not in response.json()[0]
+    assert "parse_error" not in article
+    assert "content_hash" not in article
+    assert "first_fetched_at" not in article
+    assert "last_fetched_at" not in article
 
 
-def test_news_api_passes_filters_to_repository(monkeypatch):
-    captured = {}
+def test_news_api_passes_filters_to_repository(monkeypatch, router_client_factory):
+    captured = {"rows": None, "count": None}
 
     def fake_query_agri_news(**kwargs):
-        captured.update(kwargs)
+        captured["rows"] = kwargs
         return []
 
+    def fake_query_agri_news_count(**kwargs):
+        captured["count"] = kwargs
+        return 0
+
     monkeypatch.setattr(misc, "query_agri_news", fake_query_agri_news)
-    client = TestClient(main.app)
+    monkeypatch.setattr(misc, "query_agri_news_count", fake_query_agri_news_count)
+    client = router_client_factory(misc.router)
 
     response = client.get(
         "/api/news",
@@ -122,15 +105,19 @@ def test_news_api_passes_filters_to_repository(monkeypatch):
     )
 
     assert response.status_code == 200
-    assert captured == {
+    assert captured["rows"] == {
         "source_name": "農糧署",
         "keyword": "颱風",
         "limit": 7,
         "offset": 3,
     }
+    assert captured["count"] == {
+        "source_name": "農糧署",
+        "keyword": "颱風",
+    }
 
 
-def test_news_api_accepts_dynamic_sources(monkeypatch):
+def test_news_api_accepts_dynamic_sources(monkeypatch, router_client_factory):
     captured = []
 
     def fake_query_agri_news(**kwargs):
@@ -138,7 +125,7 @@ def test_news_api_accepts_dynamic_sources(monkeypatch):
         return []
 
     monkeypatch.setattr(misc, "query_agri_news", fake_query_agri_news)
-    client = TestClient(main.app)
+    client = router_client_factory(misc.router)
 
     for source in ["自由時報", "農傳媒", "PTT Fruits"]:
         response = client.get("/api/news", params={"source": source})
@@ -147,7 +134,7 @@ def test_news_api_accepts_dynamic_sources(monkeypatch):
     assert captured == ["自由時報", "農傳媒", "PTT Fruits"]
 
 
-def test_news_api_treats_blank_source_as_unspecified(monkeypatch):
+def test_news_api_treats_blank_source_as_unspecified(monkeypatch, router_client_factory):
     captured = {}
 
     def fake_query_agri_news(**kwargs):
@@ -155,7 +142,7 @@ def test_news_api_treats_blank_source_as_unspecified(monkeypatch):
         return []
 
     monkeypatch.setattr(misc, "query_agri_news", fake_query_agri_news)
-    client = TestClient(main.app)
+    client = router_client_factory(misc.router)
 
     response = client.get("/api/news", params={"source": "   "})
 
@@ -163,43 +150,93 @@ def test_news_api_treats_blank_source_as_unspecified(monkeypatch):
     assert captured["source_name"] is None
 
 
-def test_news_api_rejects_invalid_limit():
-    client = TestClient(main.app)
+def test_news_api_rejects_invalid_limit(router_client_factory):
+    client = router_client_factory(misc.router)
 
     assert client.get("/api/news", params={"limit": 0}).status_code == 422
     assert client.get("/api/news", params={"limit": 101}).status_code == 422
 
 
-def test_news_api_rejects_negative_offset():
-    client = TestClient(main.app)
+def test_news_api_rejects_negative_offset(router_client_factory):
+    client = router_client_factory(misc.router)
 
     response = client.get("/api/news", params={"offset": -1})
 
     assert response.status_code == 422
 
 
-def test_news_api_returns_empty_array_when_no_rows(monkeypatch):
-    monkeypatch.setattr(misc, "query_agri_news", lambda **kwargs: [])
-    client = TestClient(main.app)
+def test_news_api_returns_empty_payload_when_no_rows(router_client_factory):
+    client = router_client_factory(misc.router)
 
     response = client.get("/api/news")
 
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {
+        "total": 0,
+        "limit": 12,
+        "offset": 0,
+        "articles": [],
+    }
 
 
-def test_news_api_returns_fixed_503_without_internal_error(monkeypatch):
+def test_news_api_returns_fixed_503_without_internal_error(monkeypatch, router_client_factory):
     def fake_query_agri_news(**kwargs):
         raise RuntimeError("postgresql://user:secret@example/db exploded")
 
     monkeypatch.setattr(misc, "query_agri_news", fake_query_agri_news)
-    client = TestClient(main.app)
+    client = router_client_factory(misc.router)
 
     response = client.get("/api/news")
 
     assert response.status_code == 503
     assert response.json() == {"detail": "新聞資料暫時無法取得，請稍後再試。"}
     assert "secret" not in response.text
+
+
+def test_news_sources_api_returns_repository_values(monkeypatch, router_client_factory):
+    monkeypatch.setattr(misc, "query_news_sources", lambda: ["農業部", "農糧署"])
+    client = router_client_factory(misc.router)
+
+    response = client.get("/api/news/sources")
+
+    assert response.status_code == 200
+    assert response.json() == {"sources": ["農業部", "農糧署"]}
+
+
+def test_news_sources_api_returns_fixed_503(monkeypatch, router_client_factory):
+    monkeypatch.setattr(
+        misc,
+        "query_news_sources",
+        lambda: (_ for _ in ()).throw(RuntimeError("database secret")),
+    )
+    client = router_client_factory(misc.router)
+
+    response = client.get("/api/news/sources")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "來源資料暫時無法取得。"}
+    assert "secret" not in response.text
+
+
+def test_news_api_uses_cache_within_same_case(monkeypatch, router_client_factory):
+    calls = {"rows": 0, "count": 0}
+
+    def fake_query_agri_news(**kwargs):
+        calls["rows"] += 1
+        return [NEWS_ROW]
+
+    def fake_query_agri_news_count(**kwargs):
+        calls["count"] += 1
+        return 1
+
+    monkeypatch.setattr(misc, "query_agri_news", fake_query_agri_news)
+    monkeypatch.setattr(misc, "query_agri_news_count", fake_query_agri_news_count)
+    client = router_client_factory(misc.router)
+
+    assert client.get("/api/news").status_code == 200
+    assert client.get("/api/news").status_code == 200
+
+    assert calls == {"rows": 1, "count": 1}
 
 
 def test_repository_sql_contains_required_filters_order_and_pagination():
