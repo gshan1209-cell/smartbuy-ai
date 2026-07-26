@@ -58,9 +58,45 @@ class CouponUpdate(BaseModel):
     def validate_discount(self):
         if self.discount_type == "percent" and self.discount_value is not None and self.discount_value > 100:
             raise ValueError("百分比折扣不可超過 100。")
+        if self.expires_at and self.starts_at and self.expires_at <= self.starts_at:
+            raise ValueError("結束時間必須晚於開始時間。")
         return self
 
     model_config = {"extra": "forbid"}
+
+
+def _parse_coupon_datetime(value: datetime | str | None) -> datetime | None:
+    if value is None or isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _validated_coupon_patch(coupon_id: int, payload: CouponUpdate) -> dict:
+    """Merge a partial PATCH with persisted values before cross-field validation."""
+    existing = next(
+        (coupon for coupon in list_coupons_for_admin() if coupon["id"] == coupon_id),
+        None,
+    )
+    if existing is None:
+        raise LookupError("coupon_not_found")
+
+    patch = payload.model_dump(exclude_unset=True)
+    merged = {**existing, **patch}
+
+    if merged["discount_type"] == "percent" and merged["discount_value"] > 100:
+        raise ValueError("百分比折扣不可超過 100。")
+
+    starts_at = _parse_coupon_datetime(merged.get("starts_at"))
+    expires_at = _parse_coupon_datetime(merged.get("expires_at"))
+    if starts_at and expires_at and expires_at <= starts_at:
+        raise ValueError("結束時間必須晚於開始時間。")
+
+    stock = merged.get("stock")
+    redeemed_count = int(existing.get("redeemed_count") or 0)
+    if stock is not None and stock < redeemed_count:
+        raise ValueError("庫存不可低於已兌換數量。")
+
+    return patch
 
 
 def _handle_error(exc: Exception):
@@ -114,6 +150,7 @@ def admin_coupon_update(
     member: dict = Depends(require_permissions("coupons.manage")),
 ):
     try:
-        return update_coupon(coupon_id, payload.model_dump(exclude_unset=True))
+        patch = _validated_coupon_patch(coupon_id, payload)
+        return update_coupon(coupon_id, patch)
     except (ValueError, LookupError) as exc:
         _handle_error(exc)
