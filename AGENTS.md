@@ -38,9 +38,10 @@
 | Dashboard、農民／商家／管理員後台、角色權限 | `smartbuy-dashboard-rbac` |
 | 前台／後台情境側欄、頁面專屬導覽、桌機／平板／手機側欄 RWD | `smartbuy-contextual-sidebar` |
 | 菜價、農業部資料、天氣、二十四節氣、產地與價格風險 | `smartbuy-agri-intelligence` |
-  | FastAPI、資料庫、登入、API contract、快取、背景任務 | `smartbuy-api-change` |
-  | 點數獎勵、登入／推薦回饋、優惠券兌換與優惠券管理 | `smartbuy-rewards-coupons` |
-  | Build、測試、RWD、回歸驗收、PR 交付 | `smartbuy-quality-gate` |
+| 分類式 AI 推薦、R2 JSON 快取、LLM 成本保護與 single-flight | `smartbuy-recommendation-cache` |
+| FastAPI、資料庫、登入、API contract、快取、背景任務 | `smartbuy-api-change` |
+| 點數獎勵、登入／推薦回饋、優惠券兌換與優惠券管理 | `smartbuy-rewards-coupons` |
+| Build、測試、RWD、回歸驗收、PR 交付 | `smartbuy-quality-gate` |
 
 同一任務可組合多個技能，但不要載入與任務無關的技能。
 
@@ -97,6 +98,20 @@ docs/architecture/PROJECT_STRUCTURE.md
 - 描述清楚寫出何時應觸發與何時不應觸發。
 - 指令使用可執行的步驟、輸入、輸出與驗收條件。
 - 技能不能降低 `AGENT.md` 的安全、權限、保留功能與驗收要求。
+
+### 7.1 開發過程中的能力提煉
+
+開發、除錯、重構、測試或驗收過程中，只要發現某段工作具備「可重複、可跨任務使用、需要固定判斷流程」其中任一特徵，就必須評估是否提煉為 SKILL；確認適合後，應在同一個開發範圍內建立或更新對應技能，不得只把流程留在對話或單次 PR 說明中。
+
+提煉時遵循以下流程：
+
+1. 記錄可重用能力的觸發情境、適用範圍、不適用範圍、輸入、輸出、工具與驗收條件。
+2. 先搜尋 `.agents/skills/` 是否已有可合併或應更新的技能，避免建立重複技能。
+3. 將穩定且跨任務的流程放入 `SKILL.md`；大型參考資料、腳本或範例依需要放入 `references/`、`scripts/` 或 `assets/`，保持主檔案精簡。
+4. 建立或更新技能後，必須檢查 frontmatter、觸發描述、繁體中文說明、引用路徑與可執行指令，並執行可用的技能驗證；若當下不適合立即建立，必須在交付摘要中記錄原因與後續提煉範圍。
+5. 只有一次性、無法泛化、仍在快速變動，或會與既有技能重複的內容，才可不提煉；交付時需說明判斷結果。
+
+任何因此新增或修改的技能，都必須同步更新本檔案的技能目錄與適用範圍，並納入同一輪的回歸驗證。
 
 完整設計見：
 
