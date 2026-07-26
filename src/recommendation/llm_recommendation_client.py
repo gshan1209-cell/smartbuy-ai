@@ -58,7 +58,10 @@ class OpenAICompatibleRecommendationClient:
                     "messages": [
                         {
                             "role": "system",
-                            "content": "你是 SmartBuy AI 採買建議助手，只能依輸入行情資料輸出 JSON。",
+                            "content": (
+                                "你是 SmartBuy AI 農產決策助手。只能依輸入行情與三套角色提示語，"
+                                "一次輸出 consumer、farmer、merchant 三份 JSON 建議；不得虛構資料。"
+                            ),
                         },
                         {"role": "user", "content": prompt},
                     ],

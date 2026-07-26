@@ -7,6 +7,7 @@ import pytest
 from backend.routers.recommendations import get_recommendation_service, router
 from backend.security.roles import get_current_member
 from src.recommendation.recommendation_service import RecommendationService
+from src.recommendation.role_prompts import PROMPT_SET_VERSION, ROLE_KEYS
 
 from test_recommendation_cache import CountingLLM, FakeCacheRepository, prices
 
@@ -47,7 +48,7 @@ def test_farmer_merchant_admin_can_access_recommendations(role):
     assert len(response.json()["categories"]) >= 5
 
 
-def test_api_exposes_cache_observability_and_rejects_unknown_category():
+def test_api_exposes_three_role_payload_cache_observability_and_compatibility_alias():
     response = _client_for_role("admin", _service()).get(
         "/api/recommendations?category=leafy-vegetables"
     )
@@ -57,10 +58,15 @@ def test_api_exposes_cache_observability_and_rejects_unknown_category():
     assert payload["llm_called"] is True
     assert payload["generation_source"] == "llm"
     assert payload["cache_backend"] == "r2"
+    assert payload["prompt_set_version"] == PROMPT_SET_VERSION
     assert "generated_at" in payload
     assert payload["data"]["cache_key"] == "leafy-vegetables"
-    assert "recommendations" in payload
+    assert set(payload["role_recommendations"]) == set(ROLE_KEYS)
+    assert payload["data"]["recommendation"] == payload["role_recommendations"]["consumer"]
+    assert payload["recommendations"] == payload["role_recommendations"]["consumer"]["items"]
 
+
+def test_api_rejects_unknown_category():
     invalid = _client_for_role("admin", _service()).get(
         "/api/recommendations?category=unknown"
     )

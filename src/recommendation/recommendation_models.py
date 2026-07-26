@@ -7,6 +7,10 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .category_catalog import SCHEMA_VERSION
+from .role_prompts import PROMPT_SET_VERSION
+
+
+RoleKey = Literal["consumer", "farmer", "merchant"]
 
 
 class CategoryInfo(BaseModel):
@@ -41,19 +45,31 @@ class RecommendationItem(BaseModel):
     substitute: str | None = None
 
 
-class RecommendationContent(BaseModel):
+class RoleRecommendationContent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    role: RoleKey
+    role_label: str
+    perspective: str
     summary: str
     market_outlook: str
     shopping_strategy: str
     items: list[RecommendationItem] = Field(default_factory=list, max_length=6)
 
 
+class RoleRecommendationBundle(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    consumer: RoleRecommendationContent
+    farmer: RoleRecommendationContent
+    merchant: RoleRecommendationContent
+
+
 class RecommendationDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     schema_version: int = SCHEMA_VERSION
+    prompt_set_version: str = PROMPT_SET_VERSION
     cache_key: str
     category: CategoryInfo
     generated_at: datetime
@@ -62,13 +78,20 @@ class RecommendationDocument(BaseModel):
     model: str | None = None
     input_digest: str
     source_summary: SourceSummary
-    recommendation: RecommendationContent
+    role_recommendations: RoleRecommendationBundle
 
     @field_validator("schema_version")
     @classmethod
     def validate_schema_version(cls, value: int) -> int:
         if value != SCHEMA_VERSION:
             raise ValueError(f"不支援的推薦快取 schema version: {value}")
+        return value
+
+    @field_validator("prompt_set_version")
+    @classmethod
+    def validate_prompt_set_version(cls, value: str) -> str:
+        if value != PROMPT_SET_VERSION:
+            raise ValueError(f"不支援的推薦提示語版本: {value}")
         return value
 
     @field_validator("generated_at")

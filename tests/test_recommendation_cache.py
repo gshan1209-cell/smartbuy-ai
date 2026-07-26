@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+import copy
+import json
 import threading
 import time
 
@@ -8,10 +10,11 @@ import pandas as pd
 import pytest
 
 from src.recommendation.cache_repository import CacheCorruptError, CacheWriteError
-from src.recommendation.category_catalog import cache_key_for
+from src.recommendation.category_catalog import SCHEMA_VERSION, cache_key_for
 from src.recommendation.local_recommendation_cache import LocalRecommendationCacheRepository
 from src.recommendation.r2_recommendation_cache import R2RecommendationCacheRepository
 from src.recommendation.recommendation_service import RecommendationService
+from src.recommendation.role_prompts import PROMPT_SET_VERSION, ROLE_KEYS
 
 
 class FakeCacheRepository:
@@ -51,18 +54,21 @@ class CountingLLM:
         self.failure = failure
         self.delay = delay
         self.lock = threading.Lock()
+        self.prompts: list[str] = []
 
     def generate(self, prompt):
         with self.lock:
             self.calls += 1
+            self.prompts.append(prompt)
         if self.delay:
             time.sleep(self.delay)
         if self.failure:
             raise RuntimeError("LLM unavailable")
-        return {
-            "summary": "可依行情比較採買。",
+
+        base = {
+            "summary": "可依行情比較並採取角色化行動。",
             "market_outlook": "目前資料僅供保守判斷。",
-            "shopping_strategy": "優先比較價格便宜的品項。",
+            "shopping_strategy": "優先依角色目標比較價格狀態。",
             "items": [
                 {
                     "product_name": "菠菜",
@@ -70,19 +76,27 @@ class CountingLLM:
                     "price_status": "正常",
                     "today_price": 20,
                     "recent_average": 21,
-                    "action": "依需求採買",
+                    "action": "依角色需求行動",
                     "reason": "今日價格接近近期平均。",
                     "priority": "medium",
                     "substitute": None,
                 }
             ],
         }
+        role_recommendations = {}
+        for role in ROLE_KEYS:
+            content = copy.deepcopy(base)
+            content["summary"] = f"{role} 角色摘要"
+            content["shopping_strategy"] = f"{role} 角色策略"
+            content["items"][0]["action"] = f"{role} 行動"
+            role_recommendations[role] = content
+        return {"role_recommendations": role_recommendations}
 
 
 class InvalidPriceLLM(CountingLLM):
     def generate(self, prompt):
         payload = super().generate(prompt)
-        payload["items"][0]["today_price"] = 999
+        payload["role_recommendations"]["consumer"]["items"][0]["today_price"] = 999
         return payload
 
 
@@ -138,6 +152,22 @@ def test_missing_json_calls_llm_once_then_hits_cache():
     assert second.cache_hit is True
     assert second.llm_called is False
     assert llm.calls == 1
+    assert set(first.document.role_recommendations.model_dump()) == set(ROLE_KEYS)
+
+
+def test_single_prompt_contains_three_distinct_role_prompt_sets():
+    llm = CountingLLM()
+    service = make_service(llm=llm)
+
+    result = service.get_recommendation("leafy-vegetables")
+
+    assert result.document.prompt_set_version == PROMPT_SET_VERSION
+    assert llm.calls == 1
+    prompt = json.loads(llm.prompts[0])
+    assert set(prompt["role_prompts"]) == set(ROLE_KEYS)
+    assert set(prompt["output_schema"]["role_recommendations"]) == set(ROLE_KEYS)
+    objectives = {payload["objective"] for payload in prompt["role_prompts"].values()}
+    assert len(objectives) == 3
 
 
 def test_existing_json_never_calls_llm():
@@ -198,7 +228,7 @@ def test_unknown_category_is_rejected():
         service.get_recommendation("../not-allowed")
 
 
-def test_llm_failure_writes_rules_fallback_and_next_request_is_cached():
+def test_llm_failure_writes_three_role_rules_fallback_and_next_request_is_cached():
     llm = CountingLLM(failure=True)
     service = make_service(llm=llm)
 
@@ -210,6 +240,9 @@ def test_llm_failure_writes_rules_fallback_and_next_request_is_cached():
     assert second.cache_hit is True
     assert second.llm_called is False
     assert llm.calls == 1
+    assert first.document.role_recommendations.consumer.shopping_strategy
+    assert first.document.role_recommendations.farmer.shopping_strategy
+    assert first.document.role_recommendations.merchant.shopping_strategy
 
 
 def test_cache_write_failure_is_not_reported_as_success():
@@ -219,7 +252,7 @@ def test_cache_write_failure_is_not_reported_as_success():
         service.get_recommendation("leafy-vegetables")
 
 
-def test_invalid_llm_price_is_replaced_by_rules_fallback():
+def test_invalid_llm_price_is_replaced_by_three_role_rules_fallback():
     llm = InvalidPriceLLM()
     service = make_service(llm=llm)
 
@@ -227,15 +260,23 @@ def test_invalid_llm_price_is_replaced_by_rules_fallback():
 
     assert result.document.generator == "rules-fallback"
     assert llm.calls == 1
+    assert result.document.role_recommendations.consumer.items[0].today_price != 999
+
+
+def test_response_keeps_consumer_alias_for_backward_compatibility():
+    response = make_service().get_recommendation("leafy-vegetables").as_response()
+
+    assert response["data"]["recommendation"] == response["role_recommendations"]["consumer"]
+    assert response["recommendations"] == response["role_recommendations"]["consumer"]["items"]
 
 
 def test_local_repository_uses_create_only_and_detects_corrupt_json(tmp_path):
     repository = LocalRecommendationCacheRepository(tmp_path)
     key = cache_key_for("leafy-vegetables")
-    payload = {"schema_version": 1}
+    payload = {"schema_version": SCHEMA_VERSION}
 
     assert repository.create_if_absent(key, payload) is True
-    assert repository.create_if_absent(key, {"schema_version": 2}) is False
+    assert repository.create_if_absent(key, {"schema_version": SCHEMA_VERSION + 1}) is False
     assert repository.read(key) == payload
 
     repository._path(cache_key_for("fruit")).parent.mkdir(parents=True, exist_ok=True)
@@ -244,11 +285,13 @@ def test_local_repository_uses_create_only_and_detects_corrupt_json(tmp_path):
         repository.read(cache_key_for("fruit"))
 
 
-def test_r2_repository_uses_expected_persistent_object_key():
+def test_r2_repository_routes_legacy_configured_prefix_to_current_schema_version():
     repository = R2RecommendationCacheRepository(
         client=object(),
         bucket_name="test-bucket",
         prefix="recommendations/v1/",
     )
 
-    assert repository.object_key(cache_key_for("leafy-vegetables")) == "recommendations/v1/leafy-vegetables.json"
+    assert repository.object_key(cache_key_for("leafy-vegetables")) == (
+        f"recommendations/v{SCHEMA_VERSION}/leafy-vegetables.json"
+    )
