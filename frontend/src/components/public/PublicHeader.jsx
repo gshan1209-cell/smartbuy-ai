@@ -3,6 +3,7 @@ import { Search, Menu } from 'lucide-react';
 import { NotificationBell } from '../Navbar';
 import { useAuth } from '../../context/AuthContext';
 import useLayoutMode, { LAYOUT_MODE_OPTIONS } from '../../hooks/useLayoutMode';
+import { BYPASS_ROLE_CHECKS_IN_DEV } from '../../config/development';
 import {
   DASHBOARD_NAV_LINK,
   POINTS_NAV_LINK,
@@ -13,12 +14,16 @@ import {
 export default function PublicHeader({ onMenu }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
   const { layoutMode, updateLayoutMode } = useLayoutMode();
-  const links = isAuthenticated
+  const links = BYPASS_ROLE_CHECKS_IN_DEV
+    ? [...PUBLIC_NAV_LINKS, POINTS_NAV_LINK, SETTINGS_NAV_LINK, DASHBOARD_NAV_LINK]
+    : isAuthenticated
     ? [...PUBLIC_NAV_LINKS, POINTS_NAV_LINK, SETTINGS_NAV_LINK]
     : PUBLIC_NAV_LINKS;
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
-  if (isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole)) links.push(DASHBOARD_NAV_LINK);
+  if (!BYPASS_ROLE_CHECKS_IN_DEV && isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole)) {
+    links.push(DASHBOARD_NAV_LINK);
+  }
 
   return (
     <header className="public-header">

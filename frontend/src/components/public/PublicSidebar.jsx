@@ -16,6 +16,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { DASHBOARD_NAV_LINK } from '../../config/publicNavigation';
 import { getPublicSidebarContext } from '../../config/publicSidebarContexts';
+import { BYPASS_ROLE_CHECKS_IN_DEV } from '../../config/development';
 
 const ICONS = {
   '/': Home,
@@ -89,7 +90,7 @@ export default function PublicSidebar({ collapsed, onToggle }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
-  const canAccessDashboard = isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole);
+  const canAccessDashboard = BYPASS_ROLE_CHECKS_IN_DEV || isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole);
   const sidebarContext = getPublicSidebarContext(pathname);
 
   return (

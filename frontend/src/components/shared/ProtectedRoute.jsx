@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../../context/AuthContext';
+import { BYPASS_ROLE_CHECKS_IN_DEV } from '../../config/development';
 
 export default function ProtectedRoute() {
   const {
@@ -27,7 +28,7 @@ export default function ProtectedRoute() {
     return <div className="dashboard-loading">正在確認後台權限…</div>;
   }
 
-  if (accessError) {
+  if (accessError && !BYPASS_ROLE_CHECKS_IN_DEV) {
     return (
       <div className="dashboard-loading dashboard-access-error" role="alert">
         <p>權限服務暫時無法取得，未開放任何後台內容。</p>
@@ -37,7 +38,7 @@ export default function ProtectedRoute() {
     );
   }
 
-  if (accessDenied || dashboardAccess?.dashboardAccess !== true) {
+  if (!BYPASS_ROLE_CHECKS_IN_DEV && (accessDenied || dashboardAccess?.dashboardAccess !== true)) {
     return <Navigate to="/403" replace state={{ from: location.pathname }} />;
   }
 

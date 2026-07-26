@@ -6,6 +6,7 @@ import PublicSidebar from '../components/public/PublicSidebar';
 import Drawer from '../components/shared/Drawer';
 import { useAuth } from '../context/AuthContext';
 import { DASHBOARD_NAV_LINK, PUBLIC_MOBILE_LINKS } from '../config/publicNavigation';
+import { BYPASS_ROLE_CHECKS_IN_DEV } from '../config/development';
 
 export default function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -13,7 +14,7 @@ export default function PublicLayout() {
   const { user, dashboardAccess } = useAuth();
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
-  const menuLinks = dashboardAccess?.dashboardAccess || hasDashboardRole
+  const menuLinks = BYPASS_ROLE_CHECKS_IN_DEV || dashboardAccess?.dashboardAccess || hasDashboardRole
     ? [...PUBLIC_MOBILE_LINKS, DASHBOARD_NAV_LINK]
     : PUBLIC_MOBILE_LINKS;
 
