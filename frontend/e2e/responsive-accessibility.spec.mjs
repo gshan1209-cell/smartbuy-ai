@@ -29,7 +29,7 @@ test('@responsive 首頁在三種尺寸皆無水平溢出且控制項有名稱',
   await page.keyboard.press('Tab');
   const focused = await page.evaluate(() => ({
     tag: document.activeElement?.tagName,
-    text: document.activeElement?.textContent?.trim(),
+    text: document.activeElement?.innerText?.trim(),
     ariaLabel: document.activeElement?.getAttribute('aria-label'),
   }));
   expect(focused.tag).not.toBe('BODY');
@@ -39,8 +39,9 @@ test('@responsive 首頁在三種尺寸皆無水平溢出且控制項有名稱',
 test('@responsive 404 在三種尺寸皆可閱讀與返回', async ({ page }) => {
   await page.goto('/missing-responsive-route');
 
-  await expect(page.getByRole('heading', { level: 1, name: '找不到這個頁面' })).toBeVisible();
-  await expect(page.getByRole('link', { name: '回到首頁' })).toBeVisible();
+  const notFoundCard = page.locator('.app-not-found-card');
+  await expect(notFoundCard.getByRole('heading', { level: 1, name: '找不到這個頁面' })).toBeVisible();
+  await expect(notFoundCard.getByRole('link', { name: '回到首頁' })).toBeVisible();
   expectNoHorizontalOverflow(await readViewportMetrics(page));
   expect(await readFocusableNameProblems(page)).toEqual([]);
 });
@@ -57,10 +58,13 @@ test('@responsive 後台外殼在三種尺寸維持可操作', async ({ page }, 
   expectNoHorizontalOverflow(await readViewportMetrics(page));
   expect(await readFocusableNameProblems(page)).toEqual([]);
 
-  if (testInfo.project.name !== 'desktop-chromium') {
+  if (testInfo.project.name === 'mobile-chromium') {
     const menuButton = page.getByRole('button', { name: '開啟後台選單' });
     await expect(menuButton).toBeVisible();
     await menuButton.click();
-    await expect(page.locator('nav[aria-label="後台主要導覽"]:visible')).toBeVisible();
   }
+
+  const visibleNavigation = page.locator('nav[aria-label="後台主要導覽"]:visible');
+  await expect(visibleNavigation).toBeVisible();
+  await expect(visibleNavigation.getByRole('link', { name: '總覽' })).toBeVisible();
 });
