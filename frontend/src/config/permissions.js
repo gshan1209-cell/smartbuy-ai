@@ -11,5 +11,6 @@ export const PERMISSIONS = Object.freeze({
   MEMBERS_MANAGE: 'members.manage',
   NOTIFICATIONS_MANAGE: 'notifications.manage',
   DATA_JOBS_VIEW: 'dataJobs.view',
+  COUPONS_MANAGE: 'coupons.manage',
   SYSTEM_MANAGE: 'system.manage',
 });
