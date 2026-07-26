@@ -4,22 +4,15 @@ import MobileBottomNav from '../components/public/MobileBottomNav';
 import PublicHeader from '../components/public/PublicHeader';
 import Drawer from '../components/shared/Drawer';
 import { useAuth } from '../context/AuthContext';
-
-const mobileMenuLinks = [
-  ['/news', '📰 新知'],
-  ['/special-offers', '🏷️ 特賣'],
-  ['/mutual-aid', '🎁 好康'],
-  ['/points', '🪙 點數'],
-  ['/settings', '⚙️ 設定'],
-];
+import { DASHBOARD_NAV_LINK, PUBLIC_MOBILE_LINKS } from '../config/publicNavigation';
 
 export default function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, dashboardAccess } = useAuth();
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(user?.role);
   const menuLinks = dashboardAccess?.dashboardAccess || hasDashboardRole
-    ? [...mobileMenuLinks, ['/dashboard', '🛠️ 後台']]
-    : mobileMenuLinks;
+    ? [...PUBLIC_MOBILE_LINKS, DASHBOARD_NAV_LINK]
+    : PUBLIC_MOBILE_LINKS;
 
   return (
     <div className="public-layout">
@@ -31,8 +24,8 @@ export default function PublicLayout() {
         title="SmartBuy AI 選單"
       >
         <nav className="public-drawer-nav" aria-label="手機版主要選單">
-          {menuLinks.map(([to, label]) => (
-            <NavLink key={to} to={to} onClick={() => setMenuOpen(false)}>
+          {menuLinks.map(({ to, label, description }) => (
+            <NavLink key={to} to={to} onClick={() => setMenuOpen(false)} title={description} aria-label={description}>
               {label}
             </NavLink>
           ))}
