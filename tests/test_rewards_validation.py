@@ -3,8 +3,11 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 from backend.routers import rewards
+from backend.security.roles import get_current_member
 
 
 def _coupon(**overrides):
@@ -30,6 +33,19 @@ def _coupon(**overrides):
 
 def _install_coupon(monkeypatch, **overrides):
     monkeypatch.setattr(rewards, "list_coupons_for_admin", lambda: [_coupon(**overrides)])
+
+
+def _client_for_role(monkeypatch, role: str) -> TestClient:
+    monkeypatch.setattr(rewards, "list_coupons_for_admin", lambda: [])
+    app = FastAPI()
+    app.include_router(rewards.router)
+    app.dependency_overrides[get_current_member] = lambda: {
+        "id": 1,
+        "email": "rewards@example.test",
+        "name": "Rewards Test",
+        "role": role,
+    }
+    return TestClient(app)
 
 
 def test_partial_percent_update_cannot_exceed_one_hundred(monkeypatch):
@@ -78,3 +94,15 @@ def test_missing_coupon_raises_lookup_error(monkeypatch):
 
     with pytest.raises(LookupError, match="coupon_not_found"):
         rewards._validated_coupon_patch(999, rewards.CouponUpdate(status="paused"))
+
+
+@pytest.mark.parametrize("role", ["consumer", "farmer", "merchant"])
+def test_coupon_management_api_rejects_non_admin_roles(monkeypatch, role):
+    response = _client_for_role(monkeypatch, role).get("/api/admin/coupons")
+    assert response.status_code == 403
+
+
+def test_coupon_management_api_allows_admin(monkeypatch):
+    response = _client_for_role(monkeypatch, "admin").get("/api/admin/coupons")
+    assert response.status_code == 200
+    assert response.json() == []
