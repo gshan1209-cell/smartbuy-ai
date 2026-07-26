@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import MobileBottomNav from '../components/public/MobileBottomNav';
 import PublicHeader from '../components/public/PublicHeader';
@@ -6,22 +6,16 @@ import PublicSidebar from '../components/public/PublicSidebar';
 import Drawer from '../components/shared/Drawer';
 import { useAuth } from '../context/AuthContext';
 import { DASHBOARD_NAV_LINK, PUBLIC_MOBILE_LINKS } from '../config/publicNavigation';
-import useLayoutMode from '../hooks/useLayoutMode';
 
 export default function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { layoutMode } = useLayoutMode();
   const { user, dashboardAccess } = useAuth();
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
   const menuLinks = dashboardAccess?.dashboardAccess || hasDashboardRole
     ? [...PUBLIC_MOBILE_LINKS, DASHBOARD_NAV_LINK]
     : PUBLIC_MOBILE_LINKS;
-
-  useEffect(() => {
-    setSidebarCollapsed(layoutMode === 'tablet');
-  }, [layoutMode]);
 
   return (
     <div className={`public-layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
