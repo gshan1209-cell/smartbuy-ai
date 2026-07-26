@@ -6,13 +6,17 @@ import './styles/tokens.css';
 import './styles/globals.css';
 import './styles/public-layout.css';
 import './styles/dashboard-layout.css';
+import './styles/app-resilience.css';
 import App from './App';
+import AppErrorBoundary from './components/shared/AppErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  </React.StrictMode>
+    <AppErrorBoundary>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </AppErrorBoundary>
+  </React.StrictMode>,
 );
