@@ -42,6 +42,7 @@
 | FastAPI、資料庫、登入、API contract、快取、背景任務 | `smartbuy-api-change` |
 | 點數獎勵、登入／推薦回饋、優惠券兌換與優惠券管理 | `smartbuy-rewards-coupons` |
 | Build、測試、RWD、回歸驗收、PR 交付 | `smartbuy-quality-gate` |
+| 本機瀏覽器、Docker、裝置模擬、實機操作與 CI 無法直接執行的測試 | `smartbuy-codex-local-testing` |
 
 同一任務可組合多個技能，但不要載入與任務無關的技能。
 
@@ -117,4 +118,38 @@ docs/architecture/PROJECT_STRUCTURE.md
 
 ```text
 docs/agent-skills/SMARTBUY_AGENT_SKILL_ARCHITECTURE.md
+```
+
+## 8. 本機測試與 Codex 委派
+
+凡是需要本機作業系統、瀏覽器 Runtime、Docker、裝置模擬、實機操作、區域網路設備、GUI 點擊、人工視覺確認，或目前 Connector／CI 無法直接執行的測試，預設交由 Codex 執行。
+
+責任分工：
+
+- **ChatGPT／主驗收 Agent**：定義測試範圍、驗收條件、風險與禁止事項；審核 Codex 回傳證據、Git diff、GitHub Actions、PR 與合併。
+- **Codex**：在本機工作樹執行測試；必要時修正程式；先跑 focused test，再跑受影響的完整測試；將結果提交到獨立分支或既有任務分支。
+- **GitHub Actions**：仍是可重現自動測試的主要品質閘門。本機結果不得取代原本可在 CI 執行的測試。
+
+Codex 本機測試回報至少必須包含：
+
+1. 作業系統、Node／Python／瀏覽器或 Docker 版本。
+2. 實際執行的完整命令，不得只寫「已測試」。
+3. 每個命令的通過、失敗、跳過與原因。
+4. 失敗時的關鍵錯誤、trace、截圖、影片、log 或 artifact 路徑。
+5. 修正檔案、分支名稱與 commit SHA。
+6. 未完成或仍受環境限制的項目。
+7. 是否連接正式服務、正式帳號或正式資料；預設必須為否。
+
+安全規則：
+
+- 未經明確授權，不得從本機測試寫入正式資料庫、正式 Supabase、R2、正式 API 或正式會員帳號。
+- 不得把 Token、Cookie、JWT、資料庫 URL、個資或測試帳密提交到 Git。
+- 不得以提高 retries、永久 skip、放寬 assertion 或隱藏 overflow 代替修正穩定失敗。
+- 沒有命令輸出、artifact、commit 或可重現步驟時，不得宣稱本機測試通過。
+- Codex 發現問題時，可直接在任務分支修正，但禁止任意刪除既有程式碼與功能。
+
+完整執行流程見：
+
+```text
+.agents/skills/smartbuy-codex-local-testing/SKILL.md
 ```
