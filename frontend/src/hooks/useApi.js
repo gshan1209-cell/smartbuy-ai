@@ -1,77 +1,57 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-const BASE = import.meta.env.VITE_API_URL ?? '';
+import { apiRequest } from '../lib/apiClient';
+
 const sharedGetCache = new Map();
 
 export function useApi(path) {
-  const [data, setData]     = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!path) return;
+    if (!path) {
+      setLoading(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
-    fetch(BASE + path)
-      .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+
+    apiRequest(path, { signal: controller.signal })
       .then(setData)
-      .catch(setError)
-      .finally(() => setLoading(false));
+      .catch((requestError) => {
+        if (requestError?.name !== 'AbortError') setError(requestError);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
   }, [path]);
 
   return { data, loading, error };
 }
 
-function authHeaders(extra = {}) {
-  const token = localStorage.getItem('yz_auth_token');
-  return token
-    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...extra }
-    : { 'Content-Type': 'application/json', ...extra };
+export function post(path, body) {
+  return apiRequest(path, { method: 'POST', json: body });
 }
 
-export async function post(path, body) {
-  const res = await fetch(BASE + path, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+export function put(path, body) {
+  return apiRequest(path, { method: 'PUT', json: body });
 }
 
-export async function put(path, body) {
-  const res = await fetch(BASE + path, {
-    method: 'PUT',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+export function patch(path, body) {
+  return apiRequest(path, { method: 'PATCH', json: body });
 }
 
-export async function get(path, { timeoutMs = 8000 } = {}) {
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+export function remove(path) {
+  return apiRequest(path, { method: 'DELETE' });
+}
 
-  try {
-    const res = await fetch(BASE + path, {
-      headers: authHeaders(),
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      const error = new Error(res.statusText || `HTTP ${res.status}`);
-      error.status = res.status;
-      throw error;
-    }
-    return res.json();
-  } catch (error) {
-    if (error?.name === 'AbortError') {
-      throw new Error(`資料來源超過 ${Math.ceil(timeoutMs / 1000)} 秒未回應`);
-    }
-    throw error;
-  } finally {
-    window.clearTimeout(timeoutId);
-  }
+export function get(path, { timeoutMs = 8000, signal } = {}) {
+  return apiRequest(path, { timeoutMs, signal });
 }
 
 export function clearCachedGet(paths = null) {
@@ -105,7 +85,7 @@ export function getCached(
       }
       return value;
     })
-    .catch((error) => {
+    .catch((requestError) => {
       if (sharedGetCache.get(path)?.promise === promise) {
         if (cached?.value !== undefined) {
           sharedGetCache.set(path, { ...cached, promise: null });
@@ -113,7 +93,7 @@ export function getCached(
           sharedGetCache.delete(path);
         }
       }
-      throw error;
+      throw requestError;
     });
 
   sharedGetCache.set(path, {
