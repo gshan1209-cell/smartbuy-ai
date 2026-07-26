@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-const BASE = import.meta.env.VITE_API_URL ?? '';
+import { registerAccount } from '../lib/authApi';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -18,17 +17,7 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${BASE}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name, email, password }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || '註冊失敗');
-      }
-      const { member } = await res.json();
+      const { member } = await registerAccount({ name, email, password });
       setAuthData(member);
       navigate('/settings');
     } catch (err) {

@@ -1,8 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { normalizeRole } from '../config/roles';
+import {
+  fetchDashboardAccess,
+  loginAccount,
+  logoutAccount,
+  updateAccountProfile,
+} from '../lib/authApi';
+import { resetFavoriteAuthCheck } from '../lib/favoritesService';
 
-const BASE = import.meta.env.VITE_API_URL ?? '';
 const LS_USER = 'yz_auth_user';
 
 function normalizeUser(user) {
@@ -40,6 +46,7 @@ export function AuthProvider({ children }) {
     setAccessDenied(false);
     setAccessError(null);
     localStorage.removeItem(LS_USER);
+    resetFavoriteAuthCheck();
   }, []);
 
   const refreshSession = useCallback(async () => {
@@ -55,31 +62,7 @@ export function AuthProvider({ children }) {
     setAccessError(null);
 
     try {
-      const response = await fetch(`${BASE}/api/admin/access`, {
-        credentials: 'include',
-      });
-
-      if (response.status === 401) {
-        clearSessionState();
-        return;
-      }
-
-      if (response.status === 403) {
-        setDashboardAccess({
-          dashboardAccess: false,
-          role: normalizeRole(user.role),
-          permissions: [],
-        });
-        setAccessDenied(true);
-        return;
-      }
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.detail || `權限服務回傳 HTTP ${response.status}`);
-      }
-
-      const access = await response.json();
+      const access = await fetchDashboardAccess();
       const normalizedRole = normalizeRole(access.role);
       const nextUser = persistUser({ ...user, role: normalizedRole });
 
@@ -92,6 +75,21 @@ export function AuthProvider({ children }) {
       });
       setAccessDenied(false);
     } catch (error) {
+      if (error?.status === 401) {
+        clearSessionState();
+        return;
+      }
+
+      if (error?.status === 403) {
+        setDashboardAccess({
+          dashboardAccess: false,
+          role: normalizeRole(user.role),
+          permissions: [],
+        });
+        setAccessDenied(true);
+        return;
+      }
+
       setAccessError(error instanceof Error ? error : new Error('權限服務暫時無法取得。'));
     } finally {
       setAuthLoading(false);
@@ -103,31 +101,17 @@ export function AuthProvider({ children }) {
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function login(email, password) {
-    const response = await fetch(`${BASE}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || '登入失敗');
-    }
-
-    const { member } = await response.json();
+    const { member } = await loginAccount({ email, password });
     setDashboardAccess(null);
     setAccessDenied(false);
     setAccessError(null);
     setAuthLoading(true);
+    resetFavoriteAuthCheck();
     setUser(persistUser(member));
   }
 
   async function logout() {
-    await fetch(`${BASE}/api/auth/logout`, {
-      method: 'POST',
-      credentials: 'include',
-    }).catch(() => {});
+    await logoutAccount().catch(() => {});
     clearSessionState();
     setAuthLoading(false);
   }
@@ -137,20 +121,12 @@ export function AuthProvider({ children }) {
     setAccessDenied(false);
     setAccessError(null);
     setAuthLoading(Boolean(nextUser));
+    resetFavoriteAuthCheck();
     setUser(persistUser(nextUser));
   }
 
   async function updateProfile(patch) {
-    const response = await fetch(`${BASE}/api/auth/profile`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(patch),
-    });
-
-    if (!response.ok) throw new Error('更新失敗');
-
-    const { member: updated } = await response.json();
+    const { member: updated } = await updateAccountProfile(patch);
     const nextUser = persistUser({ ...user, ...updated });
     setUser(nextUser);
   }
