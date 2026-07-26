@@ -7,6 +7,7 @@ import './styles/globals.css';
 import './styles/public-layout.css';
 import './styles/dashboard-layout.css';
 import './styles/app-resilience.css';
+import './styles/responsive-overrides.css';
 import App from './App';
 import AppErrorBoundary from './components/shared/AppErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
