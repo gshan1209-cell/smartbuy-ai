@@ -317,6 +317,12 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
   padding: 10px 12px;
   border-radius: 12px;
   color: var(--yz-mut);
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
   white-space: nowrap;
   transition: color 150ms ease, background 150ms ease;
 }

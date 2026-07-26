@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Clock3, ExternalLink, RefreshCw, Search, Tag, TrendingDown } from 'lucide-react';
+import { Clock3, ExternalLink, Search, TrendingDown } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import EmptyState from '../components/shared/EmptyState';
 import LoadingState from '../components/shared/LoadingState';
@@ -43,7 +43,6 @@ const COPY = {
   unavailable: '\u672a\u63d0\u4f9b',
   savingUnit: '\u5143',
   refresh: '\u91cd\u65b0\u6574\u7406',
-  refreshing: '\u66f4\u65b0\u4e2d\u2026',
   sourceNote: '\u8cc7\u6599\u4f86\u6e90\uff1a\u5b98\u65b9\u884c\u60c5 API\u3002\u7279\u50f9\u72c0\u614b\u6839\u64da\u76ee\u524d\u50f9\u683c\u8207\u8fd1\u671f\u8cc7\u6599\u63a8\u5c0e\uff0c\u50f9\u683c\u4ecd\u4ee5\u5404\u5e02\u5834\u6700\u65b0\u8cc7\u6599\u70ba\u6e96\u3002\u662f\u5426\u70ba\u5373\u671f\u54c1\uff0c\u8acb\u4ee5\u5be6\u969b\u4f9b\u61c9\u7aef\u6a19\u793a\u70ba\u6e96\u3002',
   infoTitle: '\u8cc7\u8a0a\u5206\u4eab',
   infoDescription: '\u7522\u5730\u3001\u683d\u57f9\u3001\u7522\u54c1\u8207\u63a1\u8cfc\u76f8\u95dc\u7684\u5be6\u7528\u5206\u4eab\u7e7c\u7e8c\u4fdd\u7559\uff0c\u8207\u7279\u50f9\u8cc7\u8a0a\u5206\u958b\u700f\u89bd\u3002',
@@ -82,7 +81,6 @@ export default function SpecialOffers() {
   const [query, setQuery] = useState(() => searchParams.get('q') || '');
   const [sort, setSort] = useState(() => searchParams.get('sort') === 'price' ? 'price' : 'savings');
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -91,8 +89,7 @@ export default function SpecialOffers() {
   }, [searchParamString]);
 
   function loadOffers(forceRefresh = false) {
-    if (forceRefresh) setRefreshing(true);
-    else setLoading(true);
+    setLoading(true);
     setError(null);
 
     getCached('/api/products', {
@@ -104,12 +101,20 @@ export default function SpecialOffers() {
       .catch((err) => setError(err?.message || '\u7121\u6cd5\u53d6\u5f97\u7279\u8ce3\u8cc7\u8a0a'))
       .finally(() => {
         setLoading(false);
-        setRefreshing(false);
       });
   }
 
   useEffect(() => {
     loadOffers();
+  }, []);
+
+  useEffect(() => {
+    function handleSidebarAction(event) {
+      if (event.detail?.action === 'refresh-offers') loadOffers(true);
+    }
+
+    window.addEventListener('smartbuy:sidebar-action', handleSidebarAction);
+    return () => window.removeEventListener('smartbuy:sidebar-action', handleSidebarAction);
   }, []);
 
   const allOffers = useMemo(
@@ -135,18 +140,6 @@ export default function SpecialOffers() {
   return (
     <main className="special-offers-page">
       <div className="special-offers-inner">
-        <header className="special-offers-heading">
-          <div>
-            <p className="eyebrow">Special Offers</p>
-            <h1><Tag size={30} aria-hidden="true" />{COPY.title}</h1>
-            <p>{COPY.intro}</p>
-          </div>
-          <button type="button" className="special-offers-refresh" onClick={() => loadOffers(true)} disabled={refreshing}>
-            <RefreshCw size={16} className={refreshing ? 'spin' : ''} />
-            {refreshing ? COPY.refreshing : COPY.refresh}
-          </button>
-        </header>
-
         <section className="special-offers-toolbar" aria-label={`${COPY.title}\u7be9\u9078\u5de5\u5177`}>
           <label className="special-offers-search">
             <Search size={18} aria-hidden="true" />

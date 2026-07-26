@@ -6,6 +6,7 @@ import {
   Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
+  RefreshCw,
   Search,
   Settings,
   ShoppingBasket,
@@ -26,6 +27,10 @@ const ICONS = {
   '/points': Coins,
   '/settings': Settings,
   '/dashboard': LayoutDashboard,
+};
+
+const ACTION_ICONS = {
+  refresh: RefreshCw,
 };
 
 function resolveSidebarPath(to, location) {
@@ -57,6 +62,23 @@ function SidebarLink({ link, location, locationHref }) {
       <Icon size={19} aria-hidden="true" />
       <span className="public-sidebar-label">{link.label}</span>
     </NavLink>
+  );
+}
+
+function SidebarAction({ action }) {
+  const Icon = ACTION_ICONS[action.icon] || RefreshCw;
+
+  return (
+    <button
+      type="button"
+      className="public-sidebar-link"
+      onClick={() => window.dispatchEvent(new CustomEvent('smartbuy:sidebar-action', { detail: { action: action.action } }))}
+      title={action.description}
+      aria-label={action.description}
+    >
+      <Icon size={19} aria-hidden="true" />
+      <span className="public-sidebar-label">{action.label}</span>
+    </button>
   );
 }
 
@@ -101,6 +123,15 @@ export default function PublicSidebar({ collapsed, onToggle }) {
           ))}
         </nav>
       ))}
+
+      {sidebarContext.actions?.length > 0 && (
+        <nav className="public-sidebar-nav" aria-label="頁面操作">
+          <p className="public-sidebar-heading">頁面操作</p>
+          {sidebarContext.actions.map(action => (
+            <SidebarAction key={action.action} action={action} />
+          ))}
+        </nav>
+      )}
 
       {canAccessDashboard && (
         <nav className="public-sidebar-nav public-sidebar-secondary" aria-label="管理入口">

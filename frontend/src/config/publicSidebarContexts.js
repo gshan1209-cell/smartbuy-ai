@@ -1,6 +1,7 @@
-const context = (title, sections, description = '') => ({ title, sections, description });
+const context = (title, sections, description = '', actions = []) => ({ title, sections, description, actions });
 
 const link = (to, label, description) => ({ to, label, description });
+const action = (name, label, description, icon = 'refresh') => ({ action: name, label, description, icon });
 
 export const PUBLIC_SIDEBAR_CONTEXTS = {
   '/': context('首頁工作台', [
@@ -49,7 +50,7 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
       ],
     },
   ], '彙整農業部、各大媒體農業相關報導，掌握最新產銷動態。'),
-  '/special-offers': context('好康推薦', [
+  '/special-offers': context('🏷️ 特賣會', [
     {
       heading: '查詢條件',
       links: [
@@ -57,6 +58,8 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
         link('/special-offers?sort=price', '價格排序', '依目前價格由低到高排列'),
       ],
     },
+  ], '全站限時、限量特價資訊集中表列，所有好康一次看完。', [
+    action('refresh-offers', '重新整理', '重新取得最新特賣資訊'),
   ]),
   '/information-sharing': context('資訊分享', [
     {
