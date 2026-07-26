@@ -16,7 +16,7 @@ export default function DemoOfferCards({ title, description, cards }) {
         {cards.map(card => (
           <article className="demo-offer-card" key={card.id}>
             <div className="demo-offer-image-wrap">
-              <img src={card.image} alt={card.title} className="demo-offer-image" />
+              <img src={card.image} alt={card.title} className="demo-offer-image" loading="lazy" decoding="async" />
               <span className="demo-offer-badge">{card.badge}</span>
             </div>
             <div className="demo-offer-card-body">
