@@ -21,9 +21,10 @@ test('首頁搜尋可完全用鍵盤操作', async ({ page }) => {
 test('未知前台網址顯示可復原的 404', async ({ page }) => {
   await page.goto('/this-route-does-not-exist');
 
-  await expect(page.getByRole('heading', { level: 1, name: '找不到這個頁面' })).toBeVisible();
-  await expect(page.getByText('/this-route-does-not-exist')).toBeVisible();
-  await expect(page.getByRole('link', { name: '回到首頁' })).toBeVisible();
+  const notFoundCard = page.locator('.app-not-found-card');
+  await expect(notFoundCard.getByRole('heading', { level: 1, name: '找不到這個頁面' })).toBeVisible();
+  await expect(notFoundCard.getByText('/this-route-does-not-exist')).toBeVisible();
+  await expect(notFoundCard.getByRole('link', { name: '回到首頁' })).toBeVisible();
 });
 
 test('匿名使用者進入後台會導向登入頁', async ({ page }) => {
