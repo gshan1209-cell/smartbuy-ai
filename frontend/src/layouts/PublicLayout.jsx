@@ -6,11 +6,11 @@ import Drawer from '../components/shared/Drawer';
 import { useAuth } from '../context/AuthContext';
 
 const mobileMenuLinks = [
-  ['/news', '農產新知'],
-  ['/special-offers', '特賣會'],
+  ['/news', '📰 新知'],
+  ['/special-offers', '🏷️ 特賣'],
   ['/mutual-aid', '🎁 好康'],
-  ['/points', '點數中心'],
-  ['/settings', '個人設定'],
+  ['/points', '🪙 點數'],
+  ['/settings', '⚙️ 設定'],
 ];
 
 export default function PublicLayout() {
@@ -18,7 +18,7 @@ export default function PublicLayout() {
   const { user, dashboardAccess } = useAuth();
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(user?.role);
   const menuLinks = dashboardAccess?.dashboardAccess || hasDashboardRole
-    ? [...mobileMenuLinks, ['/dashboard', '後台']]
+    ? [...mobileMenuLinks, ['/dashboard', '🛠️ 後台']]
     : mobileMenuLinks;
 
   return (
