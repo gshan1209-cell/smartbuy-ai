@@ -5,7 +5,11 @@ function manualChunks(id) {
   const normalized = id.replaceAll('\\', '/');
   if (!normalized.includes('/node_modules/')) return undefined;
 
-  if (normalized.includes('/leaflet/') || normalized.includes('/react-leaflet/')) {
+  if (
+    normalized.includes('/leaflet/')
+    || normalized.includes('/react-leaflet/')
+    || normalized.includes('/@react-leaflet/')
+  ) {
     return 'vendor-map';
   }
   if (normalized.includes('/chart.js/')) {
@@ -22,6 +26,7 @@ function manualChunks(id) {
     || normalized.includes('/react-dom/')
     || normalized.includes('/react-router/')
     || normalized.includes('/react-router-dom/')
+    || normalized.includes('/@remix-run/router/')
     || normalized.includes('/scheduler/')
   ) {
     return 'vendor-react';
@@ -35,7 +40,7 @@ function manualChunks(id) {
     return 'vendor-ui';
   }
 
-  return 'vendor';
+  return undefined;
 }
 
 export default defineConfig({
