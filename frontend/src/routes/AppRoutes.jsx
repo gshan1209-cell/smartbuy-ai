@@ -8,21 +8,22 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import PublicLayout from '../layouts/PublicLayout';
 import AgriNews from '../pages/AgriNews';
 import Alerts from '../pages/Alerts';
+import CouponManagement from '../pages/dashboard/CouponManagement';
 import DashboardOverview from '../pages/dashboard/DashboardOverview';
 import DashboardPredictions from '../pages/dashboard/DashboardPredictions';
 import DashboardPrices from '../pages/dashboard/DashboardPrices';
+import DashboardRecommendations from '../pages/dashboard/DashboardRecommendations';
 import DashboardSeasonal from '../pages/dashboard/DashboardSeasonal';
 import DashboardWeather from '../pages/dashboard/DashboardWeather';
-import CouponManagement from '../pages/dashboard/CouponManagement';
 import ForbiddenPage from '../pages/ForbiddenPage';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
 import MutualAid from '../pages/MutualAid';
 import MyBasket from '../pages/MyBasket';
 import Placeholder from '../pages/Placeholder';
+import PointsCenter from '../pages/PointsCenter';
 import PriceSearch from '../pages/PriceSearch';
 import ProductDetail from '../pages/ProductDetail';
-import PointsCenter from '../pages/PointsCenter';
 import Register from '../pages/Register';
 import Season from '../pages/Season';
 import Settings from '../pages/Settings';
@@ -77,6 +78,14 @@ export default function AppRoutes() {
             element={(
               <GuardedModule permission={PERMISSIONS.PREDICTIONS_VIEW}>
                 <DashboardPredictions />
+              </GuardedModule>
+            )}
+          />
+          <Route
+            path="recommendations"
+            element={(
+              <GuardedModule permission={PERMISSIONS.RECOMMENDATIONS_VIEW}>
+                <DashboardRecommendations />
               </GuardedModule>
             )}
           />
