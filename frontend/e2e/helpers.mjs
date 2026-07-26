@@ -87,18 +87,18 @@ export async function readFocusableNameProblems(page) {
         const labelledText = labelledBy
           ? labelledBy
               .split(/\s+/)
-              .map((id) => document.getElementById(id)?.textContent || '')
+              .map((id) => document.getElementById(id)?.innerText || '')
               .join(' ')
           : '';
         const nativeLabelText = Array.from(element.labels || [])
-          .map((label) => label.textContent || '')
+          .map((label) => label.innerText || '')
           .join(' ');
         const name = [
           element.getAttribute('aria-label'),
           labelledText,
           nativeLabelText,
           element.getAttribute('title'),
-          element.textContent,
+          element.innerText,
           element.getAttribute('placeholder'),
           element.getAttribute('alt'),
         ]
