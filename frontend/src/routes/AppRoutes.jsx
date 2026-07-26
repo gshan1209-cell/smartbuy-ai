@@ -11,6 +11,7 @@ import Alerts from '../pages/Alerts';
 import DashboardOverview from '../pages/dashboard/DashboardOverview';
 import DashboardPredictions from '../pages/dashboard/DashboardPredictions';
 import DashboardPrices from '../pages/dashboard/DashboardPrices';
+import DashboardRecommendations from '../pages/dashboard/DashboardRecommendations';
 import DashboardSeasonal from '../pages/dashboard/DashboardSeasonal';
 import DashboardWeather from '../pages/dashboard/DashboardWeather';
 import ForbiddenPage from '../pages/ForbiddenPage';
@@ -71,6 +72,14 @@ export default function AppRoutes() {
             element={(
               <GuardedModule permission={PERMISSIONS.PREDICTIONS_VIEW}>
                 <DashboardPredictions />
+              </GuardedModule>
+            )}
+          />
+          <Route
+            path="recommendations"
+            element={(
+              <GuardedModule permission={PERMISSIONS.RECOMMENDATIONS_VIEW}>
+                <DashboardRecommendations />
               </GuardedModule>
             )}
           />

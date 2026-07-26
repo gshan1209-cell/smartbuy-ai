@@ -17,6 +17,7 @@ ROLE_PERMISSIONS = {
             "predictions.view",
             "weather.view",
             "seasonal.view",
+            "recommendations.view",
         }
     ),
     "merchant": frozenset(
@@ -25,6 +26,7 @@ ROLE_PERMISSIONS = {
             "prices.view",
             "products.view",
             "predictions.view",
+            "recommendations.view",
             "seasonal.view",
         }
     ),
@@ -36,6 +38,7 @@ ROLE_PERMISSIONS = {
             "predictions.view",
             "weather.view",
             "seasonal.view",
+            "recommendations.view",
             "content.manage",
             "mutualAid.manage",
             "members.manage",
