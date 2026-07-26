@@ -96,6 +96,8 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
       links: [
         link('/mutual-aid?share_kind=product_recommendation', '好物推薦', '只查看好物推薦內容'),
         link('/mutual-aid?share_kind=special_offer', '特賣訊息', '只查看特賣訊息內容'),
+        link('/mutual-aid?view=saved', '只看收藏', '只查看自己收藏的內容'),
+        link('/mutual-aid?view=mine', '只看我的', '只查看自己發布的內容'),
       ],
     },
   ], [

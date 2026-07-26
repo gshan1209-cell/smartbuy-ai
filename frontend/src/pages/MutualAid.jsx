@@ -643,32 +643,6 @@ function DiscussionBoard({ allowedTypes = POST_TYPES }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setViewFilter(v => v === 'saved' ? 'all' : 'saved')}
-            style={{
-              flexShrink: 0, fontSize: 13,
-              background: viewFilter === 'saved' ? 'var(--green)' : 'var(--cream-dark)',
-              color: viewFilter === 'saved' ? '#fff' : 'var(--text)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            ★ 只看收藏
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setViewFilter(v => v === 'mine' ? 'all' : 'mine')}
-            style={{
-              flexShrink: 0, fontSize: 13,
-              background: viewFilter === 'mine' ? 'var(--green)' : 'var(--cream-dark)',
-              color: viewFilter === 'mine' ? '#fff' : 'var(--text)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            🙋 只看我的
-          </button>
         </div>
 
         <div className="ma-type-filters" style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
