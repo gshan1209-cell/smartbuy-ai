@@ -87,9 +87,12 @@ frontend/src/
 │  ├─ ui/                   # 過渡中的基礎元件；新增前先確認 shared 是否已有等價元件
 │  └─ *.jsx                 # 舊版共用元件；只維護，不再新增同層檔案
 ├─ config/                  # 角色、權限、模組與穩定設定
-├─ context/                 # React Context
+├─ context/                 # React Context，只管理跨頁狀態與流程協調
 ├─ hooks/                   # 可重複使用的 Hook 與瀏覽器副作用
-├─ lib/                     # API adapter、純函式與第三方整合
+├─ lib/
+│  ├─ apiClient.js          # 唯一底層 HTTP client
+│  ├─ *Api.js               # 依領域提供 API service 函式
+│  └─ *Service.js           # API、本機儲存或第三方整合的抽象層
 └─ styles/                  # token、全域與 Layout 樣式
 ```
 
@@ -101,7 +104,8 @@ index.jsx
     → routes + hooks
       → layouts + pages
         → domain components + shared components
-          → config + context + lib
+          → context + domain API service
+            → lib/apiClient.js
 ```
 
 強制原則：
@@ -113,15 +117,51 @@ index.jsx
 - 公開前台元件不得依賴 Dashboard Layout；後台元件不得直接嵌入 Public Layout。
 - 新頁面仍須遵守 Mobile、Tablet、Desktop 三尺寸驗證。
 
+### 3.2 前端 API 存取規範
+
+正式底層入口為：
+
+```text
+frontend/src/lib/apiClient.js
+```
+
+責任分工：
+
+- `apiClient.js`：集中 `VITE_API_URL`、URL 組裝、Cookie、JSON、204、錯誤解析、HTTP status 與 timeout。
+- `authApi.js`、`notificationsApi.js`、`mutualAidApi.js` 等：只描述領域 endpoint 與 request payload。
+- `context/`：協調登入狀態與跨頁流程，不直接拼接 URL 或自行解析 Response。
+- `pages/`、`components/`：呼叫領域 service，不直接讀取 `VITE_API_URL`。
+
+強制規則：
+
+- 新增正式後端 API 呼叫時，不得在頁面或元件直接建立另一套 `fetch` 錯誤處理。
+- 內部 API 預設使用 Cookie 認證；不同需求必須在 `apiClient` options 明確覆寫。
+- FormData、檔案下載、第三方 API 或靜態資產可使用不同解析方式，但仍應清楚區分「正式後端 API」與「一般資源讀取」。
+- 既有 `useApi.js` 暫時視為相容層；在開放中的功能 PR 合併前不得大幅改寫，之後再改為委派 `apiClient.js`。
+- 靜態 GeoJSON、圖片與前端 public assets 不必經過 API client。
+
+目前遷移狀態：
+
+| 模組 | 狀態 |
+|---|---|
+| `AuthContext.jsx` | 已透過 `authApi.js` |
+| `Register.jsx` | 已透過 `authApi.js` |
+| `notificationsApi.js` | 已委派 `apiClient.js` |
+| `favoritesService.js` | 已委派 `apiClient.js`，保留 localStorage fallback |
+| `useApi.js` | 相容層，待 PR #23／#24 整合後遷移 |
+| `mutualAidApi.js`、`Settings.jsx`、`AgriNews.jsx` | 因 PR #24 正在修改，待其合併後遷移 |
+
 ## 4. 已發現的過渡區
 
-以下內容不在本階段直接刪除或大量搬動：
+以下內容不應直接刪除或大量搬動：
 
 1. `backend/` 與根目錄 `src/` 並存：正式定義為「HTTP／應用層」與「領域／資料能力層」，後續按依賴方向逐步整理。
 2. `frontend/src/components/shared/`、`components/ui/` 與根層元件並存：先停止新增重複元件，再透過引用搜尋逐項合併。
-3. 公開頁面仍直接位於 `pages/`：新頁面優先採 `pages/public/`，舊頁面應以小型 PR 分批移動並更新所有 import。
-4. `backend/models.py`、`schemas.py` 仍是集中檔案：只有在單一領域已形成穩定模組且測試足夠時才拆分。
-5. 根目錄 `requirements.txt` 同時承擔舊部署與測試相容：依賴拆分應另開 PR，先確認 Render、Actions 與本機指令。
+3. `components/shared/Badge.jsx` 與 `components/ui/badge.jsx` 介面不同；前者目前供 Dashboard 使用，後者不得在未完成引用盤點前刪除或擴張成第三套 Badge。
+4. `SourceBadge.jsx` 是資料來源狀態的領域元件，不應因名稱相近而直接併入一般 Badge。
+5. 公開頁面仍直接位於 `pages/`：新頁面優先採 `pages/public/`，舊頁面應以小型 PR 分批移動並更新所有 import。
+6. `backend/models.py`、`schemas.py` 仍是集中檔案：只有在單一領域已形成穩定模組且測試足夠時才拆分。
+7. 根目錄 `requirements.txt` 同時承擔舊部署與測試相容：依賴拆分應另開 PR，先確認 Render、Actions 與本機指令。
 
 ## 5. 重構規則
 
@@ -133,12 +173,13 @@ index.jsx
 4. 不以刪除大量程式碼作為預設方式。
 5. 至少執行受影響層的 Build／測試。
 6. PR 說明列出舊位置、新位置、相容性與回滾方式。
+7. 與開放中的大型功能 PR 有衝突時，先建立相容層或延後搬移，不強迫同時重寫。
 
 ## 6. 下一階段建議
 
 依風險由低到高：
 
-1. 建立前端 API client 層，逐步移除各頁散落的 `VITE_API_URL` 與 `fetch` 重複處理。
+1. PR #23／#24 合併後，讓 `useApi.js`、`mutualAidApi.js`、設定與農產新知改為共用 `apiClient.js`。
 2. 盤點未使用或重複的前端元件，建立「保留／合併／淘汰」清單後再移除。
 3. 將大型 Router 的資料處理抽到 service／repository，Router 只保留 HTTP 邊界。
 4. 拆分 runtime、dev、data-pipeline 依賴，避免後端部署安裝不必要套件。
