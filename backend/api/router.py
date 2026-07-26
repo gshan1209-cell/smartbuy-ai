@@ -14,7 +14,6 @@ from backend.routers.notifications import router as notifications_router
 from backend.routers.prediction import router as prediction_router
 from backend.routers.product import router as product_router
 from backend.routers.recommendations import router as recommendations_router
-from backend.routers.rewards import router as rewards_router
 
 ROUTERS = (
     auth_router,
@@ -28,7 +27,6 @@ ROUTERS = (
     admin_router,
     agriculture_router,
     recommendations_router,
-    rewards_router,
 )
 
 
