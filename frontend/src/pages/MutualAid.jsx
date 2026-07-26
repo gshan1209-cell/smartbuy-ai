@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getMutualAidTypeLabel } from '../config/mutualAidLabels';
+import DemoOfferCards from '../components/public/DemoOfferCards';
+import { DEMO_GOOD_RECOMMENDATIONS } from '../config/demoOfferCards';
 import {
   fetchPosts,
   fetchPost,
@@ -927,6 +929,14 @@ export default function MutualAid({ allowedTypes = POST_TYPES }) {
     <div className="container ma-page">
       <h1 className="page-title">{isInfoOnly ? INFO_SHARE_TITLE : '🎁 好康'}</h1>
       <p className="ma-desc">{isInfoOnly ? INFO_SHARE_DESC : '產地特惠媒合、合作互助與栽培交流。'}</p>
+
+      {!isInfoOnly && (
+        <DemoOfferCards
+          title="好物推薦卡片"
+          description="發現 CP 值高、值得分享的商品，直接查看商家介紹。"
+          cards={DEMO_GOOD_RECOMMENDATIONS}
+        />
+      )}
 
       <DiscussionBoard allowedTypes={allowedTypes} />
     </div>

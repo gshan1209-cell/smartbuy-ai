@@ -3,6 +3,8 @@ import { Clock3, ExternalLink, RefreshCw, Search, Tag, TrendingDown } from 'luci
 import { Link, useNavigate } from 'react-router-dom';
 import EmptyState from '../components/shared/EmptyState';
 import LoadingState from '../components/shared/LoadingState';
+import DemoOfferCards from '../components/public/DemoOfferCards';
+import { DEMO_SPECIAL_OFFERS } from '../config/demoOfferCards';
 import { getCached } from '../hooks/useApi';
 import './SpecialOffers.css';
 
@@ -145,6 +147,12 @@ export default function SpecialOffers() {
             <span>{COPY.urgencyDescription}</span>
           </div>
         </section>
+
+        <DemoOfferCards
+          title="特賣卡片"
+          description="先用卡片快速看懂商家、商品、優惠與限時資訊。"
+          cards={DEMO_SPECIAL_OFFERS}
+        />
 
         <section className="special-offers-summary" aria-label={COPY.summaryLabel}>
           <TrendingDown size={22} aria-hidden="true" />
