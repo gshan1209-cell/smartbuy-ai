@@ -1,7 +1,6 @@
 import {
   Coins,
   Gift,
-  Hash,
   Home,
   LayoutDashboard,
   Newspaper,
@@ -61,22 +60,6 @@ function SidebarLink({ link, location, locationHref }) {
   );
 }
 
-function QuickTag({ item, location }) {
-  const href = resolveSidebarPath(item.to, location);
-
-  return (
-    <NavLink
-      to={href}
-      className="public-sidebar-quick-tag"
-      title={item.description}
-      aria-label={item.description}
-    >
-      <Hash size={14} aria-hidden="true" />
-      <span>{item.label}</span>
-    </NavLink>
-  );
-}
-
 export default function PublicSidebar({ collapsed, onToggle }) {
   const location = useLocation();
   const { pathname } = location;
@@ -118,17 +101,6 @@ export default function PublicSidebar({ collapsed, onToggle }) {
           ))}
         </nav>
       ))}
-
-      {sidebarContext.quickTags?.length > 0 && (
-        <section className="public-sidebar-quick-section" aria-label="快速查詢">
-          <p className="public-sidebar-heading">快速查詢</p>
-          <div className="public-sidebar-quick-tags">
-            {sidebarContext.quickTags.map(item => (
-              <QuickTag key={`${item.to}-${item.label}`} item={item} location={location} />
-            ))}
-          </div>
-        </section>
-      )}
 
       {canAccessDashboard && (
         <nav className="public-sidebar-nav public-sidebar-secondary" aria-label="管理入口">

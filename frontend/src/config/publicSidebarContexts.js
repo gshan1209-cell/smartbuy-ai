@@ -1,7 +1,6 @@
-const context = (title, sections, quickTags = [], description = '') => ({ title, sections, quickTags, description });
+const context = (title, sections, description = '') => ({ title, sections, description });
 
 const link = (to, label, description) => ({ to, label, description });
-const tag = (to, label, description) => ({ to, label, description });
 
 export const PUBLIC_SIDEBAR_CONTEXTS = {
   '/': context('首頁工作台', [
@@ -12,10 +11,6 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
         link('/special-offers', '查看特賣', '前往限時限量特賣頁'),
       ],
     },
-  ], [
-    tag('/search?q=高麗菜', '高麗菜行情', '直接查詢高麗菜行情'),
-    tag('/search?sort=price:asc', '低價優先', '直接查看低價品項'),
-    tag('/search?filter=normal', '正常行情', '只查看資料完整的行情'),
   ]),
   '/search': context('行情查詢', [
     {
@@ -26,11 +21,6 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
         link('/search?sort=price:asc', '價格由低到高', '依目前價格由低到高排序'),
       ],
     },
-  ], [
-    tag('/search?q=番茄', '番茄', '直接查詢番茄行情'),
-    tag('/search?q=高麗菜', '高麗菜', '直接查詢高麗菜行情'),
-    tag('/search?q=香蕉', '香蕉', '直接查詢香蕉行情'),
-    tag('/search', '全部縣市', '清除縣市條件並查看全部行情'),
   ]),
   '/product': context('商品詳情', [
     {
@@ -41,8 +31,6 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
         link('__current__?period=30', '近 30 天', '查看本商品近 30 天價格'),
       ],
     },
-  ], [
-    tag('__current__?period=custom', '自訂期間', '設定本商品自訂查詢期間'),
   ]),
   '/basket': context('我的收藏', [
     {
@@ -60,10 +48,6 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
         link('/news', '全部文章', '清除條件並查看全部文章'),
       ],
     },
-  ], [
-    tag('/news?q=蔬菜', '蔬菜新知', '直接搜尋蔬菜相關文章'),
-    tag('/news?q=水果', '水果新知', '直接搜尋水果相關文章'),
-    tag('/news?source=農業部', '農業部來源', '只查看農業部來源文章'),
   ]),
   '/special-offers': context('好康推薦', [
     {
@@ -73,10 +57,6 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
         link('/special-offers?sort=price', '價格排序', '依目前價格由低到高排列'),
       ],
     },
-  ], [
-    tag('/special-offers?q=蔬菜', '蔬菜特賣', '直接搜尋蔬菜特賣'),
-    tag('/special-offers?q=水果', '水果特賣', '直接搜尋水果特賣'),
-    tag('/special-offers?q=即期', '即期特賣', '直接搜尋即期品特賣'),
   ]),
   '/information-sharing': context('資訊分享', [
     {
@@ -86,9 +66,6 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
         link('/information-sharing?share_kind=product_recommendation', '商品推薦', '查看商品推薦內容'),
       ],
     },
-  ], [
-    tag('/information-sharing?q=產地', '產地資訊', '搜尋產地相關分享'),
-    tag('/information-sharing?q=採買', '採買交流', '搜尋採買相關分享'),
   ], '保留產地、栽培、產品與採購相關的實用資訊分享。'),
   '/mutual-aid': context('🎁 好康', [
     {
@@ -100,10 +77,6 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
         link('/mutual-aid?view=mine', '只看我的', '只查看自己發布的內容'),
       ],
     },
-  ], [
-    tag('/mutual-aid?q=即期', '即期好康', '搜尋即期品超低價推薦'),
-    tag('/mutual-aid?q=高 CP 值', '高 CP 值', '搜尋高 CP 值好物推薦'),
-    tag('/mutual-aid?city=全部', '全部縣市', '查看全部縣市推薦'),
   ], '產地特惠媒合、合作互助與栽培交流。'),
   '/points': context('點數與優惠券', [
     {
@@ -142,9 +115,6 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
         link('/search', '當季行情', '前往查詢當季品項行情'),
       ],
     },
-  ], [
-    tag('/search?q=葉菜', '當季葉菜', '直接查詢當季葉菜行情'),
-    tag('/search?q=水果', '當季水果', '直接查詢當季水果行情'),
   ]),
   '/login': context('會員登入', [
     {
