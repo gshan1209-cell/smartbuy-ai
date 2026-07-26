@@ -43,7 +43,7 @@ export default function AppRoutes() {
         <Route path="/news" element={<AgriNews />} />
         <Route path="/special-offers" element={<SpecialOffers />} />
         <Route path="/points" element={<PointsCenter />} />
-        <Route path="/mutual-aid" element={<MutualAid allowedTypes={['\u8cc7\u8a0a\u5206\u4eab']} />} />
+        <Route path="/mutual-aid" element={<MutualAid />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/season" element={<Season />} />
