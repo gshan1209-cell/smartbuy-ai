@@ -62,9 +62,10 @@ test('鍵盤可完成首頁查價流程', async ({ page }) => {
 
 test('未知網址顯示可操作的 404 畫面', async ({ page }) => {
   await page.goto('/this-route-does-not-exist');
-  await expect(page.getByRole('heading', { name: '找不到這個頁面' })).toBeVisible();
-  await expect(page.getByText('/this-route-does-not-exist')).toBeVisible();
-  await expect(page.getByRole('link', { name: '回到首頁' })).toBeVisible();
+  const notFound = page.locator('.app-not-found-card');
+  await expect(notFound.getByRole('heading', { name: '找不到這個頁面' })).toBeVisible();
+  await expect(notFound.getByText('/this-route-does-not-exist')).toBeVisible();
+  await expect(notFound.getByRole('link', { name: '回到首頁', exact: true })).toBeVisible();
 });
 
 test('未登入進入 Dashboard 會導向登入頁且保留安全邊界', async ({ page }) => {
@@ -85,10 +86,16 @@ test('Mobile 選單可用按鈕開啟並以 Escape 關閉', async ({ page }, tes
   await expect(page.getByRole('navigation', { name: '手機版主要選單' })).toBeHidden();
 });
 
-test('主要互動元件具有可辨識名稱', async ({ page }) => {
+test('主要互動元件具有可辨識名稱', async ({ page }, testInfo) => {
   await page.goto('/');
-  await expect(page.getByRole('link', { name: /SmartBuy AI/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: '搜尋' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '開啟選單' })).toBeVisible();
+  await expect(page.locator('.public-header .brand')).toHaveAccessibleName(/SmartBuy AI/);
   await expect(page.getByRole('group', { name: '版面模式' })).toBeVisible();
+
+  const isMobile = testInfo.project.name.startsWith('mobile');
+  if (isMobile) {
+    await expect(page.getByRole('link', { name: '搜尋', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '開啟選單' })).toBeVisible();
+  } else {
+    await expect(page.getByRole('link', { name: '前往菜價查詢頁' })).toBeVisible();
+  }
 });
