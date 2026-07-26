@@ -16,6 +16,7 @@ import DashboardMetricCard from '../../components/dashboard/DashboardMetricCard'
 import ResponsiveDataTable from '../../components/dashboard/ResponsiveDataTable';
 import Badge from '../../components/shared/Badge';
 import EmptyState from '../../components/shared/EmptyState';
+import { getMutualAidTypeLabel } from '../../config/mutualAidLabels';
 import { loadDashboardOverview, unavailableSources } from '../../lib/dashboardOverviewAdapter';
 import '../../styles/dashboard-overview.css';
 
@@ -197,7 +198,7 @@ export default function DashboardOverview() {
   ];
 
   const aidColumns = [
-    { key: 'type', label: '類型', sortable: false },
+    { key: 'type', label: '類型', sortable: false, render: (row) => getMutualAidTypeLabel(row.type) },
     { key: 'content', label: '內容摘要', sortable: false, render: (row) => String(row.content || '').slice(0, 38) || '—' },
     { key: 'location_city', label: '縣市', sortable: false },
     { key: 'status', label: '狀態', sortable: false },

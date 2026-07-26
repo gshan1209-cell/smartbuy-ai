@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getMutualAidTypeLabel } from '../config/mutualAidLabels';
 import {
   fetchPosts,
   fetchPost,
@@ -157,7 +158,7 @@ function PostDetailModal({ postId, myId, allowedTypes = POST_TYPES, onClose, onA
         {!loading && !error && detail && (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <span className={`badge ${TYPE_BADGE[detail.type]}`}>{detail.type}</span>
+              <span className={`badge ${TYPE_BADGE[detail.type]}`}>{getMutualAidTypeLabel(detail.type)}</span>
               <span className={`ma-status-chip ma-status-${detail.status}`}>{STATUS_LABEL[detail.status]}</span>
             </div>
             {detail.images?.length > 0 && (
@@ -246,7 +247,7 @@ function ComposeModal({ form, availableTypes = POST_TYPES, shareKinds = SHARE_KI
         </div>
         <div className="ma-post-row">
           <select name="type" className="input ma-post-type" value={form.type} onChange={onChange}>
-            {availableTypes.map(t => <option key={t} value={t}>{t}</option>)}
+            {availableTypes.map(t => <option key={t} value={t}>{getMutualAidTypeLabel(t)}</option>)}
           </select>
           <select name="share_kind" className="input ma-post-kind" value={form.share_kind} onChange={onChange}>
             {shareKinds.map(kind => <option key={kind.value} value={kind.value}>{kind.label}</option>)}
@@ -618,7 +619,7 @@ function DiscussionBoard({ allowedTypes = POST_TYPES }) {
 
       <button type="button" className="card ma-post-trigger" onClick={() => setComposeOpen(true)}>
         <span className="ma-post-trigger-avatar">{myName[0]}</span>
-        <span className="ma-post-trigger-text">有滯銷品項要出清，或需要幫忙嗎？點這裡發布...</span>
+        <span className="ma-post-trigger-text">有產地好康想分享，或想交流採買資訊嗎？點這裡發布...</span>
       </button>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
@@ -669,7 +670,7 @@ function DiscussionBoard({ allowedTypes = POST_TYPES }) {
               borderColor: typeFilter === t ? 'var(--green)' : 'var(--border)',
             }}
           >
-            {t}
+            {getMutualAidTypeLabel(t)}
           </button>
         ))}
       </div>
@@ -729,7 +730,7 @@ function DiscussionBoard({ allowedTypes = POST_TYPES }) {
                       value={editForm.type}
                       onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
                     >
-                      {availableTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                      {availableTypes.map(t => <option key={t} value={t}>{getMutualAidTypeLabel(t)}</option>)}
                     </select>
                     <select
                       className="input ma-post-kind"
@@ -925,7 +926,7 @@ export default function MutualAid({ allowedTypes = POST_TYPES }) {
   return (
     <div className="container ma-page">
       <h1 className="page-title">{isInfoOnly ? INFO_SHARE_TITLE : '🤝 互助網'}</h1>
-      <p className="ma-desc">{isInfoOnly ? INFO_SHARE_DESC : '滯銷、急銷媒合與栽培互助。'}</p>
+      <p className="ma-desc">{isInfoOnly ? INFO_SHARE_DESC : '產地特惠媒合、合作互助與栽培交流。'}</p>
 
       <DiscussionBoard allowedTypes={allowedTypes} />
     </div>
