@@ -42,6 +42,7 @@ export default function AppRoutes() {
         <Route path="/basket" element={<MyBasket />} />
         <Route path="/news" element={<AgriNews />} />
         <Route path="/special-offers" element={<SpecialOffers />} />
+        <Route path="/information-sharing" element={<MutualAid allowedTypes={['資訊分享']} />} />
         <Route path="/points" element={<PointsCenter />} />
         <Route path="/mutual-aid" element={<MutualAid />} />
         <Route path="/settings" element={<Settings />} />
