@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Clock3, Database, ListFilter, RefreshCw, Sparkles } from 'lucide-react';
+import {
+  Clock3,
+  Database,
+  ListFilter,
+  RefreshCw,
+  ShoppingCart,
+  Sparkles,
+  Store,
+  Tractor,
+  Users,
+} from 'lucide-react';
 
 import DashboardMetricCard from '../../components/dashboard/DashboardMetricCard';
 import Badge from '../../components/shared/Badge';
@@ -9,6 +19,31 @@ import LoadingState from '../../components/shared/LoadingState';
 import { loadRecommendation, loadRecommendationCategories } from '../../lib/recommendationsApi';
 import '../../styles/dashboard-overview.css';
 import '../../styles/dashboard-recommendations.css';
+import '../../styles/dashboard-recommendation-roles.css';
+
+const ROLE_PRESENTATIONS = [
+  {
+    key: 'consumer',
+    label: '消費者',
+    perspective: '家庭採買端',
+    icon: ShoppingCart,
+    strategyLabel: '採買策略',
+  },
+  {
+    key: 'farmer',
+    label: '農民',
+    perspective: '農業生產端',
+    icon: Tractor,
+    strategyLabel: '生產與出貨策略',
+  },
+  {
+    key: 'merchant',
+    label: '商家',
+    perspective: '通路銷售端',
+    icon: Store,
+    strategyLabel: '採購與銷售策略',
+  },
+];
 
 function sourceLabel(source) {
   return source === 'rules-fallback' ? '規則備援' : 'LLM 生成';
@@ -24,6 +59,12 @@ function cacheLabel(cacheHit) {
 
 function formatPrice(value) {
   return value == null ? '—' : `${Number(value).toLocaleString('zh-TW')} 元`;
+}
+
+function roleRecommendationsFrom(data) {
+  if (data?.role_recommendations) return data.role_recommendations;
+  if (data?.recommendation) return { consumer: data.recommendation };
+  return {};
 }
 
 export default function DashboardRecommendations() {
@@ -72,9 +113,8 @@ export default function DashboardRecommendations() {
 
   const data = recommendation?.data;
   const summary = data?.source_summary;
-  const content = data?.recommendation;
-  const items = content?.items || [];
   const source = data?.generator;
+  const roleRecommendations = roleRecommendationsFrom(data);
   const selectedCategory = useMemo(
     () => categories.find((item) => item.key === category),
     [categories, category],
@@ -96,9 +136,9 @@ export default function DashboardRecommendations() {
     <div className="dashboard-overview dashboard-recommendations-page">
       <header className="dashboard-overview-heading">
         <div>
-          <p className="eyebrow">AI Recommendation · Cache First</p>
-          <h1>AI 採買推薦</h1>
-          <p>依同類正式行情整理採買策略；已有 JSON 時不再呼叫 LLM。</p>
+          <p className="eyebrow">AI Recommendation · Three Roles · Cache First</p>
+          <h1>AI 三角色推薦</h1>
+          <p>同一份行情，以消費者、農民與商家三套提示語同步分析；已有 JSON 時不再呼叫 LLM。</p>
         </div>
         <button
           type="button"
@@ -150,13 +190,22 @@ export default function DashboardRecommendations() {
               description={selectedCategory?.description}
             />
             <DashboardMetricCard
+              label="角色提示語"
+              value="3 套"
+              tone="info"
+              icon={Users}
+              source={data.prompt_set_version || recommendation.prompt_set_version}
+              updatedAt={data.generated_at}
+              description="消費者、農民、商家一次生成"
+            />
+            <DashboardMetricCard
               label="生成來源"
               value={sourceLabel(source)}
               tone={sourceTone(source)}
               icon={Sparkles}
               source="推薦 JSON"
               updatedAt={data.generated_at}
-              description={recommendation.llm_called ? '本次曾呼叫 LLM' : '本次 LLM 未呼叫'}
+              description={recommendation.llm_called ? '本次單次呼叫產生三角色結果' : '本次 LLM 未呼叫'}
             />
             <DashboardMetricCard
               label="JSON 快取狀態"
@@ -180,76 +229,104 @@ export default function DashboardRecommendations() {
           <section className="recommendation-meta-row" aria-label="推薦狀態">
             <Badge tone={recommendation.cache_hit ? 'success' : 'info'}>{cacheLabel(recommendation.cache_hit)}</Badge>
             <Badge tone={sourceTone(source)}>{sourceLabel(source)}</Badge>
-            <Badge tone="neutral">LLM {recommendation.llm_called ? '已呼叫' : '未呼叫'}</Badge>
+            <Badge tone="info">三套角色提示語</Badge>
+            <Badge tone="neutral">LLM {recommendation.llm_called ? '已呼叫 1 次' : '未呼叫'}</Badge>
             <span><Clock3 size={15} />生成時間：{data.generated_at || '—'}</span>
             <span>快取來源：{recommendation.cache_backend || '—'}</span>
           </section>
 
-          <div className="recommendation-summary-grid">
-            <Card>
-              <div className="recommendation-section-heading">
-                <div>
-                  <p className="eyebrow">Recommendation Summary</p>
-                  <h2>採買摘要</h2>
-                </div>
-                <Badge tone={sourceTone(source)}>{sourceLabel(source)}</Badge>
-              </div>
-              <p className="recommendation-summary-text">{content?.summary || '目前沒有摘要。'}</p>
-              <dl className="recommendation-detail-list">
-                <dt>市場展望</dt><dd>{content?.market_outlook || '—'}</dd>
-                <dt>採買策略</dt><dd>{content?.shopping_strategy || '—'}</dd>
-                <dt>資料日期</dt><dd>{summary?.latest_trade_date || '—'}</dd>
-                <dt>來源狀態</dt><dd>{summary?.source_name || '—'} · {summary?.data_status || '—'}</dd>
-              </dl>
-            </Card>
-            <Card className="recommendation-cache-card">
-              <div className="recommendation-section-heading">
-                <div>
-                  <p className="eyebrow">Cost Protection</p>
-                  <h2>JSON 成本保護</h2>
-                </div>
-                <Database size={22} aria-hidden="true" />
-              </div>
-              <p>同一分類成功寫入 JSON 後，後續請求直接讀取持久快取，LLM 呼叫次數維持為 0。</p>
-              <strong>{recommendation.cache_hit ? '本次直接使用既有 JSON' : '本次完成 JSON 建立'}</strong>
-              <small>Cache key：{data.cache_key || '—'} · Digest：{data.input_digest || '—'}</small>
-            </Card>
-          </div>
-
-          <section className="recommendation-items-section">
+          <section className="recommendation-roles-section" aria-labelledby="role-recommendations-title">
             <div className="recommendation-section-heading">
               <div>
-                <p className="eyebrow">Category Items</p>
-                <h2>分類推薦品項</h2>
+                <p className="eyebrow">One Market · Three Perspectives</p>
+                <h2 id="role-recommendations-title">同一畫面，三個角色</h2>
               </div>
-              <span>{items.length} / 6 項</span>
+              <span>Prompt set：{data.prompt_set_version || recommendation.prompt_set_version || '—'}</span>
             </div>
-            {items.length ? (
-              <div className="recommendation-items-grid">
-                {items.map((item) => (
-                  <Card key={`${item.product_name}-${item.market_name || 'all'}`} className="recommendation-item-card">
-                    <div className="recommendation-item-head">
+
+            <div className="recommendation-role-grid">
+              {ROLE_PRESENTATIONS.map((role) => {
+                const roleContent = roleRecommendations[role.key];
+                const Icon = role.icon;
+                const items = roleContent?.items || [];
+
+                return (
+                  <Card
+                    key={role.key}
+                    className={`recommendation-role-card recommendation-role-${role.key}`}
+                  >
+                    <div className="recommendation-role-heading">
+                      <span className="recommendation-role-icon" aria-hidden="true">
+                        <Icon size={24} />
+                      </span>
                       <div>
-                        <h3>{item.product_name}</h3>
-                        <span>{item.market_name || '市場未提供'}</span>
+                        <p className="eyebrow">{roleContent?.perspective || role.perspective}</p>
+                        <h3>{roleContent?.role_label || role.label}</h3>
                       </div>
-                      <Badge tone={item.price_status === '偏貴' ? 'warning' : item.price_status === '便宜' ? 'success' : 'neutral'}>
-                        {item.price_status}
-                      </Badge>
+                      <Badge tone={sourceTone(source)}>{sourceLabel(source)}</Badge>
                     </div>
-                    <div className="recommendation-item-price">
-                      <strong>{formatPrice(item.today_price)}</strong>
-                      <span>近期平均 {formatPrice(item.recent_average)}</span>
+
+                    <p className="recommendation-role-summary">
+                      {roleContent?.summary || '目前沒有這個角色的推薦摘要。'}
+                    </p>
+
+                    <dl className="recommendation-role-details">
+                      <dt>行情觀察</dt>
+                      <dd>{roleContent?.market_outlook || '—'}</dd>
+                      <dt>{role.strategyLabel}</dt>
+                      <dd>{roleContent?.shopping_strategy || '—'}</dd>
+                    </dl>
+
+                    <div className="recommendation-role-items">
+                      <div className="recommendation-role-items-heading">
+                        <strong>角色行動建議</strong>
+                        <span>{items.length} / 6 項</span>
+                      </div>
+                      {items.length ? items.map((item) => (
+                        <article
+                          key={`${role.key}-${item.product_name}-${item.market_name || 'all'}`}
+                          className="recommendation-role-item"
+                        >
+                          <div className="recommendation-role-item-title">
+                            <div>
+                              <h4>{item.product_name}</h4>
+                              <span>{item.market_name || '市場未提供'}</span>
+                            </div>
+                            <Badge tone={item.price_status === '偏貴' ? 'warning' : item.price_status === '便宜' ? 'success' : 'neutral'}>
+                              {item.price_status}
+                            </Badge>
+                          </div>
+                          <div className="recommendation-role-price">
+                            <strong>{formatPrice(item.today_price)}</strong>
+                            <span>近期平均 {formatPrice(item.recent_average)}</span>
+                          </div>
+                          <p><strong>{item.action}</strong>：{item.reason}</p>
+                          <small>優先級：{item.priority} · 替代品：{item.substitute || '暫無必要'}</small>
+                        </article>
+                      )) : (
+                        <p className="recommendation-role-empty">正式行情資料不足，暫無角色行動建議。</p>
+                      )}
                     </div>
-                    <p><strong>{item.action}</strong>：{item.reason}</p>
-                    <small>優先級：{item.priority} · 替代品：{item.substitute || '暫無必要'}</small>
                   </Card>
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="目前沒有分類推薦品項" description="正式行情資料不足，請稍後再讀取。" />
-            )}
+                );
+              })}
+            </div>
           </section>
+
+          <Card className="recommendation-cache-card recommendation-cache-banner">
+            <div className="recommendation-section-heading">
+              <div>
+                <p className="eyebrow">Cost Protection</p>
+                <h2>三角色共用一次生成與一份 JSON</h2>
+              </div>
+              <Database size={22} aria-hidden="true" />
+            </div>
+            <p>同一分類首次建立時，以單次 LLM 請求提交三套角色提示語；成功寫入 v2 JSON 後，後續請求只讀取持久快取。</p>
+            <strong>{recommendation.cache_hit ? '本次直接使用既有三角色 JSON' : '本次完成三角色 JSON 建立'}</strong>
+            <small>
+              Cache key：{data.cache_key || '—'} · Digest：{data.input_digest || '—'} · 資料日期：{summary?.latest_trade_date || '—'}
+            </small>
+          </Card>
         </>
       )}
     </div>
