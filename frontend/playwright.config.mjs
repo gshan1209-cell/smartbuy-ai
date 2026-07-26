@@ -59,6 +59,15 @@ export default defineConfig({
       },
     },
     {
+      name: 'compact-tablet-chromium',
+      grep: /@responsive/,
+      use: {
+        viewport: { width: 768, height: 1024 },
+        deviceScaleFactor: 1,
+        hasTouch: true,
+      },
+    },
+    {
       name: 'mobile-chromium',
       grep: /@responsive/,
       use: {
