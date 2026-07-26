@@ -73,7 +73,7 @@ jobs:
             });
 
   frontend:
-    name: Frontend build
+    name: Frontend tests and build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -93,6 +93,13 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Run frontend regression tests
+        id: frontend-tests
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee frontend-test-output.txt
+
       - name: Build frontend and enforce bundle budget
         id: frontend-build
         shell: bash
@@ -106,17 +113,21 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const path = 'frontend/frontend-build-output.txt';
-            const raw = fs.existsSync(path)
-              ? fs.readFileSync(path, 'utf8')
-              : '前端建置未產生輸出檔。';
-            const tail = raw.length > 12000 ? raw.slice(-12000) : raw;
+            const files = [
+              ['Frontend regression tests', 'frontend/frontend-test-output.txt'],
+              ['Frontend build / bundle budget', 'frontend/frontend-build-output.txt'],
+            ];
+            const sections = files.map(([title, path]) => {
+              const raw = fs.existsSync(path)
+                ? fs.readFileSync(path, 'utf8')
+                : `${title} 未產生輸出檔。`;
+              const tail = raw.length > 8000 ? raw.slice(-8000) : raw;
+              return [`### ${title}`, '', '```text', tail, '```'].join('\n');
+            });
             const body = [
-              '## CI｜Frontend build / bundle budget 失敗摘要',
+              '## CI｜Frontend 失敗摘要',
               '',
-              '```text',
-              tail,
-              '```',
+              ...sections,
               '',
               `Workflow run: ${context.runId}`,
             ].join('\n');
