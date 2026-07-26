@@ -173,6 +173,15 @@ export default function FarmerDashboard() {
       status: productStatus,
       source: '/api/products',
       description: '目前行情 API 回傳的農產品數量',
+      visual: {
+        gradient: statusGradient,
+        total: statusTotal,
+        segments: Object.entries(statusCounts).map(([label, count]) => ({
+          label,
+          count,
+          color: statusColors[label] || '#9b9a90',
+        })),
+      },
     },
     {
       label: '平均市場報價',
