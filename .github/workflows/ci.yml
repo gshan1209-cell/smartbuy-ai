@@ -93,5 +93,36 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build frontend
-        run: npm run build
+      - name: Build frontend and enforce bundle budget
+        id: frontend-build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build:check 2>&1 | tee frontend-build-output.txt
+
+      - name: Publish frontend failure summary
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'frontend/frontend-build-output.txt';
+            const raw = fs.existsSync(path)
+              ? fs.readFileSync(path, 'utf8')
+              : '前端建置未產生輸出檔。';
+            const tail = raw.length > 12000 ? raw.slice(-12000) : raw;
+            const body = [
+              '## CI｜Frontend build / bundle budget 失敗摘要',
+              '',
+              '```text',
+              tail,
+              '```',
+              '',
+              `Workflow run: ${context.runId}`,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
