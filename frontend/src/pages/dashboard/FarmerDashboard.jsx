@@ -119,6 +119,51 @@ export default function FarmerDashboard() {
   const predictionCount = dashboard?.predictions?.length || 0;
   const highRiskCount = dashboard?.predictions?.filter((row) => row.risk_level === 'high').length || 0;
   const topRows = rows.slice(0, 6);
+  const priceComparisonRows = rows
+    .filter((row) => Number.isFinite(Number(row.today_price)) || Number.isFinite(Number(row.recent_average)))
+    .slice(0, 8);
+  const maxComparisonPrice = Math.max(
+    1,
+    ...priceComparisonRows.flatMap((row) => [Number(row.today_price), Number(row.recent_average)]).filter(Number.isFinite),
+  );
+  const marketSummary = useMemo(() => {
+    const grouped = allRows.reduce((result, row) => {
+      const value = Number(row.today_price);
+      if (!Number.isFinite(value)) return result;
+      const name = row.market_name || '市場未提供';
+      const current = result[name] || { name, total: 0, count: 0 };
+      current.total += value;
+      current.count += 1;
+      result[name] = current;
+      return result;
+    }, {});
+
+    return Object.values(grouped)
+      .map((item) => ({ ...item, average: item.total / item.count }))
+      .sort((left, right) => right.average - left.average)
+      .slice(0, 6);
+  }, [allRows]);
+  const marketMax = Math.max(1, ...marketSummary.map((item) => item.average));
+  const statusCounts = useMemo(() => allRows.reduce((result, row) => {
+    const label = statusLabel(row.status);
+    result[label] = (result[label] || 0) + 1;
+    return result;
+  }, {}), [allRows]);
+  const statusTotal = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+  const statusColors = {
+    '行情正常': '#1d9e75',
+    '資料不足': '#ba7517',
+    '尚無行情': '#a32d2d',
+    '資料狀態未知': '#9b9a90',
+  };
+  let statusCursor = 0;
+  const statusGradient = statusTotal
+    ? `conic-gradient(${Object.entries(statusCounts).map(([label, count]) => {
+      const start = statusCursor;
+      statusCursor += (count / statusTotal) * 100;
+      return `${statusColors[label] || '#9b9a90'} ${start}% ${statusCursor}%`;
+    }).join(', ')})`
+    : '#f0ece5';
 
   const metrics = [
     {
@@ -230,6 +275,91 @@ export default function FarmerDashboard() {
           <small>需搭配實際行情與生產成本判斷</small>
         </div>
       </div>
+
+      <section className="farmer-visual-grid" aria-label="農產品行情圖表">
+        <DashboardChartCard
+          title="今日報價與近期均價"
+          description="比較目前報價與近期均價，協助判斷出貨與採收方向。"
+          source="/api/products · 計算"
+          updatedAt={latestDate || fetchedAt}
+          error={productStatus === 'error' ? dashboard.sources.products?.error : null}
+          empty={!priceComparisonRows.length}
+        >
+          <div className="farmer-chart-legend" aria-label="圖表圖例">
+            <span><i className="farmer-legend-dot is-average" />近期均價</span>
+            <span><i className="farmer-legend-dot is-current" />今日報價</span>
+          </div>
+          <div className="farmer-price-comparison-chart">
+            {priceComparisonRows.map((row) => {
+              const today = Number(row.today_price);
+              const average = Number(row.recent_average);
+              const change = changePercent(row);
+              return (
+                <div className="farmer-price-chart-row" key={`comparison-${row.product_name}-${row.market_name || 'all'}`}>
+                  <div className="farmer-price-chart-label">
+                    <strong>{row.product_name}</strong>
+                    <small>{row.market_name || '市場未提供'}</small>
+                  </div>
+                  <div className="farmer-price-chart-bars">
+                    <div className="farmer-bar-line">
+                      <span className="farmer-bar-track"><i className="is-average" style={{ width: `${Number.isFinite(average) ? (average / maxComparisonPrice) * 100 : 0}%` }} /></span>
+                      <small>{formatPrice(row.recent_average)}</small>
+                    </div>
+                    <div className="farmer-bar-line">
+                      <span className="farmer-bar-track"><i className={`is-current ${change > 0 ? 'is-up' : 'is-down'}`} style={{ width: `${Number.isFinite(today) ? (today / maxComparisonPrice) * 100 : 0}%` }} /></span>
+                      <small>{formatPrice(row.today_price)}</small>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </DashboardChartCard>
+
+        <DashboardChartCard
+          title="各市場平均報價"
+          description="依目前可取得品項計算市場平均值，不代表官方市場指數。"
+          source="/api/products · 計算"
+          updatedAt={latestDate || fetchedAt}
+          error={productStatus === 'error' ? dashboard.sources.products?.error : null}
+          empty={!marketSummary.length}
+        >
+          <div className="farmer-market-bar-chart">
+            {marketSummary.map((item) => (
+              <div className="farmer-market-bar-item" key={item.name}>
+                <strong>{formatPrice(item.average)}</strong>
+                <div className="farmer-market-bar-track" aria-hidden="true"><i style={{ height: `${(item.average / marketMax) * 100}%` }} /></div>
+                <span title={item.name}>{item.name}</span>
+                <small>{item.count} 品項</small>
+              </div>
+            ))}
+          </div>
+        </DashboardChartCard>
+
+        <DashboardChartCard
+          title="行情資料狀態"
+          description="先確認資料完整度，再判讀價格差異。"
+          source="/api/products"
+          updatedAt={latestDate || fetchedAt}
+          error={productStatus === 'error' ? dashboard.sources.products?.error : null}
+          empty={!statusTotal}
+        >
+          <div className="farmer-status-chart">
+            <div className="farmer-status-donut" style={{ background: statusGradient }} aria-label={`共 ${statusTotal} 筆行情資料`}>
+              <div><strong>{statusTotal}</strong><span>品項</span></div>
+            </div>
+            <div className="farmer-status-legend">
+              {Object.entries(statusCounts).map(([label, count]) => (
+                <div key={label}>
+                  <i style={{ background: statusColors[label] || '#9b9a90' }} />
+                  <span>{label}</span>
+                  <strong>{count}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DashboardChartCard>
+      </section>
 
       <div className="farmer-dashboard-panels">
         <DashboardChartCard

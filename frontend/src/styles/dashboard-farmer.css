@@ -139,6 +139,248 @@
   min-height: 100%;
 }
 
+.farmer-dashboard .dashboard-chart-card {
+  border-color: #d8e8df;
+  box-shadow: 0 8px 22px rgb(31 102 73 / 6%);
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.farmer-dashboard .dashboard-chart-card:hover {
+  border-color: #9bcdb9;
+  box-shadow: 0 14px 30px rgb(31 102 73 / 10%);
+  transform: translateY(-2px);
+}
+
+.farmer-visual-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, .85fr);
+  gap: 16px;
+}
+
+.farmer-visual-grid > :nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.farmer-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 15px;
+  color: var(--yz-mut);
+  font-size: 12px;
+}
+
+.farmer-chart-legend span,
+.farmer-status-legend div {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.farmer-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.farmer-legend-dot.is-average {
+  background: #378add;
+}
+
+.farmer-legend-dot.is-current {
+  background: #1d9e75;
+}
+
+.farmer-price-comparison-chart {
+  display: grid;
+  gap: 13px;
+}
+
+.farmer-price-chart-row {
+  display: grid;
+  grid-template-columns: minmax(115px, .38fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.farmer-price-chart-label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.farmer-price-chart-label strong,
+.farmer-price-chart-label small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.farmer-price-chart-label small,
+.farmer-bar-line small,
+.farmer-market-bar-item small {
+  color: var(--yz-mut);
+  font-size: 11px;
+}
+
+.farmer-price-chart-bars {
+  display: grid;
+  gap: 6px;
+}
+
+.farmer-bar-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 54px;
+  align-items: center;
+  gap: 9px;
+}
+
+.farmer-bar-track {
+  display: block;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf1ef;
+}
+
+.farmer-bar-track i {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+  transition: width .5s ease;
+}
+
+.farmer-bar-track i.is-average {
+  background: linear-gradient(90deg, #75b7ed, #378add);
+}
+
+.farmer-bar-track i.is-current {
+  background: linear-gradient(90deg, #79c9aa, #1d9e75);
+}
+
+.farmer-bar-track i.is-current.is-up {
+  background: linear-gradient(90deg, #f3be65, #ba7517);
+}
+
+.farmer-bar-line small {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.farmer-market-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 12px;
+  min-height: 232px;
+  padding: 10px 4px 0;
+}
+
+.farmer-market-bar-item {
+  display: grid;
+  grid-template-rows: auto 170px auto auto;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.farmer-market-bar-item strong {
+  color: var(--yz-gd);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.farmer-market-bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: min(48px, 100%);
+  height: 170px;
+  overflow: hidden;
+  border-radius: 10px 10px 5px 5px;
+  background: linear-gradient(180deg, #f2f8f5, #e7f1ec);
+}
+
+.farmer-market-bar-track i {
+  display: block;
+  width: 100%;
+  min-height: 8px;
+  border-radius: 10px 10px 4px 4px;
+  background: linear-gradient(180deg, #4bb68d, #17835e);
+  box-shadow: 0 -3px 10px rgb(29 158 117 / 20%);
+  transition: height .5s ease;
+}
+
+.farmer-market-bar-item span {
+  overflow: hidden;
+  max-width: 90px;
+  color: var(--yz-txt);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.farmer-status-chart {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  align-items: center;
+  gap: 26px;
+  min-height: 180px;
+}
+
+.farmer-status-donut {
+  display: grid;
+  place-items: center;
+  width: 158px;
+  height: 158px;
+  border-radius: 50%;
+}
+
+.farmer-status-donut > div {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: var(--yz-card-bg);
+  box-shadow: inset 0 0 0 1px #e4ebe7;
+}
+
+.farmer-status-donut strong {
+  color: var(--yz-gd);
+  font-size: 27px;
+  line-height: 1;
+}
+
+.farmer-status-donut span {
+  color: var(--yz-mut);
+  font-size: 12px;
+}
+
+.farmer-status-legend {
+  display: grid;
+  gap: 12px;
+}
+
+.farmer-status-legend div {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 8px;
+  color: var(--yz-mut);
+  font-size: 13px;
+}
+
+.farmer-status-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.farmer-status-legend strong {
+  color: var(--yz-txt);
+}
+
 .farmer-price-rank-list {
   display: grid;
   gap: 8px;
@@ -228,11 +470,16 @@
   }
 
   .farmer-dashboard-context-strip,
-  .farmer-dashboard-panels {
+  .farmer-dashboard-panels,
+  .farmer-visual-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .farmer-dashboard-context-strip > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .farmer-visual-grid > :nth-child(3) {
     grid-column: 1 / -1;
   }
 }
@@ -265,7 +512,8 @@
 
   .farmer-dashboard-hero-actions,
   .farmer-dashboard-context-strip,
-  .farmer-dashboard-panels {
+  .farmer-dashboard-panels,
+  .farmer-visual-grid {
     grid-template-columns: 1fr;
     display: grid;
     width: 100%;
@@ -288,5 +536,24 @@
   .farmer-price-rank-list button > span:last-child {
     grid-column: 2;
     grid-row: 1;
+  }
+
+  .farmer-visual-grid > :nth-child(3) {
+    grid-column: auto;
+  }
+
+  .farmer-price-chart-row {
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .farmer-status-chart {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 18px;
+  }
+
+  .farmer-status-legend {
+    width: 100%;
   }
 }
