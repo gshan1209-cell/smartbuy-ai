@@ -26,7 +26,7 @@ test('管理員取得明確授權後可看到後台導覽', async ({ page }) => 
   await expect(navigation.getByRole('link', { name: '總覽' })).toBeVisible();
   await expect(navigation.getByRole('link', { name: 'AI 推薦' })).toBeVisible();
   await expect(navigation.getByRole('link', { name: '優惠券管理' })).toBeVisible();
-  await expect(page.getByText('系統管理員')).toBeVisible();
+  await expect(page.getByRole('banner').getByText('系統管理員')).toBeVisible();
 });
 
 test('後端明確拒絕時導向 403', async ({ page }) => {
