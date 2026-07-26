@@ -53,6 +53,16 @@
 
 走後端 `mutual_aid_saved` 表（`toggleSave` / `fetchSavedPosts`），與 MyBasket 的 `favoritesService.js`（`user_favorites` 表）是完全獨立的兩套系統，互不共用。
 
+## Information-share card contract (2026-07-26)
+
+For public information sharing, `type` remains `資訊分享` and the additive fields are:
+
+- `share_kind`: `special_offer` (self-posted sale) or `product_recommendation` (high-CP recommendation); existing null values are treated as recommendations.
+- `title`: card title or product name.
+- `website_url`: optional `http://` or `https://` merchant website.
+
+The public page presents these as coupon-style cards with a merchant initial icon, title, description, and an external official-site link. Existing comments, likes, saves, image uploads, and post status actions remain unchanged.
+
 ## 401 處理
 
 任何寫入操作（按讚/收藏/發文/留言/狀態切換/編輯/刪除）遇 401 → 頂部橫幅「請先登入才能使用這個功能。前往登入」（`<Link to="/login">`），不跳轉。按讚/收藏為樂觀更新，失敗 revert。

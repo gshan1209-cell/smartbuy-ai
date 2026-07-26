@@ -14,6 +14,7 @@ from src.data.member_repository import (
     update_member_profile,
     update_preferences,
 )
+from src.data.rewards_repository import grant_login_points
 
 router = APIRouter(prefix="/api/auth")
 
@@ -149,7 +150,14 @@ def auth_login(payload: LoginRequest, response: Response):
     member = _normalize_member(member)
     token = create_access_token(member_id=member["id"], email=member["email"])
     _set_auth_cookie(response, token)
-    return {"success": True, "member": member}
+    # 點數表尚未套用 migration 時不能阻斷既有登入流程；正式環境套用 migration
+    # 後會在此以唯一日期 key 發放每日一次登入獎勵。
+    reward = None
+    try:
+        reward = grant_login_points(member["id"])
+    except Exception:
+        reward = None
+    return {"success": True, "member": member, "login_reward": reward}
 
 
 @router.post("/logout")

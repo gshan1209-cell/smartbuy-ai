@@ -37,8 +37,9 @@
 | 消費者前台、首頁、搜尋、菜籃、提醒、節氣、新知、互助網 | `smartbuy-public-app` |
 | Dashboard、農民／商家／管理員後台、角色權限 | `smartbuy-dashboard-rbac` |
 | 菜價、農業部資料、天氣、二十四節氣、產地與價格風險 | `smartbuy-agri-intelligence` |
-| FastAPI、資料庫、登入、API contract、快取、背景任務 | `smartbuy-api-change` |
-| Build、測試、RWD、回歸驗收、PR 交付 | `smartbuy-quality-gate` |
+  | FastAPI、資料庫、登入、API contract、快取、背景任務 | `smartbuy-api-change` |
+  | 點數獎勵、登入／推薦回饋、優惠券兌換與優惠券管理 | `smartbuy-rewards-coupons` |
+  | Build、測試、RWD、回歸驗收、PR 交付 | `smartbuy-quality-gate` |
 
 同一任務可組合多個技能，但不要載入與任務無關的技能。
 

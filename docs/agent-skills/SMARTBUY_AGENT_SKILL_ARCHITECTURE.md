@@ -42,6 +42,7 @@ docs/
 | `smartbuy-dashboard-rbac` | 後台資訊架構與四角色權限 | Dashboard、農民後台、商家後台、管理員、權限 |
 | `smartbuy-agri-intelligence` | 農業、天氣、節氣、行情與 AI 風險資料 | 農業部、氣象、菜價、產地、節氣、預測 |
 | `smartbuy-api-change` | FastAPI、資料庫、認證、快取與 API contract | Router、API、Supabase、JWT、migration、cache |
+| `smartbuy-rewards-coupons` | 點數獎勵、冪等交易、優惠券兌換與管理 | 點數、登入獎勵、好物推薦、優惠券 |
 | `smartbuy-quality-gate` | Build、測試、回歸、RWD 與 PR 驗收 | 驗收、測試、build、修 PR、是否完成 |
 
 ## 4. 技能選用流程

@@ -53,6 +53,9 @@ def _post_response(row) -> dict:
         "type": row["type"],
         "content": row["content"],
         "farm_name": row["farm_name"],
+        "share_kind": row.get("share_kind"),
+        "title": row.get("title"),
+        "website_url": row.get("website_url"),
         "location_city": row["location_city"],
         "location_addr": row["location_addr"],
         "location_lat": float(row["location_lat"]) if row["location_lat"] is not None else None,
@@ -81,6 +84,7 @@ def _comment_response(row) -> dict:
 
 def list_posts(
     type: Optional[str] = None,
+    share_kind: Optional[str] = None,
     city: Optional[str] = None,
     q: Optional[str] = None,
     sort: str = "latest",
@@ -97,6 +101,9 @@ def list_posts(
     if type is not None:
         where_parts.append("p.type = :type")
         params["type"] = type
+    if share_kind is not None:
+        where_parts.append("p.share_kind = :share_kind")
+        params["share_kind"] = share_kind
     if city is not None:
         where_parts.append("p.location_city = :city")
         params["city"] = city
@@ -196,6 +203,9 @@ def create_post(
     member_id: int,
     type: str,
     content: str,
+    share_kind: Optional[str] = None,
+    title: Optional[str] = None,
+    website_url: Optional[str] = None,
     farm_name: Optional[str] = None,
     location_city: Optional[str] = None,
     location_addr: Optional[str] = None,
@@ -216,10 +226,10 @@ def create_post(
             text(
                 """
                 INSERT INTO mutual_aid_posts
-                    (member_id, type, content, farm_name, location_city,
+                    (member_id, type, content, share_kind, title, website_url, farm_name, location_city,
                      location_addr, location_lat, location_lng, images)
                 VALUES
-                    (:member_id, :type, :content, :farm_name, :location_city,
+                    (:member_id, :type, :content, :share_kind, :title, :website_url, :farm_name, :location_city,
                      :location_addr, :location_lat, :location_lng, :images)
                 RETURNING id;
                 """
@@ -228,6 +238,9 @@ def create_post(
                 "member_id": member_id,
                 "type": type,
                 "content": content.strip(),
+                "share_kind": share_kind,
+                "title": title.strip() if title else None,
+                "website_url": website_url,
                 "farm_name": farm_name,
                 "location_city": location_city,
                 "location_addr": location_addr,
@@ -254,7 +267,7 @@ def _require_owner(conn, table: str, row_id: int, member_id: int, id_col: str = 
 def update_post(post_id: int, member_id: int, patch: dict) -> dict:
     """更新貼文（只更新有傳入的欄位）；僅作者可操作。"""
     allowed_fields = {
-        "type", "content", "farm_name", "location_city",
+        "type", "content", "share_kind", "title", "website_url", "farm_name", "location_city",
         "location_addr", "location_lat", "location_lng", "images",
     }
     patch = {k: v for k, v in patch.items() if k in allowed_fields}

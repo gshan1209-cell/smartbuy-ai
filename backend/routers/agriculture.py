@@ -38,6 +38,7 @@ _NON_MARKET_CROP_NAMES = {
     '荒廢面積',
     '耕地造林',
 }
+ALL_COUNTIES = '全部'
 
 _SNAPSHOT_SCHEMA_VERSION = 3
 _CACHE_TTL_SECONDS = int(os.getenv('AGRICULTURE_CACHE_TTL_SECONDS', 7 * 24 * 3600))
@@ -471,7 +472,7 @@ def _format_items(rows: list[dict], county: str, limit: int) -> tuple[list[dict]
     items = [
         {
             'name': _value(row, '作物', 'crop', 'CROP'),
-            'county': county,
+            'county': _value(row, '縣市', 'county', 'COUNTYNAME') or county,
             'township': _value(row, '鄉鎮', 'township', 'TOWN'),
             'year': latest_year,
             'plantingArea': _value(row, '種植面積(公頃)', '種植面積', 'planting_area'),
@@ -514,7 +515,14 @@ async def county_crops(
         logger.info('[agriculture] 快取已過期，觸發背景更新。')
         _start_refresh()
 
-    rows = index.get(county, [])
+    if county == ALL_COUNTIES:
+        rows = [row for county_rows in index.values() for row in county_rows]
+        rows.sort(key=lambda row: (
+            str(_value(row, '縣市', 'county', 'COUNTYNAME') or ''),
+            str(_value(row, '作物', 'crop', 'CROP', 'name') or ''),
+        ))
+    else:
+        rows = index.get(county, [])
     items, latest_year = _format_items(rows, county, limit)
     response.headers['Cache-Control'] = 'public, max-age=300, stale-while-revalidate=86400'
 

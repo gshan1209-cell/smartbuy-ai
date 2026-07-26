@@ -6,15 +6,15 @@ import {
   Newspaper,
   Search,
   ShoppingBasket,
+  Tag,
   TrendingDown,
   TrendingUp,
-  Users,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/shared/Card';
 import EmptyState from '../components/shared/EmptyState';
 import LoadingState from '../components/shared/LoadingState';
-import { get } from '../hooks/useApi';
+import { getCached } from '../hooks/useApi';
 import { getConsumerAdvice } from '../lib/consumerAdvice';
 import {
   loadConsumerHome,
@@ -134,9 +134,9 @@ export default function Home() {
 
   useEffect(() => {
     Promise.all([
-      get('/api/markets').catch(() => ({ markets: [] })),
-      loadConsumerHome(get),
-      get('/api/solar-term').catch(() => null),
+      getCached('/api/markets').catch(() => ({ markets: [] })),
+      loadConsumerHome(getCached),
+      getCached('/api/solar-term').catch(() => null),
     ])
       .then(([marketData, homeData, termData]) => {
         const normalized = homeData.items.map(normalizeHomeItem);
@@ -257,11 +257,11 @@ export default function Home() {
             onClick={() => navigate('/news')}
           />
           <QuickLinkCard
-            icon={Users}
-            title="互助網"
-            description="查看農產急售、求助與在地資訊分享。"
-            actionLabel="前往互助網"
-            onClick={() => navigate('/mutual-aid')}
+            icon={Tag}
+            title="特賣會"
+            description="全站特價訊息集中表列，所有好康一次看完。"
+            actionLabel="逛特賣會"
+            onClick={() => navigate('/special-offers')}
           />
         </section>
       </main>

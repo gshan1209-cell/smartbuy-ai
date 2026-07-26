@@ -19,6 +19,14 @@ import './MutualAid.css';
 
 const TYPE_BADGE = { '滯銷急售': 'badge-orange', '求助': 'badge-red', '資訊分享': 'badge-green' };
 const POST_TYPES = ['滯銷急售', '求助', '資訊分享'];
+const INFO_SHARE_TYPE = POST_TYPES[2];
+const INFO_SHARE_TITLE = '\u8cc7\u8a0a\u5206\u4eab';
+const INFO_SHARE_DESC = '\u4fdd\u7559\u7522\u5730\u3001\u683d\u57f9\u3001\u7522\u54c1\u8207\u63a1\u8cfc\u76f8\u95dc\u7684\u5be6\u7528\u5206\u4eab\u3002';
+const SHARE_KINDS = [
+  { value: 'special_offer', label: '\u7279\u8ce3\u8a0a\u606f', description: '\u81ea\u5df1\u767c\u5e03\u9650\u6642\u3001\u9650\u91cf\u7684\u7279\u50f9\u5546\u54c1' },
+  { value: 'product_recommendation', label: '\u597d\u7269\u63a8\u85a6', description: '\u5206\u4eab\u767c\u73fe\u7684\u9ad8 CP \u503c\u5546\u54c1' },
+];
+const SHARE_KIND_LABEL = Object.fromEntries(SHARE_KINDS.map(kind => [kind.value, kind.label]));
 const CITIES = [
   '台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市', '新竹縣',
   '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義市', '嘉義縣', '屏東縣', '宜蘭縣', '花蓮縣',
@@ -28,7 +36,7 @@ const STATUS_LABEL = { open: '徵求中', dealing: '洽談中', closed: '已結�
 const STATUS_OPTIONS = ['open', 'dealing', 'closed'];
 const PAGE_SIZE = 20;
 const MAX_IMAGES = 3;
-const EMPTY_FORM = { type: '資訊分享', farm_name: '', location_city: '', location_addr: '', content: '', images: [] };
+const EMPTY_FORM = { type: '資訊分享', share_kind: 'special_offer', title: '', website_url: '', farm_name: '', location_city: '', location_addr: '', content: '', images: [] };
 
 function formatDate(iso) {
   return iso ? iso.slice(0, 10) : '';
@@ -80,7 +88,7 @@ function ImageLightbox({ images, index, onClose, onNav }) {
   );
 }
 
-function PostDetailModal({ postId, myId, onClose, onAuthError }) {
+function PostDetailModal({ postId, myId, allowedTypes = POST_TYPES, onClose, onAuthError }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,7 +101,12 @@ function PostDetailModal({ postId, myId, onClose, onAuthError }) {
     setLoading(true);
     setError('');
     fetchPost(postId)
-      .then(data => { if (!cancelled) setDetail(data); })
+      .then(data => {
+        if (allowedTypes.length && !allowedTypes.includes(data.type)) {
+          throw new Error('\u9019\u500b\u8cc7\u8a0a\u985e\u578b\u5df2\u4e0d\u518d\u65bc\u516c\u958b\u9801\u9762\u986f\u793a');
+        }
+        if (!cancelled) setDetail(data);
+      })
       .catch(err => { if (!cancelled) setError(err.message || '載入失敗'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -156,7 +169,13 @@ function PostDetailModal({ postId, myId, onClose, onAuthError }) {
                 ))}
               </div>
             )}
-            <p style={{ fontSize: 15, lineHeight: 1.8, marginBottom: 12 }}>{detail.content}</p>
+            <h2 className="ma-share-title">{detail.title || detail.content.split('\n')[0]}</h2>
+            <p className="ma-share-description">{detail.content}</p>
+            {detail.website_url && (
+              <a className="ma-merchant-link" href={detail.website_url} target="_blank" rel="noreferrer">
+                前往商家官方網站 ↗
+              </a>
+            )}
             <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 20 }}>
               {detail.author_name}{detail.farm_name ? `．${detail.farm_name}` : ''}．{formatLocation(detail)}．{formatDate(detail.created_at)}
             </p>
@@ -206,7 +225,7 @@ function PostDetailModal({ postId, myId, onClose, onAuthError }) {
   );
 }
 
-function ComposeModal({ form, onChange, onSubmit, error, apiError, submitting, uploading, onAddImages, onRemoveImage, onClose }) {
+function ComposeModal({ form, availableTypes = POST_TYPES, shareKinds = SHARE_KINDS, onChange, onSubmit, error, apiError, submitting, uploading, onAddImages, onRemoveImage, onClose }) {
   const fileInputRef = useRef(null);
 
   function handleFilePick(e) {
@@ -227,7 +246,10 @@ function ComposeModal({ form, onChange, onSubmit, error, apiError, submitting, u
         </div>
         <div className="ma-post-row">
           <select name="type" className="input ma-post-type" value={form.type} onChange={onChange}>
-            {POST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            {availableTypes.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select name="share_kind" className="input ma-post-kind" value={form.share_kind} onChange={onChange}>
+            {shareKinds.map(kind => <option key={kind.value} value={kind.value}>{kind.label}</option>)}
           </select>
           <select name="location_city" className="input ma-post-location" value={form.location_city} onChange={onChange}>
             <option value="">選擇縣市</option>
@@ -248,6 +270,13 @@ function ComposeModal({ form, onChange, onSubmit, error, apiError, submitting, u
           value={form.farm_name}
           onChange={onChange}
         />
+        <input
+          name="title"
+          className="input"
+          placeholder="特賣標題或好物名稱"
+          value={form.title}
+          onChange={onChange}
+        />
         <textarea
           name="content"
           className="input ma-post-content"
@@ -256,6 +285,14 @@ function ComposeModal({ form, onChange, onSubmit, error, apiError, submitting, u
           value={form.content}
           onChange={onChange}
           autoFocus
+        />
+        <input
+          name="website_url"
+          type="url"
+          className="input"
+          placeholder="商家官方網站 https://..."
+          value={form.website_url}
+          onChange={onChange}
         />
 
         <div className="ma-image-list">
@@ -281,7 +318,10 @@ function ComposeModal({ form, onChange, onSubmit, error, apiError, submitting, u
   );
 }
 
-function DiscussionBoard() {
+function DiscussionBoard({ allowedTypes = POST_TYPES }) {
+  const availableTypes = allowedTypes.length ? allowedTypes : POST_TYPES;
+  const initialType = availableTypes.length === 1 ? availableTypes[0] : '全部';
+  const infoOnly = availableTypes.length === 1 && availableTypes[0] === INFO_SHARE_TYPE;
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState([]);
@@ -291,7 +331,7 @@ function DiscussionBoard() {
   const [listError, setListError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
 
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(() => ({ ...EMPTY_FORM, type: initialType === '全部' ? EMPTY_FORM.type : initialType }));
   const [error, setError] = useState(false);
   const [composeApiError, setComposeApiError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -307,7 +347,8 @@ function DiscussionBoard() {
   const [detailId, setDetailId] = useState(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const [viewFilter, setViewFilter] = useState('all'); // 'all' | 'saved' | 'mine'
-  const [typeFilter, setTypeFilter] = useState('全部');
+  const [typeFilter, setTypeFilter] = useState(initialType);
+  const [shareKindFilter, setShareKindFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('全部');
   const [actionError, setActionError] = useState('');
   const [authNotice, setAuthNotice] = useState(false);
@@ -344,12 +385,16 @@ function DiscussionBoard() {
     setListError('');
     const task = viewFilter === 'saved'
       ? fetchSavedPosts()
-      : fetchPosts({ type: typeFilter, city: cityFilter, q: debouncedQuery, mine: viewFilter === 'mine', offset: 0, limit: PAGE_SIZE });
+      : fetchPosts({ type: typeFilter, shareKind: shareKindFilter, city: cityFilter, q: debouncedQuery, mine: viewFilter === 'mine', offset: 0, limit: PAGE_SIZE });
     task
       .then(data => {
         if (cancelled) return;
-        setPosts(data);
-        setHasMore(viewFilter !== 'saved' && data.length === PAGE_SIZE);
+        const filtered = data.filter(post => (
+          allowedTypes.includes(post.type)
+          && (shareKindFilter === 'all' || post.share_kind === shareKindFilter || (!post.share_kind && shareKindFilter === 'product_recommendation'))
+        ));
+        setPosts(filtered);
+        setHasMore(viewFilter !== 'saved' && filtered.length === PAGE_SIZE);
       })
       .catch(err => {
         if (cancelled) return;
@@ -358,13 +403,13 @@ function DiscussionBoard() {
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [typeFilter, cityFilter, debouncedQuery, viewFilter, reloadKey]);
+  }, [typeFilter, shareKindFilter, cityFilter, debouncedQuery, viewFilter, reloadKey]);
 
   async function loadMore() {
     if (viewFilter === 'saved' || loadingMore) return;
     setLoadingMore(true);
     try {
-      const data = await fetchPosts({ type: typeFilter, city: cityFilter, q: debouncedQuery, mine: viewFilter === 'mine', offset: posts.length, limit: PAGE_SIZE });
+      const data = await fetchPosts({ type: typeFilter, shareKind: shareKindFilter, city: cityFilter, q: debouncedQuery, mine: viewFilter === 'mine', offset: posts.length, limit: PAGE_SIZE });
       setPosts(ps => [...ps, ...data]);
       setHasMore(data.length === PAGE_SIZE);
     } catch (err) {
@@ -414,6 +459,9 @@ function DiscussionBoard() {
     try {
       const newPost = await createPost({
         type: form.type,
+        share_kind: form.share_kind,
+        title: form.title.trim() || undefined,
+        website_url: form.website_url.trim() || undefined,
         content: form.content.trim(),
         farm_name: form.farm_name.trim() || undefined,
         location_city: form.location_city,
@@ -477,6 +525,9 @@ function DiscussionBoard() {
     setEditingId(post.id);
     setEditForm({
       type: post.type,
+      share_kind: post.share_kind || 'product_recommendation',
+      title: post.title || '',
+      website_url: post.website_url || '',
       location_city: post.location_city || '',
       location_addr: post.location_addr || '',
       content: post.content,
@@ -523,6 +574,9 @@ function DiscussionBoard() {
     try {
       const updated = await updatePost(id, {
         type: editForm.type,
+        share_kind: editForm.share_kind,
+        title: editForm.title.trim() || undefined,
+        website_url: editForm.website_url.trim() || undefined,
         location_city: editForm.location_city,
         location_addr: editForm.location_addr.trim() || undefined,
         content: editForm.content.trim(),
@@ -603,7 +657,7 @@ function DiscussionBoard() {
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-        {['全部', ...POST_TYPES].map(t => (
+        {['全部', ...availableTypes].map(t => (
           <button
             key={t}
             type="button"
@@ -619,6 +673,19 @@ function DiscussionBoard() {
           </button>
         ))}
       </div>
+
+      {infoOnly && (
+        <div className="ma-share-kind-tabs" aria-label="資訊分享分類">
+          <button type="button" className={shareKindFilter === 'all' ? 'active' : ''} onClick={() => setShareKindFilter('all')}>
+            全部資訊
+          </button>
+          {SHARE_KINDS.map(kind => (
+            <button type="button" className={shareKindFilter === kind.value ? 'active' : ''} onClick={() => setShareKindFilter(kind.value)} key={kind.value}>
+              <strong>{kind.label}</strong><small>{kind.description}</small>
+            </button>
+          ))}
+        </div>
+      )}
 
       <select className="input" style={{ marginBottom: 14, maxWidth: 200 }} value={cityFilter} onChange={e => setCityFilter(e.target.value)}>
         <option value="全部">所有縣市</option>
@@ -662,7 +729,14 @@ function DiscussionBoard() {
                       value={editForm.type}
                       onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
                     >
-                      {POST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      {availableTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <select
+                      className="input ma-post-kind"
+                      value={editForm.share_kind}
+                      onChange={e => setEditForm(f => ({ ...f, share_kind: e.target.value }))}
+                    >
+                      {SHARE_KINDS.map(kind => <option key={kind.value} value={kind.value}>{kind.label}</option>)}
                     </select>
                     <select
                       className="input ma-post-location"
@@ -675,6 +749,12 @@ function DiscussionBoard() {
                   </div>
                   <input
                     className="input"
+                    placeholder="特賣標題或好物名稱"
+                    value={editForm.title}
+                    onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                  />
+                  <input
+                    className="input"
                     placeholder="詳細地址（選填）"
                     value={editForm.location_addr}
                     onChange={e => setEditForm(f => ({ ...f, location_addr: e.target.value }))}
@@ -684,6 +764,13 @@ function DiscussionBoard() {
                     rows={3}
                     value={editForm.content}
                     onChange={e => setEditForm(f => ({ ...f, content: e.target.value }))}
+                  />
+                  <input
+                    className="input"
+                    type="url"
+                    placeholder="商家官方網站 https://..."
+                    value={editForm.website_url}
+                    onChange={e => setEditForm(f => ({ ...f, website_url: e.target.value }))}
                   />
                   <div className="ma-image-list">
                     {editForm.images.map((url, i) => (
@@ -713,10 +800,12 @@ function DiscussionBoard() {
             }
 
             return (
-              <div key={post.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setDetailId(post.id)}>
+              <div key={post.id} className="card ma-share-card" style={{ cursor: 'pointer' }} onClick={() => setDetailId(post.id)}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className={`badge ${TYPE_BADGE[post.type]}`}>{post.type}</span>
+                    <span className="ma-merchant-avatar" aria-hidden="true">{(post.farm_name || post.author_name || '商').slice(0, 1)}</span>
+                    <span className="ma-merchant-name">{post.farm_name || post.author_name || '商家'}</span>
+                    <span className="badge badge-green">{SHARE_KIND_LABEL[post.share_kind] || SHARE_KIND_LABEL.product_recommendation}</span>
                     <span className={`ma-status-chip ma-status-${post.status}`}>{STATUS_LABEL[post.status]}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -751,7 +840,13 @@ function DiscussionBoard() {
                     )}
                   </div>
                 </div>
-                <p style={{ fontSize: 14, lineHeight: 1.7, marginBottom: 10 }}>{post.content}</p>
+                <h3 className="ma-share-title">{post.title || post.content.split('\n')[0]}</h3>
+                <p className="ma-share-description">{post.content}</p>
+                {post.website_url && (
+                  <a className="ma-merchant-link" href={post.website_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>
+                    前往商家官方網站 ↗
+                  </a>
+                )}
                 {post.images?.[0] && (
                   <div
                     className="ma-image-thumb ma-image-thumb-clickable"
@@ -791,6 +886,7 @@ function DiscussionBoard() {
         <PostDetailModal
           postId={detailId}
           myId={user?.id}
+          allowedTypes={availableTypes}
           onClose={() => setDetailId(null)}
           onAuthError={() => setAuthNotice(true)}
         />
@@ -799,6 +895,7 @@ function DiscussionBoard() {
       {composeOpen && (
         <ComposeModal
           form={form}
+          availableTypes={availableTypes}
           onChange={handleChange}
           onSubmit={handleSubmit}
           error={error}
@@ -823,13 +920,14 @@ function DiscussionBoard() {
   );
 }
 
-export default function MutualAid() {
+export default function MutualAid({ allowedTypes = POST_TYPES }) {
+  const isInfoOnly = allowedTypes.length === 1 && allowedTypes[0] === INFO_SHARE_TYPE;
   return (
     <div className="container ma-page">
-      <h1 className="page-title">🤝 互助網</h1>
-      <p className="ma-desc">滯銷、急銷媒合與栽培互助。</p>
+      <h1 className="page-title">{isInfoOnly ? INFO_SHARE_TITLE : '🤝 互助網'}</h1>
+      <p className="ma-desc">{isInfoOnly ? INFO_SHARE_DESC : '滯銷、急銷媒合與栽培互助。'}</p>
 
-      <DiscussionBoard />
+      <DiscussionBoard allowedTypes={allowedTypes} />
     </div>
   );
 }

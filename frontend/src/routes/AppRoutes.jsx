@@ -13,6 +13,7 @@ import DashboardPredictions from '../pages/dashboard/DashboardPredictions';
 import DashboardPrices from '../pages/dashboard/DashboardPrices';
 import DashboardSeasonal from '../pages/dashboard/DashboardSeasonal';
 import DashboardWeather from '../pages/dashboard/DashboardWeather';
+import CouponManagement from '../pages/dashboard/CouponManagement';
 import ForbiddenPage from '../pages/ForbiddenPage';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
@@ -21,9 +22,11 @@ import MyBasket from '../pages/MyBasket';
 import Placeholder from '../pages/Placeholder';
 import PriceSearch from '../pages/PriceSearch';
 import ProductDetail from '../pages/ProductDetail';
+import PointsCenter from '../pages/PointsCenter';
 import Register from '../pages/Register';
 import Season from '../pages/Season';
 import Settings from '../pages/Settings';
+import SpecialOffers from '../pages/SpecialOffers';
 
 function GuardedModule({ permission, children }) {
   return <PermissionGuard permission={permission}>{children}</PermissionGuard>;
@@ -38,7 +41,9 @@ export default function AppRoutes() {
         <Route path="/product/:name" element={<ProductDetail />} />
         <Route path="/basket" element={<MyBasket />} />
         <Route path="/news" element={<AgriNews />} />
-        <Route path="/mutual-aid" element={<MutualAid />} />
+        <Route path="/special-offers" element={<SpecialOffers />} />
+        <Route path="/points" element={<PointsCenter />} />
+        <Route path="/mutual-aid" element={<MutualAid allowedTypes={['\u8cc7\u8a0a\u5206\u4eab']} />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/season" element={<Season />} />
@@ -87,6 +92,14 @@ export default function AppRoutes() {
             element={(
               <GuardedModule permission={PERMISSIONS.SEASONAL_VIEW}>
                 <DashboardSeasonal />
+              </GuardedModule>
+            )}
+          />
+          <Route
+            path="coupons"
+            element={(
+              <GuardedModule permission={PERMISSIONS.COUPONS_MANAGE}>
+                <CouponManagement />
               </GuardedModule>
             )}
           />

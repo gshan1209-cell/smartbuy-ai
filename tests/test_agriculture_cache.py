@@ -256,3 +256,21 @@ def test_concurrent_refreshes_share_one_official_api_call(monkeypatch):
 
     asyncio.run(exercise())
     assert calls == 1
+
+
+def test_county_crops_all_returns_rows_from_each_county():
+    _reset_cache()
+    agriculture._cache['county_index'] = {
+        '宜蘭縣': [{'name': '青蔥', 'county': '宜蘭縣', 'year': '114'}],
+        '臺南市': [{'name': '芒果', 'county': '臺南市', 'year': '114'}],
+    }
+    agriculture._cache['loaded_at'] = time.time()
+
+    response = agriculture.Response()
+    result = asyncio.run(agriculture.county_crops(response, county='全部', limit=10))
+
+    assert result['total'] == 2
+    assert {(item['county'], item['name']) for item in result['items']} == {
+        ('宜蘭縣', '青蔥'),
+        ('臺南市', '芒果'),
+    }

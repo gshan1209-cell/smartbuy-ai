@@ -17,9 +17,10 @@ function jsonBody(payload) {
   return { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
 }
 
-export function fetchPosts({ type, city, q, mine, sort, limit = 20, offset = 0 } = {}) {
+export function fetchPosts({ type, shareKind, city, q, mine, sort, limit = 20, offset = 0 } = {}) {
   const params = new URLSearchParams();
   if (type && type !== '全部') params.set('type', type);
+  if (shareKind && shareKind !== 'all') params.set('share_kind', shareKind);
   if (city && city !== '全部') params.set('city', city);
   if (q) params.set('q', q);
   if (mine) params.set('mine', 'true');
