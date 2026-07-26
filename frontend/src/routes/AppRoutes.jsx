@@ -7,6 +7,12 @@ import { PERMISSIONS } from '../config/permissions';
 import DashboardLayout from '../layouts/DashboardLayout';
 import PublicLayout from '../layouts/PublicLayout';
 import lazyWithRetry from '../lib/lazyWithRetry';
+import {
+  DASHBOARD_ROOT,
+  DASHBOARD_ROUTES,
+  PUBLIC_ROUTES,
+  ROUTE_FALLBACK,
+} from './routeManifest';
 
 const AgriNews = lazyWithRetry(() => import('../pages/AgriNews'), 'agri-news');
 const Alerts = lazyWithRetry(() => import('../pages/Alerts'), 'alerts');
@@ -61,29 +67,29 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/search" element={<PriceSearch />} />
-        <Route path="/product/:name" element={<ProductDetail />} />
-        <Route path="/basket" element={<MyBasket />} />
-        <Route path="/news" element={<AgriNews />} />
-        <Route path="/special-offers" element={<SpecialOffers />} />
-        <Route path="/information-sharing" element={<MutualAid allowedTypes={['資訊分享']} />} />
-        <Route path="/points" element={<PointsCenter />} />
-        <Route path="/mutual-aid" element={<MutualAid />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/alerts" element={<Alerts />} />
-        <Route path="/season" element={<Season />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/403" element={<ForbiddenPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path={PUBLIC_ROUTES.HOME} element={<Home />} />
+        <Route path={PUBLIC_ROUTES.SEARCH} element={<PriceSearch />} />
+        <Route path={PUBLIC_ROUTES.PRODUCT_DETAIL} element={<ProductDetail />} />
+        <Route path={PUBLIC_ROUTES.BASKET} element={<MyBasket />} />
+        <Route path={PUBLIC_ROUTES.NEWS} element={<AgriNews />} />
+        <Route path={PUBLIC_ROUTES.SPECIAL_OFFERS} element={<SpecialOffers />} />
+        <Route path={PUBLIC_ROUTES.INFORMATION_SHARING} element={<MutualAid allowedTypes={['資訊分享']} />} />
+        <Route path={PUBLIC_ROUTES.POINTS} element={<PointsCenter />} />
+        <Route path={PUBLIC_ROUTES.MUTUAL_AID} element={<MutualAid />} />
+        <Route path={PUBLIC_ROUTES.SETTINGS} element={<Settings />} />
+        <Route path={PUBLIC_ROUTES.ALERTS} element={<Alerts />} />
+        <Route path={PUBLIC_ROUTES.SEASON} element={<Season />} />
+        <Route path={PUBLIC_ROUTES.LOGIN} element={<Login />} />
+        <Route path={PUBLIC_ROUTES.REGISTER} element={<Register />} />
+        <Route path={PUBLIC_ROUTES.FORBIDDEN} element={<ForbiddenPage />} />
+        <Route path={ROUTE_FALLBACK} element={<NotFoundPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Navigate to="overview" replace />} />
+        <Route path={DASHBOARD_ROOT} element={<DashboardLayout />}>
+          <Route index element={<Navigate to={DASHBOARD_ROUTES.OVERVIEW} replace />} />
           <Route
-            path="overview"
+            path={DASHBOARD_ROUTES.OVERVIEW}
             element={(
               <GuardedModule permission={PERMISSIONS.DASHBOARD_VIEW}>
                 <DashboardOverview />
@@ -91,7 +97,7 @@ export default function AppRoutes() {
             )}
           />
           <Route
-            path="prices"
+            path={DASHBOARD_ROUTES.PRICES}
             element={(
               <GuardedModule permission={PERMISSIONS.PRICES_VIEW}>
                 <DashboardPrices />
@@ -99,7 +105,7 @@ export default function AppRoutes() {
             )}
           />
           <Route
-            path="predictions"
+            path={DASHBOARD_ROUTES.PREDICTIONS}
             element={(
               <GuardedModule permission={PERMISSIONS.PREDICTIONS_VIEW}>
                 <DashboardPredictions />
@@ -107,7 +113,7 @@ export default function AppRoutes() {
             )}
           />
           <Route
-            path="recommendations"
+            path={DASHBOARD_ROUTES.RECOMMENDATIONS}
             element={(
               <GuardedModule permission={PERMISSIONS.RECOMMENDATIONS_VIEW}>
                 <DashboardRecommendations />
@@ -115,7 +121,7 @@ export default function AppRoutes() {
             )}
           />
           <Route
-            path="weather"
+            path={DASHBOARD_ROUTES.WEATHER}
             element={(
               <GuardedModule permission={PERMISSIONS.WEATHER_VIEW}>
                 <DashboardWeather />
@@ -123,7 +129,7 @@ export default function AppRoutes() {
             )}
           />
           <Route
-            path="seasonal"
+            path={DASHBOARD_ROUTES.SEASONAL}
             element={(
               <GuardedModule permission={PERMISSIONS.SEASONAL_VIEW}>
                 <DashboardSeasonal />
@@ -131,7 +137,7 @@ export default function AppRoutes() {
             )}
           />
           <Route
-            path="coupons"
+            path={DASHBOARD_ROUTES.COUPONS}
             element={(
               <GuardedModule permission={PERMISSIONS.COUPONS_MANAGE}>
                 <CouponManagement />
@@ -149,7 +155,7 @@ export default function AppRoutes() {
               )}
             />
           ))}
-          <Route path="*" element={<NotFoundPage />} />
+          <Route path={ROUTE_FALLBACK} element={<NotFoundPage />} />
         </Route>
       </Route>
     </Routes>
