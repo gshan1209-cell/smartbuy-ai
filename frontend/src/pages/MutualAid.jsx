@@ -925,7 +925,7 @@ export default function MutualAid({ allowedTypes = POST_TYPES }) {
   const isInfoOnly = allowedTypes.length === 1 && allowedTypes[0] === INFO_SHARE_TYPE;
   return (
     <div className="container ma-page">
-      <h1 className="page-title">{isInfoOnly ? INFO_SHARE_TITLE : '🤝 互助網'}</h1>
+      <h1 className="page-title">{isInfoOnly ? INFO_SHARE_TITLE : '🎁 好康推薦'}</h1>
       <p className="ma-desc">{isInfoOnly ? INFO_SHARE_DESC : '產地特惠媒合、合作互助與栽培交流。'}</p>
 
       <DiscussionBoard allowedTypes={allowedTypes} />
