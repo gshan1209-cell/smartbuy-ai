@@ -36,6 +36,7 @@
 | 新功能、跨層修改、範圍不明的重構 | `smartbuy-task-planner` |
 | 消費者前台、首頁、搜尋、菜籃、提醒、節氣、新知、互助網 | `smartbuy-public-app` |
 | Dashboard、農民／商家／管理員後台、角色權限 | `smartbuy-dashboard-rbac` |
+| 開發環境預設帳號、展示登入與後台驗收 | `smartbuy-dev-login` |
 | 前台／後台情境側欄、頁面專屬導覽、桌機／平板／手機側欄 RWD | `smartbuy-contextual-sidebar` |
 | 菜價、農業部資料、天氣、二十四節氣、產地與價格風險 | `smartbuy-agri-intelligence` |
   | FastAPI、資料庫、登入、API contract、快取、背景任務 | `smartbuy-api-change` |

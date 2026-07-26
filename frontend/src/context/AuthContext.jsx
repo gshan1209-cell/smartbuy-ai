@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { normalizeRole } from '../config/roles';
+import { BYPASS_ROLE_CHECKS_IN_DEV } from '../config/development';
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 const LS_USER = 'yz_auth_user';
@@ -53,6 +54,17 @@ export function AuthProvider({ children }) {
 
     setAuthLoading(true);
     setAccessError(null);
+
+    if (BYPASS_ROLE_CHECKS_IN_DEV) {
+      setDashboardAccess({
+        dashboardAccess: true,
+        role: normalizeRole(user.role),
+        permissions: [],
+      });
+      setAccessDenied(false);
+      setAuthLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${BASE}/api/admin/access`, {

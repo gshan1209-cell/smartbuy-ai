@@ -1,14 +1,21 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { BYPASS_ROLE_CHECKS_IN_DEV, DEV_DEFAULT_USER } from '../config/development';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, setAuthData } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => BYPASS_ROLE_CHECKS_IN_DEV ? DEV_DEFAULT_USER.email : '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  function handleDevLogin() {
+    setError('');
+    setAuthData(DEV_DEFAULT_USER);
+    navigate('/dashboard');
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -16,7 +23,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      navigate('/settings');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -29,6 +36,18 @@ export default function Login() {
       <div style={{ maxWidth: 400, margin: '0 auto' }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>登入</h1>
         <p style={{ fontSize: 13, color: 'var(--yz-mut)', marginBottom: 28 }}>登入後即可使用完整功能</p>
+
+        {BYPASS_ROLE_CHECKS_IN_DEV && (
+          <div style={{ marginBottom: 20, padding: 14, border: '1px solid var(--yz-bdr)', borderRadius: 12, background: 'var(--yz-gl)' }}>
+            <strong style={{ display: 'block', fontSize: 13, marginBottom: 5 }}>開發預設帳號</strong>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--yz-mut)', marginBottom: 10 }}>
+              {DEV_DEFAULT_USER.email}．開發環境免密碼驗證
+            </span>
+            <button className="yz-btn yz-btn-g" type="button" onClick={handleDevLogin} style={{ width: '100%' }}>
+              使用預設帳號進入後台
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
