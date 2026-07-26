@@ -3,6 +3,7 @@ export const PERMISSIONS = Object.freeze({
   PRICES_VIEW: 'prices.view',
   PRODUCTS_VIEW: 'products.view',
   PREDICTIONS_VIEW: 'predictions.view',
+  RECOMMENDATIONS_VIEW: 'recommendations.view',
   WEATHER_VIEW: 'weather.view',
   SEASONAL_VIEW: 'seasonal.view',
   CONTENT_MANAGE: 'content.manage',
