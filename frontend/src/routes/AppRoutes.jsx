@@ -9,6 +9,7 @@ import PublicLayout from '../layouts/PublicLayout';
 import AgriNews from '../pages/AgriNews';
 import Alerts from '../pages/Alerts';
 import DashboardOverview from '../pages/dashboard/DashboardOverview';
+import FarmerDashboard from '../pages/dashboard/FarmerDashboard';
 import DashboardPredictions from '../pages/dashboard/DashboardPredictions';
 import DashboardPrices from '../pages/dashboard/DashboardPrices';
 import DashboardSeasonal from '../pages/dashboard/DashboardSeasonal';
@@ -27,6 +28,7 @@ import Register from '../pages/Register';
 import Season from '../pages/Season';
 import Settings from '../pages/Settings';
 import SpecialOffers from '../pages/SpecialOffers';
+import RoleGuard from '../components/shared/RoleGuard';
 
 function GuardedModule({ permission, children }) {
   return <PermissionGuard permission={permission}>{children}</PermissionGuard>;
@@ -61,6 +63,16 @@ export default function AppRoutes() {
             element={(
               <GuardedModule permission={PERMISSIONS.DASHBOARD_VIEW}>
                 <DashboardOverview />
+              </GuardedModule>
+            )}
+          />
+          <Route
+            path="farmer"
+            element={(
+              <GuardedModule permission={PERMISSIONS.DASHBOARD_VIEW}>
+                <RoleGuard roles={['farmer', 'admin']}>
+                  <FarmerDashboard />
+                </RoleGuard>
               </GuardedModule>
             )}
           />

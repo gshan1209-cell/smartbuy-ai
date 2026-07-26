@@ -4,13 +4,15 @@ import { Sprout } from 'lucide-react';
 import { dashboardNavigation } from '../../config/dashboardNavigation';
 import { ROLES } from '../../config/roles';
 import { useAuth } from '../../context/AuthContext';
+import { BYPASS_ROLE_CHECKS_IN_DEV } from '../../config/development';
 
 export { dashboardNavigation };
 
 export default function DashboardSidebar({ collapsed = false, onNavigate }) {
   const { permissions = [], user } = useAuth();
   const visibleNavigation = dashboardNavigation.filter((item) =>
-    permissions.includes(item.permission),
+    (BYPASS_ROLE_CHECKS_IN_DEV || permissions.includes(item.permission))
+      && (!item.roles || BYPASS_ROLE_CHECKS_IN_DEV || item.roles.includes(user?.role)),
   );
   const roleLabel = ROLES[user?.role] || ROLES.consumer;
 

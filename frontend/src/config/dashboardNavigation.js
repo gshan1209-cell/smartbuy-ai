@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   MessageSquareMore,
   Settings,
+  Sprout,
   TicketPercent,
   Users,
 } from 'lucide-react';
@@ -21,6 +22,13 @@ export const dashboardNavigation = [
     label: '總覽',
     permission: PERMISSIONS.DASHBOARD_VIEW,
     icon: LayoutDashboard,
+  },
+  {
+    to: '/dashboard/farmer',
+    label: '農民工作台',
+    permission: PERMISSIONS.DASHBOARD_VIEW,
+    roles: ['farmer', 'admin'],
+    icon: Sprout,
   },
   {
     to: '/dashboard/prices',
