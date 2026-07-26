@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 import hashlib
 import logging
 import os
@@ -26,8 +26,7 @@ class RecommendationGenerationLockTimeout(RuntimeError):
 
 
 class RecommendationGenerationLock(Protocol):
-    @contextmanager
-    def hold(self, cache_key: str) -> Iterator[None]: ...
+    def hold(self, cache_key: str) -> AbstractContextManager[None]: ...
 
 
 class NoopRecommendationGenerationLock:
