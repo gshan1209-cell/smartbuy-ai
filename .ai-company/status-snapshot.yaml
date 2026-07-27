@@ -1,0 +1,47 @@
+schemaVersion: "1.0"
+repository: gshan1209-cell/smartbuy-ai
+productId: smartbuy-ai
+reportedAt: "2026-07-27T04:30:00Z"
+statusConfidence: verified
+
+migration:
+  mode: adopt-in-place
+  waveId: WAVE-01-CORE-PRODUCTS
+  currentState: registered
+  targetState: managed
+  runtimeChangeAllowed: false
+  assessmentRef: docs/governance/PRODUCT_ADOPTION_BASELINE.md
+
+product:
+  lifecycleMode: triad-full-cycle
+  status: active
+  portfolioClass: mainline
+  independentOperation: true
+
+baseline:
+  sourceStructure: verified
+  buildCommand: documented-not-run
+  testCommand: documented-not-run
+  ciWorkflow: verified-present
+  frontendDeployment: reported-vercel
+  backendDeployment: configured-render
+  database: reported-supabase-postgresql
+  dataLake: reported-cloudflare-r2
+  productionHealth: not-verified-in-this-adoption
+
+moduleComposition:
+  registrySearchPerformed: true
+  adoptedCompanyModules: 0
+  candidateAssessmentRef: docs/governance/MODULE_CANDIDATE_ASSESSMENT.md
+  lockRef: .ai-company/module-lock.yaml
+
+knownLimitations:
+  - No Company Module is currently released and locked for SmartBuy AI.
+  - Product build, test, browser E2E and production health were not executed in this metadata adoption change.
+  - Existing deployment targets are recorded from repository configuration and documentation, not newly verified runtime evidence.
+  - The repository currently has no immutable product tag linked to the adoption baseline.
+
+nextAction:
+  title: Verify CI, frontend preview, backend health and create a release candidate record
+  owner: system-development-studio
+  status: planned
