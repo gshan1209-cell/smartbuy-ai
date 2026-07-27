@@ -19,16 +19,23 @@ lifecycle:
 
 architecture:
   pattern: ai-power-armor
-  baseEdition: standard
-  supportedEditions:
-    - standard
-    - advanced
-    - flagship
-  defaultDeliveryEdition: standard
+  baseSystem: product-core
+  supportedArmorProfiles:
+    - light
+  defaultArmorProfile: light
   aiDependencyPolicy: enhancement-only
   coreWorksWithoutAi: true
   gracefulDegradationRequired: true
   aiFailurePolicyRef: docs/architecture/AI_FAILURE_AND_FALLBACK.md
+  armorProfileContractRef: docs/architecture/AI_ARMOR_PROFILE.md
+  aiCapabilities:
+    - capabilityId: role-recommendation-json
+      armorProfile: light
+      mode: request-response
+      outputType: structured-json
+      fallback: rule-recommendation
+      schemaRef: recommendation-schema-v2
+      cachePolicy: cache-first-create-if-absent
 
 moduleComposition:
   lockFile: .ai-company/module-lock.yaml
