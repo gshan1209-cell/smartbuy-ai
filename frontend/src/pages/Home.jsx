@@ -5,6 +5,7 @@ import {
   CloudSun,
   Newspaper,
   Search,
+  Sparkles,
   ShoppingBasket,
   Tag,
   TrendingDown,
@@ -167,6 +168,15 @@ export default function Home() {
             <p className="consumer-lead">
               快速看看哪些菜比較划算，讓今天的採買更輕鬆。
             </p>
+            <button
+              type="button"
+              className="home-ai-recommendation-cta"
+              onClick={() => navigate('/dashboard/recommendations')}
+            >
+              <Sparkles size={18} aria-hidden="true" />
+              開啟 AI 推薦
+              <ArrowRight size={16} aria-hidden="true" />
+            </button>
             {solarTerm && (
               <button
                 type="button"

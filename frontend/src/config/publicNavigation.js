@@ -27,6 +27,16 @@ export const SETTINGS_NAV_LINK = {
   description: '管理帳戶設定',
 };
 
+// 測試模式用單一主標題列檢視所有前台畫面；正式模式仍使用精簡導覽。
+export const ALL_PUBLIC_NAV_LINKS = [
+  ...PUBLIC_NAV_LINKS,
+  { to: '/alerts', label: '🔔 提醒', description: '查看價格與互助網提醒' },
+  { to: '/season', label: '🌾 節氣', description: '查看節氣與當季推薦' },
+  { to: '/information-sharing', label: '📣 資訊', description: '查看資訊分享' },
+  POINTS_NAV_LINK,
+  SETTINGS_NAV_LINK,
+];
+
 export const DASHBOARD_NAV_LINK = {
   to: '/dashboard',
   label: '🛠️ 後台',

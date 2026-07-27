@@ -22,6 +22,9 @@
   display: flex;
   gap: 4px;
   flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .public-nav a,
@@ -36,6 +39,19 @@
   color: var(--yz-g);
   background: var(--yz-gl);
   font-weight: 700;
+}
+
+.test-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 7px;
+  border: 1px solid #e7b64b;
+  border-radius: 999px;
+  color: #8a5a00;
+  background: #fff7dc;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .header-actions {

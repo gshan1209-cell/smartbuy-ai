@@ -49,6 +49,33 @@
   font-size: 18px;
 }
 
+.home-ai-recommendation-cta {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 20px;
+  padding: 10px 15px;
+  color: #123d2b;
+  font-weight: 800;
+  background: #d9f2df;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 9px;
+  box-shadow: 0 5px 14px rgba(2, 32, 18, 0.18);
+  cursor: pointer;
+}
+
+.home-ai-recommendation-cta:hover,
+.home-ai-recommendation-cta:focus-visible {
+  color: #0b2e20;
+  background: #fff;
+}
+
+.home-ai-recommendation-cta:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 3px;
+}
+
 .solar-term-chip {
   display: inline-flex;
   flex-wrap: wrap;
