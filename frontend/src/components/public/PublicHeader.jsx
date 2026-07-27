@@ -1,14 +1,16 @@
+import { Menu, Search } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { Search, Menu } from 'lucide-react';
+
 import { NotificationBell } from '../Navbar';
-import { useAuth } from '../../context/AuthContext';
-import useLayoutMode, { LAYOUT_MODE_OPTIONS } from '../../hooks/useLayoutMode';
 import {
   DASHBOARD_NAV_LINK,
   POINTS_NAV_LINK,
   PUBLIC_NAV_LINKS,
   SETTINGS_NAV_LINK,
 } from '../../config/publicNavigation';
+import { useAuth } from '../../context/AuthContext';
+import useLayoutMode, { LAYOUT_MODE_OPTIONS } from '../../hooks/useLayoutMode';
+import IdentityRoleSelect from './IdentityRoleSelect';
 
 export default function PublicHeader({ onMenu }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
@@ -46,11 +48,14 @@ export default function PublicHeader({ onMenu }) {
             </button>
           ))}
         </div>
+        <IdentityRoleSelect className="header-identity-role" />
         <NavLink className="mobile-icon" aria-label="搜尋" to="/search"><Search size={20} /></NavLink>
         {isAuthenticated && <NotificationBell />}
-        <NavLink className="settings-link" to={isAuthenticated ? '/settings' : '/login'} title={isAuthenticated ? '開啟身份選單' : '登入帳戶'}>
-          {isAuthenticated ? '👤 身份選單' : '🔐 登入'}
-        </NavLink>
+        {!isAuthenticated && (
+          <NavLink className="settings-link" to="/login" title="登入帳戶">
+            🔐 登入
+          </NavLink>
+        )}
         <button className="mobile-icon menu-button" aria-label="開啟選單" onClick={onMenu}><Menu size={22} /></button>
       </div>
     </header>
