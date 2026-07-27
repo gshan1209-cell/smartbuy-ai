@@ -1,0 +1,61 @@
+schemaVersion: "1.0"
+
+identity:
+  repoId: smartbuy-ai
+  repository: gshan1209-cell/smartbuy-ai
+  repoClass: product
+  productId: smartbuy-ai
+  productLineId: consumer-intelligence
+
+ownership:
+  primaryOperatingUnit: system-development-studio
+  participatingUnits:
+    - multimedia-studio
+    - ai-module-factory
+  maintainer: smartbuy-product-owner
+
+lifecycle:
+  status: active
+  portfolioClass: mainline
+  mode: triad-full-cycle
+
+independentOperation:
+  build: true
+  test: true
+  deploy: true
+  release: true
+  requiresCeoRuntime: false
+  requiresStudioRuntime: false
+
+interfaces:
+  provides:
+    - smartbuy-public-app-v1
+    - smartbuy-dashboard-v1
+    - smartbuy-agriculture-api-v1
+    - smartbuy-recommendation-cache-v2
+  consumes:
+    - company-module-registry-v1
+    - agriculture-market-data
+    - weather-data
+    - supabase-postgresql
+    - cloudflare-r2
+
+delivery:
+  buildCommand: "python -m pytest && cd frontend && npm ci && npm run build:check"
+  testCommand: "python -m pytest && cd frontend && npm test && npm run test:e2e"
+  moduleLockPath: .ai-company/module-lock.yaml
+  environments:
+    - local
+    - ci
+    - preview
+    - production
+
+governance:
+  ceoReportingEnabled: true
+  statusSnapshotPath: .ai-company/status-snapshot.yaml
+  sourceOfTruthPaths:
+    - README.md
+    - AGENT.md
+    - AGENTS.md
+    - docs/architecture/PROJECT_STRUCTURE.md
+    - .ai-company/product-manifest.yaml
