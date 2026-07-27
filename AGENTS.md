@@ -8,11 +8,12 @@
 執行任何開發、重構、測試、文件或驗收任務前，依序完成：
 
 1. 閱讀根目錄 `AGENT.md`。
-2. 確認任務影響範圍：前台、後台、API、資料、AI、部署或文件。
-3. 從 `.agents/skills/` 選擇最少但足夠的技能。
-4. 先盤點既有路由、元件、API、資料來源、權限與測試，再修改。
-5. 定義完成條件與回歸項目。
-6. 實作後執行對應驗證，附上可重現的結果。
+2. 閱讀 `.ai-company/repo-manifest.yaml`、`.ai-company/product-manifest.yaml` 與 `.ai-company/status-snapshot.yaml`。
+3. 確認任務影響範圍：前台、後台、API、資料、AI、部署或文件。
+4. 從 `.agents/skills/` 選擇最少但足夠的技能。
+5. 先盤點既有路由、元件、API、資料來源、權限與測試，再修改。
+6. 定義完成條件與回歸項目。
+7. 實作後執行對應驗證，附上可重現的結果。
 
 不得跳過 `AGENT.md`，也不得用技能內容覆蓋其中的專案總規範。
 
@@ -24,8 +25,9 @@
 2. Issue、PR 或任務規格的明確驗收條件
 3. `AGENT.md` 專案總規範
 4. 本檔案 `AGENTS.md`
-5. 已選用的 `SKILL.md`
-6. 其他設計、技術與歷史文件
+5. `.ai-company/` 產品治理契約
+6. 已選用的 `SKILL.md`
+7. 其他設計、技術與歷史文件
 
 若高優先指令可能造成資料遺失、權限漏洞、正式功能縮水或破壞 API contract，必須先清楚標示風險，不得默默執行。
 
@@ -153,3 +155,27 @@ Codex 本機測試回報至少必須包含：
 ```text
 .agents/skills/smartbuy-codex-local-testing/SKILL.md
 ```
+
+## 9. 公司級模組與產品治理
+
+SmartBuy 已接入 `AI-CEO-Control-Tower` 的 Migration Control Center。任何新共用能力或正式 Release 前必須：
+
+1. 讀取 `.ai-company/module-lock.yaml`。
+2. 搜尋 `AI-Workstream/registries/company_module_registry.yaml`。
+3. 有相容 Company Module 時優先鎖定版本，不得 Copy-Paste 另造一份。
+4. 沒有相容模組時先保留為 Product-local，不得直接宣稱為 Stable Company Module。
+5. 第二個真實 Consumer 出現後，才依 `docs/governance/MODULE_CANDIDATE_ASSESSMENT.md` 評估抽取。
+6. 正式 Release 必須更新 Module Lock、Release Record、驗證 Evidence 與回滾資訊。
+7. CEO、Studio 或 Module Factory 不得成為 SmartBuy 不必要的 Runtime 依賴。
+
+Migration 階段：
+
+```text
+registered
+→ baseline-complete
+→ integrated
+→ modularized
+→ managed
+```
+
+未實際執行的 Build、Test、E2E、Health Check 或 Deployment 不得標記為通過。
