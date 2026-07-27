@@ -9,11 +9,12 @@
 
 1. 閱讀根目錄 `AGENT.md`。
 2. 閱讀 `.ai-company/repo-manifest.yaml`、`.ai-company/product-manifest.yaml` 與 `.ai-company/status-snapshot.yaml`。
-3. 確認任務影響範圍：前台、後台、API、資料、AI、部署或文件。
-4. 從 `.agents/skills/` 選擇最少但足夠的技能。
-5. 先盤點既有路由、元件、API、資料來源、權限與測試，再修改。
-6. 定義完成條件與回歸項目。
-7. 實作後執行對應驗證，附上可重現的結果。
+3. 涉及 AI、推薦、Prompt、快取或版本分級時，閱讀 `docs/architecture/AI_FAILURE_AND_FALLBACK.md`。
+4. 確認任務影響範圍：前台、後台、API、資料、AI、部署或文件。
+5. 從 `.agents/skills/` 選擇最少但足夠的技能。
+6. 先盤點既有路由、元件、API、資料來源、權限與測試，再修改。
+7. 定義完成條件與回歸項目。
+8. 實作後執行對應驗證，附上可重現的結果。
 
 不得跳過 `AGENT.md`，也不得用技能內容覆蓋其中的專案總規範。
 
@@ -179,3 +180,24 @@ registered
 ```
 
 未實際執行的 Build、Test、E2E、Health Check 或 Deployment 不得標記為通過。
+
+## 10. AI 動力裝甲強制規則
+
+SmartBuy 正式版本固定為：
+
+```text
+標準版 standard
+→ 進階版 advanced
+→ 旗艦版 flagship
+```
+
+強制要求：
+
+1. 標準版不得依賴 LLM Token、AI Gateway、RAG 或外部模型才能完成核心任務。
+2. AI 功能只能增加推薦、解釋、生成、分類、預測說明與自動化效率。
+3. AI 關閉、逾時、額度耗盡或輸出格式錯誤時，必須回退快取、規則、固定模板或人工流程。
+4. 不得把登入、權限、查價、商品、菜籃、收藏、互助網、通知、點數或優惠券放進 AI 單點故障路徑。
+5. AI 輸出不得直接覆蓋正式資料；寫入前必須通過權限、Schema、業務規則、Audit 與重複防護。
+6. 新 AI 功能必須同時交付非 AI Fallback、Feature Flag、錯誤狀態與驗收測試。
+7. Release 驗收必須包含 AI 全關閉與 AI 故障降級測試。
+8. 旗艦版未完成的 AI Gateway、RAG、Agent Workflow、Token Ledger 或後台治理不得標記為已交付。

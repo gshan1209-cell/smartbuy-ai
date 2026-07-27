@@ -17,6 +17,19 @@ lifecycle:
   mode: triad-full-cycle
   status: active
 
+architecture:
+  pattern: ai-power-armor
+  baseEdition: standard
+  supportedEditions:
+    - standard
+    - advanced
+    - flagship
+  defaultDeliveryEdition: standard
+  aiDependencyPolicy: enhancement-only
+  coreWorksWithoutAi: true
+  gracefulDegradationRequired: true
+  aiFailurePolicyRef: docs/architecture/AI_FAILURE_AND_FALLBACK.md
+
 moduleComposition:
   lockFile: .ai-company/module-lock.yaml
   registrySearchRequired: true
