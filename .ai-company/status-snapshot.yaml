@@ -1,7 +1,7 @@
 schemaVersion: "1.0"
 repository: gshan1209-cell/smartbuy-ai
 productId: smartbuy-ai
-reportedAt: "2026-07-27T05:02:00Z"
+reportedAt: "2026-07-27T05:25:00Z"
 statusConfidence: verified
 
 migration:
@@ -20,6 +20,20 @@ product:
   independentOperation: true
   externalResourcesRef: .ai-company/external-resources.yaml
   companyDriveWorkspaceId: 1_fXGzMuC516566Oj1CCXVkTA_xqsYX5s
+
+architecture:
+  pattern: ai-power-armor
+  contractStatus: declared
+  baseEdition: standard
+  supportedEditions:
+    - standard
+    - advanced
+    - flagship
+  aiDependencyPolicy: enhancement-only
+  standardCoreCoverage: documented-not-fully-verified
+  aiDisabledCoreWorkflow: not-tested
+  gracefulDegradation: partially-implemented-not-fully-verified
+  failurePolicyRef: docs/architecture/AI_FAILURE_AND_FALLBACK.md
 
 baseline:
   sourceStructure: verified
@@ -48,11 +62,12 @@ moduleComposition:
 knownLimitations:
   - No Company Module is currently released and locked for SmartBuy AI.
   - Product backend tests, frontend tests/build, browser E2E and backend production health were not verified by this adoption change.
+  - AI-disabled core workflow, Token exhaustion and AI failure fallback tests have not yet produced Evidence.
   - The public Vercel URL returned HTTP 200, while the newest observed Git deployment was still INITIALIZING at capture time.
   - Render provider health and current backend URL remain to be verified.
   - The repository currently has no immutable product tag linked to the adoption baseline.
 
 nextAction:
-  title: Complete Issue #37 CI, Render health and rollback verification
+  title: Complete Issue #37 including AI-disabled and graceful-degradation verification
   owner: system-development-studio
   status: in-progress
