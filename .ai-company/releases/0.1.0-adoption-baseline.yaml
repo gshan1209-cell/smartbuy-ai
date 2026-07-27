@@ -18,18 +18,20 @@ artifacts:
     digest: null
 
 deployments:
-  - environment: production-frontend
-    deploymentRef: https://smartbuy-ai-alpha.vercel.app/
-    status: pending
+  - environment: vercel-main
+    deploymentRef: https://vercel.com/gshan1209-cells-projects/smartbuy-ai/4wV7U62uyJB3bZL83b7zQbYuqeXu
+    status: healthy
   - environment: production-backend
     deploymentRef: render.yaml
     status: pending
 
 verification:
-  status: not-run
+  status: blocked
   evidenceRefs:
     - .github/workflows/ci.yml
     - docs/governance/PRODUCT_ADOPTION_BASELINE.md
+    - https://github.com/gshan1209-cell/smartbuy-ai/commit/48a7061ee0e8a24a77da4e6f7b387ac75ad3357a
+    - https://github.com/gshan1209-cell/smartbuy-ai/issues/37
 
 approval:
   status: pending
