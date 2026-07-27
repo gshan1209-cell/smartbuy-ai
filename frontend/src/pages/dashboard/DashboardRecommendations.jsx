@@ -17,6 +17,7 @@ import Card from '../../components/shared/Card';
 import EmptyState from '../../components/shared/EmptyState';
 import LoadingState from '../../components/shared/LoadingState';
 import { loadRecommendation, loadRecommendationCategories } from '../../lib/recommendationsApi';
+import { IS_TEST_MODE } from '../../config/testMode';
 import '../../styles/dashboard-overview.css';
 import '../../styles/dashboard-recommendations.css';
 import '../../styles/dashboard-recommendation-roles.css';
@@ -67,6 +68,14 @@ function roleRecommendationsFrom(data) {
   return {};
 }
 
+function recommendationErrorMessage(error) {
+  const message = error?.message || '推薦資料載入失敗。';
+  if (IS_TEST_MODE && /登入|授權|401/i.test(message)) {
+    return '測試模式目前未連接推薦 API；畫面可瀏覽，但即時推薦資料尚未提供。';
+  }
+  return message;
+}
+
 export default function DashboardRecommendations() {
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState('');
@@ -84,7 +93,7 @@ export default function DashboardRecommendations() {
       setCategories(nextCategories);
       setCategory((current) => current || nextCategories[0]?.key || '');
     } catch (loadError) {
-      setCategoriesError(loadError?.message || '推薦分類載入失敗。');
+      setCategoriesError(recommendationErrorMessage(loadError));
     } finally {
       setCategoriesLoading(false);
     }
@@ -97,7 +106,7 @@ export default function DashboardRecommendations() {
     try {
       setRecommendation(await loadRecommendation(selectedCategory));
     } catch (loadError) {
-      setError(loadError?.message || '推薦資料載入失敗。');
+      setError(recommendationErrorMessage(loadError));
     } finally {
       setLoading(false);
     }

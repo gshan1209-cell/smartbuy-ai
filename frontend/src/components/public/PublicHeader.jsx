@@ -4,21 +4,25 @@ import { NotificationBell } from '../Navbar';
 import { useAuth } from '../../context/AuthContext';
 import useLayoutMode, { LAYOUT_MODE_OPTIONS } from '../../hooks/useLayoutMode';
 import {
+  ALL_PUBLIC_NAV_LINKS,
   DASHBOARD_NAV_LINK,
   POINTS_NAV_LINK,
   PUBLIC_NAV_LINKS,
   SETTINGS_NAV_LINK,
 } from '../../config/publicNavigation';
+import { IS_TEST_MODE } from '../../config/testMode';
 
 export default function PublicHeader({ onMenu }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
   const { layoutMode, updateLayoutMode } = useLayoutMode();
-  const links = isAuthenticated
+  const links = IS_TEST_MODE
+    ? [...ALL_PUBLIC_NAV_LINKS, DASHBOARD_NAV_LINK]
+    : isAuthenticated
     ? [...PUBLIC_NAV_LINKS, POINTS_NAV_LINK, SETTINGS_NAV_LINK]
     : PUBLIC_NAV_LINKS;
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
-  if (isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole)) links.push(DASHBOARD_NAV_LINK);
+  if (!IS_TEST_MODE && isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole)) links.push(DASHBOARD_NAV_LINK);
 
   return (
     <header className="public-header">
@@ -31,6 +35,7 @@ export default function PublicHeader({ onMenu }) {
         ))}
       </nav>
       <div className="header-actions">
+        {IS_TEST_MODE && <span className="test-mode-badge">測試模式</span>}
         <div className="layout-mode-switch" role="group" aria-label="版面模式">
           {LAYOUT_MODE_OPTIONS.map(option => (
             <button
@@ -48,8 +53,8 @@ export default function PublicHeader({ onMenu }) {
         </div>
         <NavLink className="mobile-icon" aria-label="搜尋" to="/search"><Search size={20} /></NavLink>
         {isAuthenticated && <NotificationBell />}
-        <NavLink className="settings-link" to={isAuthenticated ? '/settings' : '/login'} title={isAuthenticated ? '管理帳戶設定' : '登入帳戶'}>
-          {isAuthenticated ? '👤 我的' : '🔐 登入'}
+        <NavLink className="settings-link" to="/settings" title="管理帳戶設定">
+          👤 我的
         </NavLink>
         <button className="mobile-icon menu-button" aria-label="開啟選單" onClick={onMenu}><Menu size={22} /></button>
       </div>

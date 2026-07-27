@@ -1,8 +1,9 @@
 import { Menu, ShieldCheck } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 import { ROLES } from '../../config/roles';
 import { useAuth } from '../../context/AuthContext';
+import { IS_TEST_MODE } from '../../config/testMode';
 import { dashboardNavigation } from './DashboardSidebar';
 
 export default function DashboardTopbar({ onMenu }) {
@@ -28,6 +29,17 @@ export default function DashboardTopbar({ onMenu }) {
         <span>管理中心 / Dashboard</span>
       </div>
 
+      {IS_TEST_MODE && (
+        <nav className="dashboard-topbar-navigation" aria-label="測試模式後台主要導覽">
+          {dashboardNavigation.map(({ to, label }) => (
+            <NavLink key={to} to={to} end={to.endsWith('/overview')}>
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+      )}
+
+      {IS_TEST_MODE && <span className="dashboard-test-mode-badge">測試模式</span>}
       <span className="dashboard-role-chip">
         <ShieldCheck size={16} aria-hidden="true" />
         {roleLabel}
