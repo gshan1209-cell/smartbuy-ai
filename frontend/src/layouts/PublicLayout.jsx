@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+
+import IdentityRoleSelect from '../components/public/IdentityRoleSelect';
 import MobileBottomNav from '../components/public/MobileBottomNav';
 import PublicHeader from '../components/public/PublicHeader';
 import PublicSidebar from '../components/public/PublicSidebar';
 import Drawer from '../components/shared/Drawer';
-import { useAuth } from '../context/AuthContext';
 import { DASHBOARD_NAV_LINK, PUBLIC_MOBILE_LINKS } from '../config/publicNavigation';
+import { useAuth } from '../context/AuthContext';
 
 export default function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -27,6 +29,7 @@ export default function PublicLayout() {
         onClose={() => setMenuOpen(false)}
         title="SmartBuy AI 選單"
       >
+        <IdentityRoleSelect className="drawer-identity-role" />
         <nav className="public-drawer-nav" aria-label="手機版主要選單">
           {menuLinks.map(({ to, label, description }) => (
             <NavLink key={to} to={to} onClick={() => setMenuOpen(false)} title={description} aria-label={description}>
