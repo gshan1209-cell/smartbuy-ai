@@ -1,0 +1,44 @@
+schemaVersion: "1.0"
+releaseId: smartbuy-ai-0.1.0-adoption-baseline
+productId: smartbuy-ai
+version: 0.1.0
+status: draft
+
+source:
+  repository: gshan1209-cell/smartbuy-ai
+  commit: bcfb7832d5414393273755232face5341750a265
+  tag: null
+
+moduleLockRef: .ai-company/module-lock.yaml
+
+artifacts:
+  - artifactId: smartbuy-frontend-public
+    type: web-application
+    location: https://smartbuy-ai-alpha.vercel.app/
+    digest: null
+
+deployments:
+  - environment: production-frontend
+    deploymentRef: https://smartbuy-ai-alpha.vercel.app/
+    status: pending
+  - environment: production-backend
+    deploymentRef: render.yaml
+    status: pending
+
+verification:
+  status: not-run
+  evidenceRefs:
+    - .github/workflows/ci.yml
+    - docs/governance/PRODUCT_ADOPTION_BASELINE.md
+
+approval:
+  status: pending
+  approvedBy: null
+  approvedAt: null
+
+rollback:
+  available: false
+  targetReleaseId: null
+  procedureRef: null
+
+releasedAt: null
