@@ -16,3 +16,4 @@ python-jose[cryptography]>=3.3,<4
 python-multipart>=0.0.9,<1
 email-validator>=2.0,<3
 Pillow>=10.0,<11
+google-generativeai>=0.7,<1

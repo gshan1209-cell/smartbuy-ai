@@ -1,4 +1,5 @@
-import { Menu, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Menu, ShieldCheck, ArrowLeftFromLine } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 import { ROLES } from '../../config/roles';
@@ -22,6 +23,11 @@ export default function DashboardTopbar({ onMenu }) {
       >
         <Menu size={22} />
       </button>
+
+      <Link to="/" className="dashboard-back-to-public" title="回到前台">
+        <ArrowLeftFromLine size={16} aria-hidden="true" />
+        <span>回到前台</span>
+      </Link>
 
       <div className="dashboard-topbar-title">
         <strong>{title}</strong>

@@ -31,3 +31,5 @@ cookies.txt
 # Claude Code local permission settings (machine-specific, not shared)
 .claude/settings.local.json
 .runlogs/*
+logs/smartbuy-frontend.err.log
+logs/smartbuy-frontend.out.log

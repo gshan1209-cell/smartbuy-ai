@@ -29,14 +29,27 @@ function authHeaders(extra = {}) {
     : { 'Content-Type': 'application/json', ...extra };
 }
 
-export async function post(path, body) {
-  const res = await fetch(BASE + path, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+export async function post(path, body, { timeoutMs } = {}) {
+  const controller = timeoutMs ? new AbortController() : null;
+  const timeoutId = timeoutMs ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
+
+  try {
+    const res = await fetch(BASE + path, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`AI 服務超過 ${Math.ceil(timeoutMs / 1000)} 秒未回應，請稍後再試。`);
+    }
+    throw error;
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
 }
 
 export async function put(path, body) {

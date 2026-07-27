@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from backend.routers.admin import router as admin_router
 from backend.routers.agriculture import router as agriculture_router
+from backend.routers.ai_recommend import router as ai_recommend_router
 from backend.routers.auth import router as auth_router
 from backend.routers.favorites import router as favorites_router
 from backend.routers.market import router as market_router
@@ -27,6 +28,7 @@ ROUTERS = (
     admin_router,
     agriculture_router,
     rewards_router,
+    ai_recommend_router,
 )
 
 

@@ -60,6 +60,29 @@
   font-weight: 700;
 }
 
+.dashboard-back-to-public {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--yz-bdr);
+  padding: 0 12px;
+  color: var(--yz-mut);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.dashboard-back-to-public:hover,
+.dashboard-back-to-public:focus-visible {
+  background: var(--yz-gl);
+  color: var(--yz-g);
+  border-color: var(--yz-g);
+}
+
 .dashboard-sidebar-footer {
   display: grid;
   gap: 3px;
@@ -286,6 +309,16 @@
 
   .dashboard-sidebar a {
     justify-content: center;
+  }
+
+  .dashboard-back-to-public {
+    justify-content: center;
+    margin: 12px 4px 0;
+    padding: 8px;
+  }
+
+  .dashboard-back-to-public span {
+    display: none;
   }
 
   .dashboard-brand {

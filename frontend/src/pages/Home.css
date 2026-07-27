@@ -109,8 +109,26 @@
   border-radius: 8px;
 }
 
-.consumer-search button {
+.consumer-market-selects {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
   grid-column: 1 / -1;
+}
+
+.consumer-market-selects select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.consumer-search-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+}
+
+.search-submit-btn {
+  flex: 1;
   min-height: 46px;
   color: #fff;
   font-size: 16px;
@@ -118,6 +136,36 @@
   background: var(--yz-g);
   border: 0;
   border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.search-submit-btn:hover {
+  opacity: 0.88;
+}
+
+.search-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 0 20px;
+  color: var(--yz-g);
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--yz-gl);
+  border: 1.5px solid var(--yz-g);
+  border-radius: 8px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.search-ai-btn:hover {
+  background: var(--yz-g);
+  color: #fff;
+  box-shadow: 0 2px 12px rgb(var(--yz-g-rgb, 34 197 94) / 25%);
 }
 
 .today-section {

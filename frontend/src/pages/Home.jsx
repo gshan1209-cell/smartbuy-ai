@@ -6,6 +6,7 @@ import {
   Newspaper,
   Search,
   ShoppingBasket,
+  Sparkles,
   Tag,
   TrendingDown,
   TrendingUp,
@@ -22,6 +23,7 @@ import {
   selectConsumerHomeItems,
 } from '../lib/consumerHomeAdapter';
 import HomeAgricultureExplorer from '../components/public/HomeAgricultureExplorer';
+import AiRecommendModal from '../components/public/AiRecommendModal';
 import './Home.css';
 
 
@@ -32,9 +34,53 @@ const statusIcons = {
   資料不足: Search,
 };
 
-function HomeSearchForm({ markets, onSearch }) {
+// 台灣市場依地理位置分北中南東（以後端實際回傳名稱為準）
+const MARKET_REGION_ORDER = [
+  {
+    label: '北部',
+    markets: ['台北一', '台北二', '台北市場', '板橋區', '三重區', '桃農', '宜蘭市'],
+  },
+  {
+    label: '中部',
+    markets: ['台中市', '台中市場', '豐原區', '彰化市場', '東勢鎮', '溪湖鎮', '永靖鄉', '西螺鎮', '南投市'],
+  },
+  {
+    label: '南部',
+    markets: ['台南市場', '嘉義市', '高雄市', '高雄市場', '鳳山區', '屏東市'],
+  },
+  {
+    label: '東部',
+    markets: ['台東市', '花蓮市'],
+  },
+];
+
+function buildRegionGroups(apiMarkets) {
+  const assigned = new Set();
+  const groups = MARKET_REGION_ORDER.map(({ label, markets: order }) => {
+    const matched = order.filter((m) => apiMarkets.includes(m));
+    matched.forEach((m) => assigned.add(m));
+    return { label, markets: matched };
+  }).filter((g) => g.markets.length > 0);
+
+  const others = apiMarkets.filter((m) => !assigned.has(m));
+  if (others.length > 0) groups.push({ label: '其他', markets: others });
+  return groups;
+}
+
+function HomeSearchForm({ markets, onSearch, onOpenAiRecommend }) {
   const [query, setQuery] = useState('');
+  const [region, setRegion] = useState('');
   const [market, setMarket] = useState('');
+  const regionGroups = buildRegionGroups(markets);
+
+  const currentRegionMarkets = region
+    ? (regionGroups.find((g) => g.label === region)?.markets ?? [])
+    : [];
+
+  function handleRegionChange(e) {
+    setRegion(e.target.value);
+    setMarket(''); // 切換區域時清掉已選市場
+  }
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -52,17 +98,40 @@ function HomeSearchForm({ markets, onSearch }) {
           onChange={(event) => setQuery(event.target.value)}
           placeholder="例如：高麗菜、番茄"
         />
-        <select
-          aria-label="選擇市場"
-          value={market}
-          onChange={(event) => setMarket(event.target.value)}
-        >
-          <option value="">全部市場</option>
-          {markets.map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
-        <button type="submit">查今天菜價</button>
+        <div className="consumer-market-selects">
+          <select
+            aria-label="選擇區域"
+            value={region}
+            onChange={handleRegionChange}
+          >
+            <option value="">全部地區</option>
+            {regionGroups.map(({ label }) => (
+              <option key={label} value={label}>{label}</option>
+            ))}
+          </select>
+          <select
+            aria-label="選擇市場"
+            value={market}
+            onChange={(e) => setMarket(e.target.value)}
+            disabled={!region}
+          >
+            <option value="">{region ? '全部市場' : '先選地區'}</option>
+            {currentRegionMarkets.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="consumer-search-actions">
+          <button type="submit" className="search-submit-btn">查今天菜價</button>
+          <button
+            type="button"
+            className="search-ai-btn"
+            onClick={onOpenAiRecommend}
+          >
+            <Sparkles size={16} aria-hidden="true" />
+            AI 推薦
+          </button>
+        </div>
       </div>
     </form>
   );
@@ -131,6 +200,7 @@ export default function Home() {
   const [isDemo, setIsDemo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [aiRecommendOpen, setAiRecommendOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -185,12 +255,16 @@ export default function Home() {
               </button>
             )}
           </div>
-          <HomeSearchForm markets={markets} onSearch={submitSearch} />
+          <HomeSearchForm
+            markets={markets}
+            onSearch={submitSearch}
+            onOpenAiRecommend={() => setAiRecommendOpen(true)}
+          />
         </div>
       </section>
 
       <main className="consumer-content">
-        <section className="today-section">
+        <section className="today-section" id="today-section">
           <div className="section-heading">
             <div>
               <p className="eyebrow">Today&apos;s picks</p>
@@ -265,6 +339,11 @@ export default function Home() {
           />
         </section>
       </main>
+      <AiRecommendModal
+        open={aiRecommendOpen}
+        onClose={() => setAiRecommendOpen(false)}
+        markets={markets}
+      />
     </div>
   );
 }
