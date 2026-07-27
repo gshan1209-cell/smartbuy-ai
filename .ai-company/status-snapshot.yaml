@@ -1,7 +1,7 @@
 schemaVersion: "1.0"
 repository: gshan1209-cell/smartbuy-ai
 productId: smartbuy-ai
-reportedAt: "2026-07-27T04:30:00Z"
+reportedAt: "2026-07-27T04:52:00Z"
 statusConfidence: verified
 
 migration:
@@ -11,6 +11,7 @@ migration:
   targetState: managed
   runtimeChangeAllowed: false
   assessmentRef: docs/governance/PRODUCT_ADOPTION_BASELINE.md
+  verificationIssueRef: https://github.com/gshan1209-cell/smartbuy-ai/issues/37
 
 product:
   lifecycleMode: triad-full-cycle
@@ -23,7 +24,8 @@ baseline:
   buildCommand: documented-not-run
   testCommand: documented-not-run
   ciWorkflow: verified-present
-  frontendDeployment: reported-vercel
+  frontendDeployment: verified-vercel-status-success
+  frontendDeploymentCommit: 48a7061ee0e8a24a77da4e6f7b387ac75ad3357a
   backendDeployment: configured-render
   database: reported-supabase-postgresql
   dataLake: reported-cloudflare-r2
@@ -37,11 +39,12 @@ moduleComposition:
 
 knownLimitations:
   - No Company Module is currently released and locked for SmartBuy AI.
-  - Product build, test, browser E2E and production health were not executed in this metadata adoption change.
-  - Existing deployment targets are recorded from repository configuration and documentation, not newly verified runtime evidence.
+  - Product backend tests, frontend tests/build, browser E2E and backend production health were not verified by this adoption change.
+  - Vercel reported success for the current governance commit, but the public application was not independently probed by this connector.
+  - Render provider health and current backend URL remain to be verified.
   - The repository currently has no immutable product tag linked to the adoption baseline.
 
 nextAction:
-  title: Verify CI, frontend preview, backend health and create a release candidate record
+  title: Complete Issue #37 executable baseline verification and rollback record
   owner: system-development-studio
-  status: planned
+  status: in-progress
