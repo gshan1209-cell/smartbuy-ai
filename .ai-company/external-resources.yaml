@@ -1,0 +1,35 @@
+schemaVersion: "1.0"
+productId: smartbuy-ai
+updatedAt: "2026-07-27T04:58:00Z"
+
+companyDrive:
+  rootFolderId: 1j82xT7gCIOnyLF37xxWA36kSV0tQUQGf
+  productsFolderId: 17zwq61d-zfA2bhZd54r8mNxyNk7wD52b
+  productWorkspace:
+    name: SmartBuy-AI
+    folderId: 1_fXGzMuC516566Oj1CCXVkTA_xqsYX5s
+    url: https://drive.google.com/drive/folders/1_fXGzMuC516566Oj1CCXVkTA_xqsYX5s
+  folders:
+    productDocuments:
+      folderId: 1CfOetbouVg1g_LyxuZ5D7kp4VuFO0ZLj
+      path: 01_Product_Documents
+    multimediaAssets:
+      folderId: 1OOJNUyc3NB5bsXWC5kx0w0aKwnVD7i2c
+      path: 02_Multimedia_Assets
+    buildArtifacts:
+      folderId: 1Y2gGlYK2lLOAih6ATS6FemF7G-OElxvL
+      path: 03_Build_Artifacts
+    deploymentEvidence:
+      folderId: 16Zo-gQ7S33_r5UNenZHC4bIUm-aO-a4X
+      path: 04_Deployment_Evidence
+    releasePackages:
+      folderId: 1741jB0PXpu7Kkk6PXvpgwPSrXsRvcX1I
+      path: 05_Release_Packages
+
+storagePolicy:
+  sourceCodeInDrive: false
+  largeAssetsInDrive: true
+  buildArtifactsInDrive: true
+  deploymentEvidenceInDrive: true
+  releasePackagesInDrive: true
+  secretsAllowed: false
