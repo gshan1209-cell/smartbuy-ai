@@ -1,7 +1,7 @@
 schemaVersion: "1.0"
 repository: gshan1209-cell/smartbuy-ai
 productId: smartbuy-ai
-reportedAt: "2026-07-27T04:52:00Z"
+reportedAt: "2026-07-27T04:58:00Z"
 statusConfidence: verified
 
 migration:
@@ -18,6 +18,8 @@ product:
   status: active
   portfolioClass: mainline
   independentOperation: true
+  externalResourcesRef: .ai-company/external-resources.yaml
+  companyDriveWorkspaceId: 1_fXGzMuC516566Oj1CCXVkTA_xqsYX5s
 
 baseline:
   sourceStructure: verified
@@ -29,6 +31,7 @@ baseline:
   backendDeployment: configured-render
   database: reported-supabase-postgresql
   dataLake: reported-cloudflare-r2
+  productDriveWorkspace: verified-created
   productionHealth: not-verified-in-this-adoption
 
 moduleComposition:
