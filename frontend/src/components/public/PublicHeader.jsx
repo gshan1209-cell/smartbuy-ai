@@ -48,8 +48,8 @@ export default function PublicHeader({ onMenu }) {
         </div>
         <NavLink className="mobile-icon" aria-label="搜尋" to="/search"><Search size={20} /></NavLink>
         {isAuthenticated && <NotificationBell />}
-        <NavLink className="settings-link" to={isAuthenticated ? '/settings' : '/login'} title={isAuthenticated ? '管理帳戶設定' : '登入帳戶'}>
-          {isAuthenticated ? '👤 我的' : '🔐 登入'}
+        <NavLink className="settings-link" to={isAuthenticated ? '/settings' : '/login'} title={isAuthenticated ? '開啟身份選單' : '登入帳戶'}>
+          {isAuthenticated ? '👤 身份選單' : '🔐 登入'}
         </NavLink>
         <button className="mobile-icon menu-button" aria-label="開啟選單" onClick={onMenu}><Menu size={22} /></button>
       </div>
