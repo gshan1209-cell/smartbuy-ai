@@ -1,7 +1,7 @@
 schemaVersion: "1.0"
 repository: gshan1209-cell/smartbuy-ai
 productId: smartbuy-ai
-reportedAt: "2026-07-27T04:58:00Z"
+reportedAt: "2026-07-27T05:02:00Z"
 statusConfidence: verified
 
 migration:
@@ -26,13 +26,18 @@ baseline:
   buildCommand: documented-not-run
   testCommand: documented-not-run
   ciWorkflow: verified-present
-  frontendDeployment: verified-vercel-status-success
-  frontendDeploymentCommit: 48a7061ee0e8a24a77da4e6f7b387ac75ad3357a
+  frontendPublicUrl: https://smartbuy-ai-alpha.vercel.app/
+  frontendPublicHttpStatus: 200
+  frontendPublicAvailability: verified
+  vercelProjectId: prj_d9eKTjLrp3H7hJYDFBTeKWyA9Emi
+  latestReadyDeploymentId: dpl_AAZYq6tF4mhLLbycB2S1zqEGvpCA
+  latestObservedDeploymentId: dpl_D5qdWz2GXJ7ky7utVYVAxxeqWcNr
+  latestObservedDeploymentState: INITIALIZING
   backendDeployment: configured-render
   database: reported-supabase-postgresql
   dataLake: reported-cloudflare-r2
   productDriveWorkspace: verified-created
-  productionHealth: not-verified-in-this-adoption
+  productionBackendHealth: not-verified-in-this-adoption
 
 moduleComposition:
   registrySearchPerformed: true
@@ -43,11 +48,11 @@ moduleComposition:
 knownLimitations:
   - No Company Module is currently released and locked for SmartBuy AI.
   - Product backend tests, frontend tests/build, browser E2E and backend production health were not verified by this adoption change.
-  - Vercel reported success for the current governance commit, but the public application was not independently probed by this connector.
+  - The public Vercel URL returned HTTP 200, while the newest observed Git deployment was still INITIALIZING at capture time.
   - Render provider health and current backend URL remain to be verified.
   - The repository currently has no immutable product tag linked to the adoption baseline.
 
 nextAction:
-  title: Complete Issue #37 executable baseline verification and rollback record
+  title: Complete Issue #37 CI, Render health and rollback verification
   owner: system-development-studio
   status: in-progress
