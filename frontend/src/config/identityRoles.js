@@ -1,4 +1,4 @@
-import { ROLES, VALID_ROLES } from './roles';
+import { ROLES, VALID_ROLES } from './roles.js';
 
 export const IDENTITY_ROLE_STORAGE_KEY = 'smartbuy_identity_role';
 export const DEFAULT_IDENTITY_ROLE = 'admin';
