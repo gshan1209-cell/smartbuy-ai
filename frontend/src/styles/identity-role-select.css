@@ -1,0 +1,48 @@
+.identity-role-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  border: 1px solid var(--yz-bdr);
+  border-radius: 10px;
+  padding: 0 10px;
+  color: var(--yz-g);
+  background: var(--yz-card-bg);
+  font-weight: 700;
+}
+
+.identity-role-select:focus-within {
+  border-color: var(--yz-g);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yz-g) 18%, transparent);
+}
+
+.identity-role-select select {
+  min-width: 104px;
+  border: 0;
+  outline: 0;
+  padding: 8px 24px 8px 0;
+  color: var(--yz-txt);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.drawer-identity-role {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.drawer-identity-role select {
+  flex: 1;
+  width: 100%;
+}
+
+@media (max-width: 767px) {
+  .header-identity-role {
+    display: none;
+  }
+}
+
+html[data-layout-mode="mobile"] .header-identity-role {
+  display: none;
+}
