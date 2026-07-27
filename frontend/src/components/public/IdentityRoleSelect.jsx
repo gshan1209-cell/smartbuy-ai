@@ -2,6 +2,7 @@ import { UserRound } from 'lucide-react';
 
 import { IDENTITY_ROLE_OPTIONS } from '../../config/identityRoles';
 import useIdentityRole from '../../hooks/useIdentityRole';
+import '../../styles/identity-role-select.css';
 
 export default function IdentityRoleSelect({ className = '' }) {
   const { identityRole, setIdentityRole } = useIdentityRole();
