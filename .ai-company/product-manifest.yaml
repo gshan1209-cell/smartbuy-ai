@@ -1,0 +1,47 @@
+schemaVersion: "1.0"
+productId: smartbuy-ai
+productName: SmartBuy AI｜便宜買 AI
+productVersion: 0.1.0
+productKind: software-product
+productLineId: consumer-intelligence
+primaryRepository: gshan1209-cell/smartbuy-ai
+
+ownership:
+  productOwner: smartbuy-product-owner
+  primaryOperatingUnit: system-development-studio
+  participatingUnits:
+    - multimedia-studio
+    - ai-module-factory
+
+lifecycle:
+  mode: triad-full-cycle
+  status: active
+
+moduleComposition:
+  lockFile: .ai-company/module-lock.yaml
+  registrySearchRequired: true
+  productSpecificCapabilities:
+    - agriculture-market-intelligence
+    - price-direction-prediction
+    - seasonal-buying-guidance
+    - consumer-farmer-merchant-recommendations
+    - mutual-aid-network
+    - rewards-and-coupons
+
+independentOperation:
+  build: true
+  test: true
+  deploy: true
+  release: true
+  requiresCeoRuntime: false
+  requiresStudioRuntime: false
+
+releasePolicy:
+  versionedReleaseRequired: true
+  rollbackRequired: true
+  releaseRecordPath: .ai-company/releases/
+  environments:
+    - local
+    - ci
+    - preview
+    - production
