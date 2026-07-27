@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowRight,
-  Bell,
-  CloudSun,
-  Newspaper,
   Search,
   ShoppingBasket,
   Sparkles,
-  Tag,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
@@ -177,21 +173,6 @@ function RecommendationCard({ item, onOpen }) {
   );
 }
 
-function QuickLinkCard({ icon: Icon, title, description, actionLabel, onClick }) {
-  return (
-    <Card className="home-quick-link-card">
-      <div className="reminder-icon"><Icon size={20} aria-hidden="true" /></div>
-      <div>
-        <h2>{title}</h2>
-        <p>{description}</p>
-      </div>
-      <button className="consumer-link" onClick={onClick}>
-        {actionLabel} <ArrowRight size={16} />
-      </button>
-    </Card>
-  );
-}
-
 export default function Home() {
   const navigate = useNavigate();
   const [markets, setMarkets] = useState([]);
@@ -306,38 +287,6 @@ export default function Home() {
 
         <HomeAgricultureExplorer />
 
-        <section className="home-quick-links" aria-label="其他服務">
-          <QuickLinkCard
-            icon={Bell}
-            title="收藏與天氣提醒"
-            description="登入後可收到收藏品項的價格變化與天氣風險提醒。"
-            actionLabel="查看設定"
-            onClick={() => navigate('/settings')}
-          />
-          <QuickLinkCard
-            icon={CloudSun}
-            title="節氣與當季推薦"
-            description={solarTerm
-              ? `目前是${solarTerm.term_name}，查看適合採買的當季食材。`
-              : '查看現在節氣、當季食材與料理建議。'}
-            actionLabel="查看節氣"
-            onClick={() => navigate('/season')}
-          />
-          <QuickLinkCard
-            icon={Newspaper}
-            title="農產新知"
-            description="掌握與日常採買有關的農產、食材與市場資訊。"
-            actionLabel="逛逛新知"
-            onClick={() => navigate('/news')}
-          />
-          <QuickLinkCard
-            icon={Tag}
-            title="特賣會"
-            description="全站特價訊息集中表列，所有好康一次看完。"
-            actionLabel="逛特賣會"
-            onClick={() => navigate('/special-offers')}
-          />
-        </section>
       </main>
       <AiRecommendModal
         open={aiRecommendOpen}

@@ -460,6 +460,58 @@
   background: var(--yz-gl);
 }
 
+/* 手動版型切換也要同步套用到首頁主標題區，不只改 Header。 */
+html[data-layout-mode="desktop"] .consumer-hero-inner {
+  display: grid;
+  grid-template-columns: 1fr minmax(380px, 500px);
+  gap: 64px;
+  min-height: 350px;
+  padding: 48px 32px;
+}
+
+html[data-layout-mode="desktop"] .consumer-content {
+  padding: 48px 32px;
+}
+
+html[data-layout-mode="tablet"] .consumer-hero-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  min-height: 350px;
+  padding: 48px 24px;
+}
+
+html[data-layout-mode="tablet"] .consumer-content {
+  padding: 48px 24px;
+}
+
+html[data-layout-mode="mobile"] .consumer-hero-inner {
+  display: block;
+  min-height: 0;
+  padding: 28px 16px;
+}
+
+html[data-layout-mode="mobile"] .consumer-content {
+  padding: 28px 16px;
+}
+
+html[data-layout-mode="mobile"] .consumer-hero h1 {
+  font-size: 42px;
+}
+
+html[data-layout-mode="mobile"] .consumer-search {
+  margin-top: 24px;
+  padding: 16px;
+}
+
+html[data-layout-mode="mobile"] .consumer-search-grid {
+  grid-template-columns: auto 1fr;
+}
+
+html[data-layout-mode="mobile"] .consumer-search select {
+  grid-column: 1 / -1;
+}
+
 .agri-explorer-tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
