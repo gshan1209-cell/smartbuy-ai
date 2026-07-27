@@ -6,7 +6,9 @@
 
 .consumer-hero {
   color: #fff;
-  background: linear-gradient(120deg, #0f4b35 0%, #176445 58%, #2e8760 100%);
+  background:
+    linear-gradient(90deg, rgba(5, 42, 29, 0.88) 0%, rgba(9, 69, 47, 0.62) 48%, rgba(9, 49, 34, 0.48) 100%),
+    url('/hero/smartbuy-home-hero-produce.png') center center / cover no-repeat;
   border-bottom: 8px solid #dbe9d8;
 }
 
@@ -358,6 +360,10 @@
 }
 
 @media (max-width: 767px) {
+  .consumer-hero {
+    background-position: 62% center;
+  }
+
   .consumer-hero-inner,
   .consumer-content {
     padding: 28px 16px;
