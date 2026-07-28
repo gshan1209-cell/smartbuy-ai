@@ -1,7 +1,7 @@
 schemaVersion: "1.0"
 repository: gshan1209-cell/smartbuy-ai
 productId: smartbuy-ai
-reportedAt: "2026-07-27T06:20:00Z"
+reportedAt: "2026-07-27T10:05:00Z"
 statusConfidence: verified
 
 migration:
@@ -25,17 +25,25 @@ architecture:
   pattern: ai-power-armor
   contractStatus: declared
   baseSystem: product-core
+  profilePolicy: right-sized
   supportedArmorProfiles:
     - light
   defaultArmorProfile: light
+  currentArmorStage: original
+  expansionMode: cumulative-capability-layers
   lightArmorCapability: role-recommendation-json
   aiDependencyPolicy: enhancement-only
   productCoreCoverage: documented-not-fully-verified
   aiDisabledCoreWorkflow: not-tested
   lightJsonSchemaValidation: partially-implemented-not-fully-verified
   gracefulDegradation: partially-implemented-not-fully-verified
+  armorHostConformance: not-tested
+  armorPackCompatibility: unknown
   heavyArmorGate: not-applicable
   flagshipArmorGate: not-applicable
+  armorHostRef: .ai-company/armor-host.yaml
+  armorLockRef: .ai-company/armor-lock.yaml
+  compatibilityRef: docs/architecture/ARMOR_COMPATIBILITY.md
   armorProfileRef: docs/architecture/AI_ARMOR_PROFILE.md
   failurePolicyRef: docs/architecture/AI_FAILURE_AND_FALLBACK.md
 
@@ -64,7 +72,8 @@ moduleComposition:
   lockRef: .ai-company/module-lock.yaml
 
 knownLimitations:
-  - No Company Module is currently released and locked for SmartBuy AI.
+  - SmartBuy remains at original stage until the LLM JSON Pack／Adapter passes Conformance and is written to Armor Lock.
+  - No Company Module or Armor Pack is currently released and locked for SmartBuy AI.
   - Product backend tests, frontend tests/build, browser E2E and backend production health were not verified by this adoption change.
   - Product Core without AI, Light Armor JSON validation and failure fallback tests have not yet produced complete Evidence.
   - The public Vercel URL returned HTTP 200, while the newest observed Git deployment was still INITIALIZING at capture time.
@@ -72,6 +81,6 @@ knownLimitations:
   - The repository currently has no immutable product tag linked to the adoption baseline.
 
 nextAction:
-  title: Complete Issue #37 with Product Core and Light Armor JSON verification
+  title: Complete Original-to-Light Host／Pack／Adapter Conformance in Issue #37
   owner: system-development-studio
   status: in-progress

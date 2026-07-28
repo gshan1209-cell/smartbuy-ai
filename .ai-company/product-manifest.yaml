@@ -20,13 +20,19 @@ lifecycle:
 architecture:
   pattern: ai-power-armor
   baseSystem: product-core
+  profilePolicy: right-sized
   supportedArmorProfiles:
     - light
   defaultArmorProfile: light
+  expansionMode: cumulative-capability-layers
+  currentArmorStage: original
   aiDependencyPolicy: enhancement-only
   coreWorksWithoutAi: true
   gracefulDegradationRequired: true
   aiFailurePolicyRef: docs/architecture/AI_FAILURE_AND_FALLBACK.md
+  compatibilityContractRef: docs/architecture/ARMOR_COMPATIBILITY.md
+  armorHostRef: .ai-company/armor-host.yaml
+  armorLockRef: .ai-company/armor-lock.yaml
   armorProfileContractRef: docs/architecture/AI_ARMOR_PROFILE.md
   aiCapabilities:
     - capabilityId: role-recommendation-json
