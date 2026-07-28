@@ -1,0 +1,255 @@
+{
+  "schema_version": 3,
+  "prompt_set_version": "three-role-v1",
+  "cache_key": "leafy-vegetables",
+  "cache_object_key": "v3/leafy-vegetables-c33f937d27fc.json",
+  "category": {
+    "key": "leafy-vegetables",
+    "label": "葉菜類",
+    "description": "高麗菜、白菜、菠菜等葉菜"
+  },
+  "generated_at": "2026-07-28T11:55:31.470742Z",
+  "generator": "rules-fallback",
+  "provider": null,
+  "model": null,
+  "region": "north",
+  "market": "台北一",
+  "input_digest": "d6a460aef6ad1805",
+  "source_summary": {
+    "candidate_count": 12,
+    "latest_trade_date": "2026-07-22",
+    "historical_data": false,
+    "data_status": "cached",
+    "source_name": "本機 CSV"
+  },
+  "role_recommendations": {
+    "consumer": {
+      "role": "consumer",
+      "role_label": "消費者",
+      "perspective": "家庭採買端",
+      "summary": "葉菜類目前有 12 個可比較品項，其中 0 個相對便宜、0 個偏貴。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "優先選擇價格便宜或正常的品項；偏貴品項少量購買，必要時比較同分類替代品。",
+      "items": [
+        {
+          "product_name": "包心白菜-進口 其他",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 72.7,
+          "recent_average": null,
+          "action": "先查最新行情",
+          "reason": "近期資料不足，建議確認交易日期與最新市場價格後再購買。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "包心白菜-進口 包頭蓮",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 28.1,
+          "recent_average": null,
+          "action": "先查最新行情",
+          "reason": "近期資料不足，建議確認交易日期與最新市場價格後再購買。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "小白菜-土白菜",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 36.3,
+          "recent_average": null,
+          "action": "先查最新行情",
+          "reason": "近期資料不足，建議確認交易日期與最新市場價格後再購買。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "小白菜-奶油白",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 74.7,
+          "recent_average": null,
+          "action": "先查最新行情",
+          "reason": "近期資料不足，建議確認交易日期與最新市場價格後再購買。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "小白菜-蚵仔白",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 47.9,
+          "recent_average": null,
+          "action": "先查最新行情",
+          "reason": "近期資料不足，建議確認交易日期與最新市場價格後再購買。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "油菜",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 31.6,
+          "recent_average": null,
+          "action": "先查最新行情",
+          "reason": "近期資料不足，建議確認交易日期與最新市場價格後再購買。",
+          "priority": "low",
+          "substitute": null
+        }
+      ]
+    },
+    "farmer": {
+      "role": "farmer",
+      "role_label": "農民",
+      "perspective": "農業生產端",
+      "summary": "葉菜類目前有 12 個行情候選，其中 0 個高於近期平均、0 個接近近期平均。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "行情偏高時核對可交付量後分批出貨；行情偏低時先檢查成本與既定安排，不依單日價格擴大生產。",
+      "items": [
+        {
+          "product_name": "包心白菜-進口 其他",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 72.7,
+          "recent_average": null,
+          "action": "補查市場資料",
+          "reason": "近期資料不足，先確認最新市場行情，再評估採收與出貨安排。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "包心白菜-進口 包頭蓮",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 28.1,
+          "recent_average": null,
+          "action": "補查市場資料",
+          "reason": "近期資料不足，先確認最新市場行情，再評估採收與出貨安排。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "小白菜-土白菜",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 36.3,
+          "recent_average": null,
+          "action": "補查市場資料",
+          "reason": "近期資料不足，先確認最新市場行情，再評估採收與出貨安排。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "小白菜-奶油白",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 74.7,
+          "recent_average": null,
+          "action": "補查市場資料",
+          "reason": "近期資料不足，先確認最新市場行情，再評估採收與出貨安排。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "小白菜-蚵仔白",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 47.9,
+          "recent_average": null,
+          "action": "補查市場資料",
+          "reason": "近期資料不足，先確認最新市場行情，再評估採收與出貨安排。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "油菜",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 31.6,
+          "recent_average": null,
+          "action": "補查市場資料",
+          "reason": "近期資料不足，先確認最新市場行情，再評估採收與出貨安排。",
+          "priority": "low",
+          "substitute": null
+        }
+      ]
+    },
+    "merchant": {
+      "role": "merchant",
+      "role_label": "商家",
+      "perspective": "通路銷售端",
+      "summary": "葉菜類目前有 12 個可供採購比較的品項，其中 0 個相對便宜、0 個價格正常。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "便宜品項可依銷售速度分批補貨；偏貴品項控制庫存並比較替代品，避免把行情誤當成需求資料。",
+      "items": [
+        {
+          "product_name": "包心白菜-進口 其他",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 72.7,
+          "recent_average": null,
+          "action": "確認供應報價",
+          "reason": "近期資料不足，建議先向供應端確認最新報價與可交付狀況。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "包心白菜-進口 包頭蓮",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 28.1,
+          "recent_average": null,
+          "action": "確認供應報價",
+          "reason": "近期資料不足，建議先向供應端確認最新報價與可交付狀況。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "小白菜-土白菜",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 36.3,
+          "recent_average": null,
+          "action": "確認供應報價",
+          "reason": "近期資料不足，建議先向供應端確認最新報價與可交付狀況。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "小白菜-奶油白",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 74.7,
+          "recent_average": null,
+          "action": "確認供應報價",
+          "reason": "近期資料不足，建議先向供應端確認最新報價與可交付狀況。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "小白菜-蚵仔白",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 47.9,
+          "recent_average": null,
+          "action": "確認供應報價",
+          "reason": "近期資料不足，建議先向供應端確認最新報價與可交付狀況。",
+          "priority": "low",
+          "substitute": null
+        },
+        {
+          "product_name": "油菜",
+          "market_name": "台北一",
+          "price_status": "資料不足",
+          "today_price": 31.6,
+          "recent_average": null,
+          "action": "確認供應報價",
+          "reason": "近期資料不足，建議先向供應端確認最新報價與可交付狀況。",
+          "priority": "low",
+          "substitute": null
+        }
+      ]
+    }
+  }
+}
