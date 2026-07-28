@@ -7,6 +7,7 @@ import './styles/globals.css';
 import './styles/public-layout.css';
 import './styles/public-header-responsive.css';
 import './styles/dashboard-layout.css';
+import './styles/test-mode.css';
 import './styles/app-resilience.css';
 import './styles/responsive-overrides.css';
 import App from './App';
