@@ -1,11 +1,24 @@
+import { IS_TEST_MODE } from '../config/testMode';
 import { apiRequest } from './apiClient';
 
 let latestRecommendationRequest = 0;
 let latestRecommendationPromise = Promise.resolve(null);
 
+function normalizeRecommendationError(error) {
+  const message = error?.message || '推薦資料載入失敗。';
+  if (IS_TEST_MODE && (error?.status === 401 || error?.status === 403 || /登入|授權|401|403/i.test(message))) {
+    return new Error('測試模式目前未連接推薦 API；畫面可瀏覽，但即時推薦資料尚未提供。');
+  }
+  return error instanceof Error ? error : new Error(message);
+}
+
 export async function loadRecommendationCategories() {
-  const payload = await apiRequest('/api/recommendations/categories', { timeoutMs: 8000 });
-  return Array.isArray(payload?.categories) ? payload.categories : [];
+  try {
+    const payload = await apiRequest('/api/recommendations/categories', { timeoutMs: 8000 });
+    return Array.isArray(payload?.categories) ? payload.categories : [];
+  } catch (error) {
+    throw normalizeRecommendationError(error);
+  }
 }
 
 export function loadRecommendation(category) {
@@ -15,7 +28,9 @@ export function loadRecommendation(category) {
   const requestPromise = apiRequest(
     `/api/recommendations?category=${encodeURIComponent(category)}`,
     { timeoutMs: 150000 },
-  );
+  ).catch((error) => {
+    throw normalizeRecommendationError(error);
+  });
   latestRecommendationPromise = requestPromise;
 
   return requestPromise.then((payload) => {
