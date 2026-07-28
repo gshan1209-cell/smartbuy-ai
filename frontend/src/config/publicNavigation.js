@@ -26,6 +26,15 @@ export const PUBLIC_NAV_LINKS = [
   { to: '/mutual-aid', label: '🎁 好康', description: '分享與發現好康' },
 ];
 
+// 測試模式用單一主標題列檢視所有前台畫面；正式模式仍使用精簡導覽。
+export const ALL_PUBLIC_NAV_LINKS = [
+  ...PUBLIC_NAV_LINKS,
+  { to: '/alerts', label: '🔔 提醒', description: '查看價格與互助網提醒' },
+  { to: '/season', label: '🌾 節氣', description: '查看節氣與當季推薦' },
+  { to: '/information-sharing', label: '📣 資訊', description: '查看資訊分享' },
+  SETTINGS_NAV_LINK,
+];
+
 export const PUBLIC_MOBILE_LINKS = [
   { to: '/news', label: '📰 新知', description: '閱讀農產新知' },
   { to: '/special-offers', label: '🏷️ 特賣', description: '瀏覽限時特賣' },

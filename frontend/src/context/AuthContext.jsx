@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { normalizeRole } from '../config/roles';
+import { IS_TEST_MODE, TEST_PERMISSIONS, TEST_USER } from '../config/testMode';
 import {
   fetchDashboardAccess,
   loginAccount,
@@ -34,9 +35,13 @@ function persistUser(user) {
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(loadUser);
-  const [authLoading, setAuthLoading] = useState(() => Boolean(loadUser()));
-  const [dashboardAccess, setDashboardAccess] = useState(null);
+  const [user, setUser] = useState(() => (IS_TEST_MODE ? TEST_USER : loadUser()));
+  const [authLoading, setAuthLoading] = useState(() => (IS_TEST_MODE ? false : Boolean(loadUser())));
+  const [dashboardAccess, setDashboardAccess] = useState(() => (IS_TEST_MODE ? {
+    dashboardAccess: true,
+    role: TEST_USER.role,
+    permissions: TEST_PERMISSIONS,
+  } : null));
   const [accessDenied, setAccessDenied] = useState(false);
   const [accessError, setAccessError] = useState(null);
 
@@ -50,6 +55,19 @@ export function AuthProvider({ children }) {
   }, []);
 
   const refreshSession = useCallback(async () => {
+    if (IS_TEST_MODE) {
+      setUser(TEST_USER);
+      setDashboardAccess({
+        dashboardAccess: true,
+        role: TEST_USER.role,
+        permissions: TEST_PERMISSIONS,
+      });
+      setAccessDenied(false);
+      setAccessError(null);
+      setAuthLoading(false);
+      return;
+    }
+
     if (!user) {
       setDashboardAccess(null);
       setAccessDenied(false);
@@ -101,6 +119,7 @@ export function AuthProvider({ children }) {
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function login(email, password) {
+    if (IS_TEST_MODE) return;
     const { member } = await loginAccount({ email, password });
     setDashboardAccess(null);
     setAccessDenied(false);
@@ -111,12 +130,14 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
+    if (IS_TEST_MODE) return;
     await logoutAccount().catch(() => {});
     clearSessionState();
     setAuthLoading(false);
   }
 
   function setAuthData(nextUser) {
+    if (IS_TEST_MODE) return;
     setDashboardAccess(null);
     setAccessDenied(false);
     setAccessError(null);
@@ -126,6 +147,7 @@ export function AuthProvider({ children }) {
   }
 
   async function updateProfile(patch) {
+    if (IS_TEST_MODE) return;
     const { member: updated } = await updateAccountProfile(patch);
     const nextUser = persistUser({ ...user, ...updated });
     setUser(nextUser);

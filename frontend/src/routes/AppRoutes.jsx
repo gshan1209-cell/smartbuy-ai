@@ -4,6 +4,7 @@ import PermissionGuard from '../components/shared/PermissionGuard';
 import ProtectedRoute from '../components/shared/ProtectedRoute';
 import { DASHBOARD_PLACEHOLDER_MODULES } from '../config/dashboardModules';
 import { PERMISSIONS } from '../config/permissions';
+import { IS_TEST_MODE } from '../config/testMode';
 import DashboardLayout from '../layouts/DashboardLayout';
 import PublicLayout from '../layouts/PublicLayout';
 import lazyWithRetry from '../lib/lazyWithRetry';
@@ -79,8 +80,8 @@ export default function AppRoutes() {
         <Route path={PUBLIC_ROUTES.SETTINGS} element={<Settings />} />
         <Route path={PUBLIC_ROUTES.ALERTS} element={<Alerts />} />
         <Route path={PUBLIC_ROUTES.SEASON} element={<Season />} />
-        <Route path={PUBLIC_ROUTES.LOGIN} element={<Login />} />
-        <Route path={PUBLIC_ROUTES.REGISTER} element={<Register />} />
+        <Route path={PUBLIC_ROUTES.LOGIN} element={IS_TEST_MODE ? <Navigate to="/" replace /> : <Login />} />
+        <Route path={PUBLIC_ROUTES.REGISTER} element={IS_TEST_MODE ? <Navigate to="/" replace /> : <Register />} />
         <Route path={PUBLIC_ROUTES.FORBIDDEN} element={<ForbiddenPage />} />
         <Route path={ROUTE_FALLBACK} element={<NotFoundPage />} />
       </Route>

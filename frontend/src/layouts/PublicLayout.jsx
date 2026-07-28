@@ -6,7 +6,12 @@ import MobileBottomNav from '../components/public/MobileBottomNav';
 import PublicHeader from '../components/public/PublicHeader';
 import PublicSidebar from '../components/public/PublicSidebar';
 import Drawer from '../components/shared/Drawer';
-import { DASHBOARD_NAV_LINK, PUBLIC_MOBILE_LINKS } from '../config/publicNavigation';
+import {
+  ALL_PUBLIC_NAV_LINKS,
+  DASHBOARD_NAV_LINK,
+  PUBLIC_MOBILE_LINKS,
+} from '../config/publicNavigation';
+import { IS_TEST_MODE } from '../config/testMode';
 import { useAuth } from '../context/AuthContext';
 
 export default function PublicLayout() {
@@ -15,9 +20,11 @@ export default function PublicLayout() {
   const { user, dashboardAccess } = useAuth();
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
-  const menuLinks = dashboardAccess?.dashboardAccess || hasDashboardRole
-    ? [...PUBLIC_MOBILE_LINKS, DASHBOARD_NAV_LINK]
-    : PUBLIC_MOBILE_LINKS;
+  const menuLinks = IS_TEST_MODE
+    ? [...ALL_PUBLIC_NAV_LINKS, DASHBOARD_NAV_LINK]
+    : dashboardAccess?.dashboardAccess || hasDashboardRole
+      ? [...PUBLIC_MOBILE_LINKS, DASHBOARD_NAV_LINK]
+      : PUBLIC_MOBILE_LINKS;
 
   return (
     <div className={`public-layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>

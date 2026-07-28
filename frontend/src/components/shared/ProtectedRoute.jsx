@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
+import { IS_TEST_MODE } from '../../config/testMode';
 import { useAuth } from '../../context/AuthContext';
 import {
   getProtectedRouteDecision,
@@ -16,6 +17,8 @@ export default function ProtectedRoute() {
     refreshSession,
   } = useAuth();
   const location = useLocation();
+
+  if (IS_TEST_MODE) return <Outlet />;
 
   const decision = getProtectedRouteDecision({
     isAuthenticated,
