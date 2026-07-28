@@ -1,0 +1,42 @@
+/* 平板寬度下左側欄已顯示品牌，Header 不再重複品牌名稱，
+   將有限空間優先保留給首頁、查價、菜籃與點數等主要入口。 */
+@media (max-width: 1199px) and (min-width: 768px) {
+  .public-header {
+    gap: 8px;
+    padding-inline: 12px;
+  }
+
+  .public-header > .brand {
+    display: none;
+  }
+
+  .public-nav {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .header-actions {
+    flex-shrink: 0;
+    gap: 4px;
+  }
+}
+
+/* 手動切換平板預覽時套用相同規則，不依賴實際瀏覽器寬度。 */
+html[data-layout-mode="tablet"] .public-header {
+  gap: 8px;
+  padding-inline: 12px;
+}
+
+html[data-layout-mode="tablet"] .public-header > .brand {
+  display: none;
+}
+
+html[data-layout-mode="tablet"] .public-nav {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+html[data-layout-mode="tablet"] .header-actions {
+  flex-shrink: 0;
+  gap: 4px;
+}

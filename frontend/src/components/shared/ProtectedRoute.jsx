@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
-import { useAuth } from '../../context/AuthContext';
 import { IS_TEST_MODE } from '../../config/testMode';
+import { useAuth } from '../../context/AuthContext';
 import {
   getProtectedRouteDecision,
   PROTECTED_ROUTE_DECISION,

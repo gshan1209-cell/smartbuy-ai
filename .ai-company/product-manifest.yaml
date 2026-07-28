@@ -17,6 +17,32 @@ lifecycle:
   mode: triad-full-cycle
   status: active
 
+architecture:
+  pattern: ai-power-armor
+  baseSystem: product-core
+  profilePolicy: right-sized
+  supportedArmorProfiles:
+    - light
+  defaultArmorProfile: light
+  expansionMode: cumulative-capability-layers
+  currentArmorStage: original
+  aiDependencyPolicy: enhancement-only
+  coreWorksWithoutAi: true
+  gracefulDegradationRequired: true
+  aiFailurePolicyRef: docs/architecture/AI_FAILURE_AND_FALLBACK.md
+  compatibilityContractRef: docs/architecture/ARMOR_COMPATIBILITY.md
+  armorHostRef: .ai-company/armor-host.yaml
+  armorLockRef: .ai-company/armor-lock.yaml
+  armorProfileContractRef: docs/architecture/AI_ARMOR_PROFILE.md
+  aiCapabilities:
+    - capabilityId: role-recommendation-json
+      armorProfile: light
+      mode: request-response
+      outputType: structured-json
+      fallback: rule-recommendation
+      schemaRef: recommendation-schema-v2
+      cachePolicy: cache-first-create-if-absent
+
 moduleComposition:
   lockFile: .ai-company/module-lock.yaml
   registrySearchRequired: true

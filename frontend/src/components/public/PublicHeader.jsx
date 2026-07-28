@@ -1,28 +1,32 @@
+import { Menu, Search } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { Search, Menu } from 'lucide-react';
+
 import { NotificationBell } from '../Navbar';
-import { useAuth } from '../../context/AuthContext';
-import useLayoutMode, { LAYOUT_MODE_OPTIONS } from '../../hooks/useLayoutMode';
 import {
   ALL_PUBLIC_NAV_LINKS,
   DASHBOARD_NAV_LINK,
-  POINTS_NAV_LINK,
   PUBLIC_NAV_LINKS,
   SETTINGS_NAV_LINK,
 } from '../../config/publicNavigation';
 import { IS_TEST_MODE } from '../../config/testMode';
+import { useAuth } from '../../context/AuthContext';
+import useLayoutMode, { LAYOUT_MODE_OPTIONS } from '../../hooks/useLayoutMode';
+import IdentityRoleSelect from './IdentityRoleSelect';
 
 export default function PublicHeader({ onMenu }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
   const { layoutMode, updateLayoutMode } = useLayoutMode();
   const links = IS_TEST_MODE
     ? [...ALL_PUBLIC_NAV_LINKS, DASHBOARD_NAV_LINK]
-    : isAuthenticated
-    ? [...PUBLIC_NAV_LINKS, POINTS_NAV_LINK, SETTINGS_NAV_LINK]
-    : PUBLIC_NAV_LINKS;
+    : [...PUBLIC_NAV_LINKS];
+
+  if (!IS_TEST_MODE && isAuthenticated) links.push(SETTINGS_NAV_LINK);
+
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
-  if (!IS_TEST_MODE && isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole)) links.push(DASHBOARD_NAV_LINK);
+  if (!IS_TEST_MODE && isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole)) {
+    links.push(DASHBOARD_NAV_LINK);
+  }
 
   return (
     <header className="public-header">
@@ -51,11 +55,19 @@ export default function PublicHeader({ onMenu }) {
             </button>
           ))}
         </div>
+        <IdentityRoleSelect className="header-identity-role" />
         <NavLink className="mobile-icon" aria-label="搜尋" to="/search"><Search size={20} /></NavLink>
         {isAuthenticated && <NotificationBell />}
-        <NavLink className="settings-link" to="/settings" title="管理帳戶設定">
-          👤 我的
-        </NavLink>
+        {isAuthenticated && (
+          <NavLink className="settings-link" to="/settings" title="管理帳戶設定">
+            👤 我的
+          </NavLink>
+        )}
+        {!isAuthenticated && (
+          <NavLink className="settings-link" to="/login" title="登入帳戶">
+            🔐 登入
+          </NavLink>
+        )}
         <button className="mobile-icon menu-button" aria-label="開啟選單" onClick={onMenu}><Menu size={22} /></button>
       </div>
     </header>
