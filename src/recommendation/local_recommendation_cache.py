@@ -9,7 +9,7 @@ from pathlib import Path
 from .cache_repository import CacheBackendError, CacheCorruptError, CacheWriteError
 
 
-_SAFE_CACHE_KEY = re.compile(r"^v[0-9]+/[a-z0-9-]+\.json$")
+_SAFE_CACHE_KEY = re.compile(r"^v[0-9]+/[0-9A-Za-z\u3400-\u9fff_-]+\.json$")
 
 
 class LocalRecommendationCacheRepository:

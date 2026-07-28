@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import hashlib
-import json
+import re
 
 
-# v3 scopes durable recommendation objects by category + region + market.
-SCHEMA_VERSION = 3
+# v4 makes the durable object name identify the market and category. When no
+# market is selected, the region is retained so regional requests do not share
+# an all-markets object accidentally.
+SCHEMA_VERSION = 4
+
+_CACHE_SEGMENT_PATTERN = re.compile(r"[^0-9A-Za-z\u3400-\u9fff_-]+")
 
 REGION_MARKET_KEYWORDS: dict[str, tuple[str, ...]] = {
     "north": ("台北", "三重", "板橋", "桃園", "桃農", "新竹", "宜蘭"),
@@ -117,13 +120,27 @@ def cache_key_for(
     region: str | None = None,
     market: str | None = None,
 ) -> str:
-    """Return a safe relative key scoped by category, region and market."""
+    """Return a readable key scoped by market and category.
+
+    A selected market is the primary cache scope, so the object name is easy
+    to inspect as ``{market}-{category}.json``. Region remains part of the
+    fallback name only when no market is selected.
+    """
     get_category(category_key)
     normalized_region, normalized_market = normalize_recommendation_filters(region, market)
-    context = json.dumps(
-        {"region": normalized_region, "market": normalized_market},
-        ensure_ascii=False,
-        sort_keys=True,
-    )
-    digest = hashlib.sha256(context.encode("utf-8")).hexdigest()[:12]
-    return f"v{SCHEMA_VERSION}/{category_key}-{digest}.json"
+
+    def segment(value: str | None, fallback: str) -> str:
+        normalized = str(value or "").strip()
+        if not normalized:
+            return fallback
+        normalized = _CACHE_SEGMENT_PATTERN.sub("-", normalized)
+        normalized = normalized.strip("-_").lower()
+        return normalized or fallback
+
+    market_segment = segment(normalized_market, "all-markets")
+    if normalized_market:
+        readable_name = f"{market_segment}-{category_key}"
+    else:
+        region_segment = segment(normalized_region, "all-regions")
+        readable_name = f"{region_segment}-{market_segment}-{category_key}"
+    return f"v{SCHEMA_VERSION}/{readable_name}.json"

@@ -258,6 +258,15 @@ def test_different_categories_use_different_keys():
     }
 
 
+def test_cache_key_names_market_and_category():
+    assert cache_key_for("leafy-vegetables", market="Taipei Market") == (
+        f"v{SCHEMA_VERSION}/taipei-market-leafy-vegetables.json"
+    )
+    assert cache_key_for("leafy-vegetables", region="north") == (
+        f"v{SCHEMA_VERSION}/north-all-markets-leafy-vegetables.json"
+    )
+
+
 def test_market_context_uses_distinct_cache_objects_and_filters_candidates():
     repository = FakeCacheRepository()
     llm = CountingLLM(failure=True)
