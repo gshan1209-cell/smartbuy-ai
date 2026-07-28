@@ -46,7 +46,6 @@ def test_two_service_instances_call_llm_only_once_for_same_category():
     def request(service):
         return recommendation_for_category(
             category="leafy-vegetables",
-            member={"id": 1, "role": "admin"},
             service=service,
             generation_lock=generation_lock,
         )

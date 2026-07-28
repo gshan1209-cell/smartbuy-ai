@@ -3,6 +3,7 @@ export const DASHBOARD_ROOT = '/dashboard';
 
 export const PUBLIC_ROUTES = Object.freeze({
   HOME: '/',
+  RECOMMENDATIONS: '/recommendations',
   SEARCH: '/search',
   PRODUCT_DETAIL: '/product/:name',
   BASKET: '/basket',

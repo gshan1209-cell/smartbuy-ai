@@ -181,7 +181,7 @@ export default function MyBasket() {
       {/* 收藏文章（來自農產新知頁，獨立於品項清單） */}
         <h2 id="saved-news" className="page-title" style={{ fontSize: 20, marginTop: 40 }}>📰 收藏文章</h2>
       {!favLoading && savedNews.length === 0 ? (
-        <p className="empty">還沒有收藏的文章，前往<a href="/news" onClick={e => { e.preventDefault(); navigate('/news'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>農產新知</a>看看</p>
+        <p className="empty">還沒有收藏的文章，前往<a href="/news" onClick={e => { e.preventDefault(); navigate('/news'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>新知與資訊分享</a>看看</p>
       ) : (
         <SavedNewsList savedNews={savedNews} onRemove={handleRemoveSavedNews} />
       )}

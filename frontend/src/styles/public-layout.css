@@ -11,17 +11,13 @@
   z-index: 20;
 }
 
-.brand {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--yz-g);
-  white-space: nowrap;
-}
-
 .public-nav {
   display: flex;
   gap: 4px;
   flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .public-nav a,
@@ -36,6 +32,19 @@
   color: var(--yz-g);
   background: var(--yz-gl);
   font-weight: 700;
+}
+
+.test-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 7px;
+  border: 1px solid #e7b64b;
+  border-radius: 999px;
+  color: #8a5a00;
+  background: #fff7dc;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .header-actions {
@@ -96,11 +105,6 @@
   .public-header {
     padding: 0 12px;
     gap: 8px;
-  }
-
-  .brand {
-    font-size: 16px;
-    flex: 1;
   }
 
   .public-nav,
@@ -166,7 +170,6 @@ html[data-layout-mode="mobile"] .public-header {
   gap: 8px;
   padding-inline: 12px;
 }
-html[data-layout-mode="mobile"] .brand { font-size: 16px; flex: 1; }
 html[data-layout-mode="mobile"] .public-nav,
 html[data-layout-mode="mobile"] .settings-link { display: none; }
 html[data-layout-mode="mobile"] .mobile-icon { display: grid; }
@@ -294,6 +297,7 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
   color: var(--yz-mut);
   font-size: 12px;
   line-height: 1.6;
+  white-space: pre-line;
 }
 
 .public-sidebar-nav {

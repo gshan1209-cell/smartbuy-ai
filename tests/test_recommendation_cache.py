@@ -100,6 +100,15 @@ class InvalidPriceLLM(CountingLLM):
         return payload
 
 
+class RoleArrayLLM(CountingLLM):
+    def generate(self, prompt):
+        payload = super().generate(prompt)
+        return [
+            {"role": role, **content}
+            for role, content in payload["role_recommendations"].items()
+        ]
+
+
 def prices():
     rows = []
     for product, values in {
@@ -112,6 +121,24 @@ def prices():
                 {
                     "product_name": product,
                     "market_name": "台北一",
+                    "avg_price": value,
+                    "trans_date": pd.Timestamp("2026-07-20") + pd.Timedelta(days=index),
+                }
+            )
+    frame = pd.DataFrame(rows)
+    frame.attrs["source"] = "Supabase"
+    frame.attrs["is_historical"] = False
+    return frame
+
+
+def market_prices():
+    rows = []
+    for market, values in {"台北一": [20, 21, 22, 20], "台中一": [35, 36, 34, 35]}.items():
+        for index, value in enumerate(values):
+            rows.append(
+                {
+                    "product_name": "菠菜",
+                    "market_name": market,
                     "avg_price": value,
                     "trans_date": pd.Timestamp("2026-07-20") + pd.Timedelta(days=index),
                 }
@@ -170,6 +197,16 @@ def test_single_prompt_contains_three_distinct_role_prompt_sets():
     assert len(objectives) == 3
 
 
+def test_role_array_llm_response_is_normalized_and_validated():
+    service = make_service(llm=RoleArrayLLM())
+
+    result = service.get_recommendation("leafy-vegetables")
+
+    assert result.document.generator == "llm"
+    assert result.document.provider == "test-provider"
+    assert set(result.document.role_recommendations.model_dump()) == set(ROLE_KEYS)
+
+
 def test_existing_json_never_calls_llm():
     repository = FakeCacheRepository()
     llm = CountingLLM()
@@ -219,6 +256,32 @@ def test_different_categories_use_different_keys():
         cache_key_for("leafy-vegetables"),
         cache_key_for("fruit"),
     }
+
+
+def test_market_context_uses_distinct_cache_objects_and_filters_candidates():
+    repository = FakeCacheRepository()
+    llm = CountingLLM(failure=True)
+    service = RecommendationService(repository, llm, price_loader=market_prices)
+
+    north = service.get_recommendation("leafy-vegetables", region="north", market="台北一")
+    central = service.get_recommendation("leafy-vegetables", region="central", market="台中一")
+
+    assert llm.calls == 2
+    assert north.document.market == "台北一"
+    assert central.document.market == "台中一"
+    assert north.document.cache_object_key != central.document.cache_object_key
+    assert all(item.market_name == "台北一" for item in north.document.role_recommendations.consumer.items)
+    assert all(item.market_name == "台中一" for item in central.document.role_recommendations.consumer.items)
+
+
+def test_region_context_filters_markets_when_market_is_not_selected():
+    service = RecommendationService(FakeCacheRepository(), CountingLLM(failure=True), price_loader=market_prices)
+
+    result = service.get_recommendation("leafy-vegetables", region="central")
+
+    assert result.document.region == "central"
+    assert result.document.market is None
+    assert all(item.market_name == "台中一" for item in result.document.role_recommendations.consumer.items)
 
 
 def test_unknown_category_is_rejected():
@@ -293,5 +356,5 @@ def test_r2_repository_routes_legacy_configured_prefix_to_current_schema_version
     )
 
     assert repository.object_key(cache_key_for("leafy-vegetables")) == (
-        f"recommendations/v{SCHEMA_VERSION}/leafy-vegetables.json"
+        f"recommendations/v{SCHEMA_VERSION}/{cache_key_for('leafy-vegetables').split('/', 1)[1]}"
     )

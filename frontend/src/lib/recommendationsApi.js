@@ -21,12 +21,29 @@ export async function loadRecommendationCategories() {
   }
 }
 
-export function loadRecommendation(category) {
+export async function loadRecommendationMarkets(filters = {}) {
+  try {
+    const params = new URLSearchParams();
+    if (filters.category) params.set('category', filters.category);
+    if (filters.region) params.set('region', filters.region);
+    const query = params.toString();
+    const payload = await apiRequest(`/api/markets${query ? `?${query}` : ''}`, { timeoutMs: 8000 });
+    return Array.isArray(payload?.markets) ? payload.markets : [];
+  } catch (error) {
+    throw normalizeRecommendationError(error);
+  }
+}
+
+export function loadRecommendation(category, role, filters = {}) {
   if (!category) return Promise.reject(new Error('請先選擇推薦分類。'));
 
   const requestId = ++latestRecommendationRequest;
+  const params = new URLSearchParams({ category });
+  if (role) params.set('role', role);
+  if (filters.region) params.set('region', filters.region);
+  if (filters.market) params.set('market', filters.market);
   const requestPromise = apiRequest(
-    `/api/recommendations?category=${encodeURIComponent(category)}`,
+    `/api/recommendations?${params.toString()}`,
     { timeoutMs: 150000 },
   ).catch((error) => {
     throw normalizeRecommendationError(error);

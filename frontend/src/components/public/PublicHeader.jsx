@@ -30,7 +30,6 @@ export default function PublicHeader({ onMenu }) {
 
   return (
     <header className="public-header">
-      <NavLink className="brand" to="/">🌿 SmartBuy AI</NavLink>
       <nav className="public-nav">
         {links.map(({ to, label, description }) => (
           <NavLink key={to} to={to} end={to === '/'} title={description} aria-label={description}>
@@ -58,6 +57,11 @@ export default function PublicHeader({ onMenu }) {
         <IdentityRoleSelect className="header-identity-role" />
         <NavLink className="mobile-icon" aria-label="搜尋" to="/search"><Search size={20} /></NavLink>
         {isAuthenticated && <NotificationBell />}
+        {isAuthenticated && (
+          <NavLink className="settings-link" to="/settings" title="管理帳戶設定">
+            👤 我的
+          </NavLink>
+        )}
         {!isAuthenticated && (
           <NavLink className="settings-link" to="/login" title="登入帳戶">
             🔐 登入

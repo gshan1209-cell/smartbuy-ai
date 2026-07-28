@@ -69,6 +69,7 @@ export default function AppRoutes() {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route path={PUBLIC_ROUTES.HOME} element={<Home />} />
+        <Route path={PUBLIC_ROUTES.RECOMMENDATIONS} element={<DashboardRecommendations publicMode />} />
         <Route path={PUBLIC_ROUTES.SEARCH} element={<PriceSearch />} />
         <Route path={PUBLIC_ROUTES.PRODUCT_DETAIL} element={<ProductDetail />} />
         <Route path={PUBLIC_ROUTES.BASKET} element={<MyBasket />} />

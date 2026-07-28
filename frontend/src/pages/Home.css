@@ -6,7 +6,12 @@
 
 .consumer-hero {
   color: #fff;
-  background: linear-gradient(120deg, #0f4b35 0%, #176445 58%, #2e8760 100%);
+  background-image:
+    linear-gradient(90deg, rgba(10, 63, 43, .98) 0%, rgba(18, 91, 61, .9) 42%, rgba(34, 116, 79, .42) 100%),
+    url('/demo/special-offer-fruit-basket.png');
+  background-position: center, right 34%;
+  background-size: cover, cover;
+  background-repeat: no-repeat;
   border-bottom: 8px solid #dbe9d8;
 }
 
@@ -47,6 +52,33 @@
   max-width: 440px;
   color: rgba(255, 255, 255, 0.85);
   font-size: 18px;
+}
+
+.home-ai-recommendation-cta {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 20px;
+  padding: 10px 15px;
+  color: #123d2b;
+  font-weight: 800;
+  background: #d9f2df;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 9px;
+  box-shadow: 0 5px 14px rgba(2, 32, 18, 0.18);
+  cursor: pointer;
+}
+
+.home-ai-recommendation-cta:hover,
+.home-ai-recommendation-cta:focus-visible {
+  color: #0b2e20;
+  background: #fff;
+}
+
+.home-ai-recommendation-cta:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 3px;
 }
 
 .solar-term-chip {
@@ -310,6 +342,13 @@
 }
 
 @media (max-width: 767px) {
+  .consumer-hero {
+    background-image:
+      linear-gradient(180deg, rgba(10, 63, 43, .96) 0%, rgba(18, 91, 61, .84) 64%, rgba(18, 91, 61, .7) 100%),
+      url('/demo/special-offer-fruit-basket.png');
+    background-position: center, 64% center;
+  }
+
   .consumer-hero-inner,
   .consumer-content {
     padding: 28px 16px;

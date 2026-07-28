@@ -71,11 +71,14 @@ class RecommendationDocument(BaseModel):
     schema_version: int = SCHEMA_VERSION
     prompt_set_version: str = PROMPT_SET_VERSION
     cache_key: str
+    cache_object_key: str | None = None
     category: CategoryInfo
     generated_at: datetime
     generator: Literal["llm", "rules-fallback"]
     provider: str | None = None
     model: str | None = None
+    region: str | None = None
+    market: str | None = None
     input_digest: str
     source_summary: SourceSummary
     role_recommendations: RoleRecommendationBundle
