@@ -15,9 +15,8 @@ import IdentityRoleSelect from './IdentityRoleSelect';
 export default function PublicHeader({ onMenu }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
   const { layoutMode, updateLayoutMode } = useLayoutMode();
-  const links = isAuthenticated
-    ? [...PUBLIC_NAV_LINKS, POINTS_NAV_LINK, SETTINGS_NAV_LINK]
-    : PUBLIC_NAV_LINKS;
+  const links = [...PUBLIC_NAV_LINKS, POINTS_NAV_LINK];
+  if (isAuthenticated) links.push(SETTINGS_NAV_LINK);
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
   if (isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole)) links.push(DASHBOARD_NAV_LINK);
