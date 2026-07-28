@@ -171,7 +171,7 @@ export default function Home() {
             <button
               type="button"
               className="home-ai-recommendation-cta"
-              onClick={() => navigate('/dashboard/recommendations')}
+              onClick={() => navigate('/recommendations')}
             >
               <Sparkles size={18} aria-hidden="true" />
               開啟 AI 推薦
@@ -261,9 +261,9 @@ export default function Home() {
           />
           <QuickLinkCard
             icon={Newspaper}
-            title="農產新知"
-            description="掌握與日常採買有關的農產、食材與市場資訊。"
-            actionLabel="逛逛新知"
+            title="新知與資訊分享"
+            description="掌握農產新知，也能查看產地、採購與好物分享。"
+            actionLabel="逛逛內容中心"
             onClick={() => navigate('/news')}
           />
           <QuickLinkCard

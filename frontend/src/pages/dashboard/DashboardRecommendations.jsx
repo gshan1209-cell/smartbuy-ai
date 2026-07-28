@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Activity,
+  CalendarDays,
   Clock3,
-  Database,
-  ListFilter,
-  RefreshCw,
+  Grid2X2,
+  ListChecks,
   ShoppingCart,
   Sparkles,
   Store,
@@ -11,13 +12,18 @@ import {
   Users,
 } from 'lucide-react';
 
-import DashboardMetricCard from '../../components/dashboard/DashboardMetricCard';
 import Badge from '../../components/shared/Badge';
 import Card from '../../components/shared/Card';
 import EmptyState from '../../components/shared/EmptyState';
 import LoadingState from '../../components/shared/LoadingState';
-import { loadRecommendation, loadRecommendationCategories } from '../../lib/recommendationsApi';
+import { TAIWAN_REGIONS } from '../../components/public/CountySelector';
+import {
+  loadRecommendation,
+  loadRecommendationCategories,
+  loadRecommendationMarkets,
+} from '../../lib/recommendationsApi';
 import { IS_TEST_MODE } from '../../config/testMode';
+import { useAuth } from '../../context/AuthContext';
 import '../../styles/dashboard-overview.css';
 import '../../styles/dashboard-recommendations.css';
 import '../../styles/dashboard-recommendation-roles.css';
@@ -46,6 +52,35 @@ const ROLE_PRESENTATIONS = [
   },
 ];
 
+const REGION_MARKET_KEYWORDS = {
+  north: ['台北', '三重', '板橋', '桃園', '桃農', '新竹', '宜蘭'],
+  central: ['台中', '南投', '彰化', '苗栗', '東勢', '永靖', '溪湖', '豐原', '西螺'],
+  south: ['台南', '嘉義', '高雄', '鳳山', '屏東'],
+  east_island: ['花蓮', '台東', '澎湖', '金門', '連江'],
+};
+
+const DATA_STATUS_LABELS = {
+  official: '官方行情',
+  cached: '快取資料',
+  stale: '資料較舊',
+  static_seed: '維護資料',
+  demo: '示範資料',
+  unavailable: '暫無資料',
+};
+
+const PRICE_STATUS_PRESENTATIONS = [
+  { key: '便宜', label: '可優先採買', tone: 'positive' },
+  { key: '正常', label: '維持比較', tone: 'neutral' },
+  { key: '偏貴', label: '需要留意', tone: 'warning' },
+  { key: '資料不足', label: '資料不足', tone: 'muted' },
+];
+
+function marketMatchesRegion(marketName, regionId) {
+  if (!regionId) return true;
+  const keywords = REGION_MARKET_KEYWORDS[regionId] || [];
+  return keywords.some((keyword) => marketName.includes(keyword));
+}
+
 function sourceLabel(source) {
   return source === 'rules-fallback' ? '規則備援' : 'LLM 生成';
 }
@@ -68,6 +103,24 @@ function roleRecommendationsFrom(data) {
   return {};
 }
 
+function dataStatusLabel(status) {
+  return DATA_STATUS_LABELS[status] || status || '資料狀態未提供';
+}
+
+function formatGeneratedAt(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('zh-TW', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 function recommendationErrorMessage(error) {
   const message = error?.message || '推薦資料載入失敗。';
   if (IS_TEST_MODE && /登入|授權|401/i.test(message)) {
@@ -76,14 +129,21 @@ function recommendationErrorMessage(error) {
   return message;
 }
 
-export default function DashboardRecommendations() {
+export default function DashboardRecommendations({ publicMode = false }) {
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState('');
+  const [selectedRole, setSelectedRole] = useState('consumer');
+  const [region, setRegion] = useState('');
+  const [market, setMarket] = useState('');
+  const [markets, setMarkets] = useState([]);
   const [recommendation, setRecommendation] = useState(null);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [categoriesError, setCategoriesError] = useState(null);
+  const { user, dashboardAccess } = useAuth();
+  const currentRole = dashboardAccess?.role || user?.role;
+  const isSystemAdmin = currentRole === 'admin';
 
   async function loadCategories() {
     setCategoriesLoading(true);
@@ -91,7 +151,7 @@ export default function DashboardRecommendations() {
     try {
       const nextCategories = await loadRecommendationCategories();
       setCategories(nextCategories);
-      setCategory((current) => current || nextCategories[0]?.key || '');
+      setCategory((current) => current || '');
     } catch (loadError) {
       setCategoriesError(recommendationErrorMessage(loadError));
     } finally {
@@ -99,12 +159,19 @@ export default function DashboardRecommendations() {
     }
   }
 
-  async function loadSelectedRecommendation(selectedCategory = category) {
-    if (!selectedCategory) return;
+  async function loadSelectedRecommendation(
+    selectedCategory = category,
+    selectedIdentity = selectedRole,
+  ) {
+    if (!selectedCategory || !market) return;
     setLoading(true);
     setError(null);
     try {
-      setRecommendation(await loadRecommendation(selectedCategory));
+      setRecommendation(await loadRecommendation(
+        selectedCategory,
+        publicMode ? selectedIdentity : undefined,
+        { region, market },
+      ));
     } catch (loadError) {
       setError(recommendationErrorMessage(loadError));
     } finally {
@@ -112,23 +179,66 @@ export default function DashboardRecommendations() {
     }
   }
 
+  function chooseCategory(nextCategory) {
+    setCategory(nextCategory);
+    setRecommendation(null);
+    setError(null);
+  }
+
+  function chooseRole(nextRole) {
+    setSelectedRole(nextRole);
+    setRecommendation(null);
+    setError(null);
+  }
+
+  function chooseRegion(nextRegion) {
+    setRegion(nextRegion);
+    if (market && !marketMatchesRegion(market, nextRegion)) setMarket('');
+    setRecommendation(null);
+    setError(null);
+  }
+
+  function chooseMarket(nextMarket) {
+    setMarket(nextMarket);
+    setRecommendation(null);
+    setError(null);
+  }
+
   useEffect(() => {
     loadCategories();
   }, []);
 
   useEffect(() => {
-    if (category) loadSelectedRecommendation(category);
-  }, [category]);
+    loadRecommendationMarkets({ region })
+      .then((nextMarkets) => {
+        setMarkets(nextMarkets);
+        setMarket((current) => (current && nextMarkets.includes(current) ? current : ''));
+      })
+      .catch(() => setMarkets([]));
+  }, [region]);
 
   const data = recommendation?.data;
-  const summary = data?.source_summary;
   const source = data?.generator;
   const roleRecommendations = roleRecommendationsFrom(data);
-  const selectedCategory = useMemo(
-    () => categories.find((item) => item.key === category),
-    [categories, category],
+  const activeRolePresentation = ROLE_PRESENTATIONS.find((item) => item.key === selectedRole) || ROLE_PRESENTATIONS[0];
+  const activeRecommendation = publicMode
+    ? (recommendation?.selected_recommendation || roleRecommendations[selectedRole])
+    : roleRecommendations.consumer;
+  const dashboardItems = activeRecommendation?.items || [];
+  const statusCounts = PRICE_STATUS_PRESENTATIONS.reduce((counts, status) => ({
+    ...counts,
+    [status.key]: dashboardItems.filter((item) => item.price_status === status.key).length,
+  }), {});
+  const statusMax = Math.max(...Object.values(statusCounts), 1);
+  const sourceSummary = data?.source_summary || {};
+  const categoryLabel = data?.category?.label
+    || categories.find((item) => item.key === category)?.label
+    || '推薦分類';
+  const attentionCount = statusCounts['偏貴'] + statusCounts['資料不足'];
+  const filteredMarkets = useMemo(
+    () => markets.filter((item) => marketMatchesRegion(item, region)),
+    [markets, region],
   );
-
   if (categoriesLoading && !categories.length) return <LoadingState label="正在載入推薦分類…" />;
 
   if (categoriesError && !categories.length) {
@@ -142,40 +252,224 @@ export default function DashboardRecommendations() {
   }
 
   return (
-    <div className="dashboard-overview dashboard-recommendations-page">
+    <div className={`dashboard-overview dashboard-recommendations-page${publicMode ? ' public-recommendations-page' : ''}`}>
       <header className="dashboard-overview-heading">
         <div>
-          <p className="eyebrow">AI Recommendation · Three Roles · Cache First</p>
-          <h1>AI 三角色推薦</h1>
-          <p>同一份行情，以消費者、農民與商家三套提示語同步分析；已有 JSON 時不再呼叫 LLM。</p>
+          <p className="eyebrow">AI Recommendation Console</p>
+          <h1>推薦控制台</h1>
+          {recommendation && (
+            <p className="recommendation-dashboard-heading-note">
+              {categoryLabel} · {activeRolePresentation.label} · 生成於 {formatGeneratedAt(recommendation.generated_at || data?.generated_at)}
+            </p>
+          )}
         </div>
-        <button
-          type="button"
-          className="recommendation-refresh-button"
-          onClick={() => loadSelectedRecommendation()}
-          disabled={loading || !category}
-        >
-          <RefreshCw size={17} className={loading ? 'spin' : ''} />
-          {loading ? '重新讀取中…' : '重新讀取快取'}
-        </button>
       </header>
 
-      <section className="recommendation-category-bar" aria-label="推薦分類">
-        <span className="recommendation-category-label"><ListFilter size={18} />選擇分類</span>
-        <div className="recommendation-category-chips">
-          {categories.map((item) => (
-            <button
-              type="button"
-              key={item.key}
-              className={item.key === category ? 'is-active' : ''}
-              onClick={() => setCategory(item.key)}
-              aria-pressed={item.key === category}
-            >
-              {item.label}
-            </button>
-          ))}
+      <Card className="recommendation-control-card">
+        <div className="recommendation-control-heading">
+          <div>
+            <p className="eyebrow">Recommendation Controls</p>
+            <h2>設定推薦條件</h2>
+            <p>市場與分類為必選條件；快取不存在時才會呼叫一次 LLM，已有結果會直接讀取。</p>
+          </div>
+          <button
+            type="button"
+            className="recommendation-generate-button"
+            onClick={() => loadSelectedRecommendation(category, selectedRole)}
+            disabled={loading || !category || !market}
+          >
+            <Sparkles size={18} className={loading ? 'spin' : ''} />
+            {loading ? 'AI 產生中…' : 'AI推薦'}
+          </button>
         </div>
-      </section>
+
+        {publicMode && (
+          <section className="recommendation-category-bar recommendation-role-selector" aria-label="推薦身分">
+            <span className="recommendation-category-label"><Users size={18} />選擇身分</span>
+            <div className="recommendation-category-chips">
+              {ROLE_PRESENTATIONS.map((role) => {
+                const Icon = role.icon;
+                return (
+                  <button
+                    type="button"
+                    key={role.key}
+                    className={role.key === selectedRole ? 'is-active' : ''}
+                    onClick={() => chooseRole(role.key)}
+                    aria-pressed={role.key === selectedRole}
+                  >
+                    <Icon size={16} aria-hidden="true" />
+                    {role.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        <div className="recommendation-condition-row" aria-label="區域、市場與分類條件">
+          <label className="recommendation-condition-field">
+            <span>區域</span>
+            <select
+              id="recommendation-region"
+              aria-label="推薦區域"
+              value={region}
+              onChange={(event) => chooseRegion(event.target.value)}
+            >
+              <option value="">全部區域</option>
+              {TAIWAN_REGIONS.map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="recommendation-condition-field">
+            <span>市場</span>
+            <select
+              id="recommendation-market"
+              aria-label="推薦市場"
+              value={market}
+              onChange={(event) => chooseMarket(event.target.value)}
+            >
+              <option value="">全部市場</option>
+              {filteredMarkets.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>
+          <label className="recommendation-condition-field">
+            <span>分類</span>
+            <select
+              id="recommendation-category"
+              aria-label="推薦分類"
+              value={category}
+              onChange={(event) => chooseCategory(event.target.value)}
+            >
+              <option value="">請選擇分類</option>
+              {categories.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+            </select>
+          </label>
+        </div>
+      </Card>
+
+      {recommendation && (
+        <section className="recommendation-dashboard-shell" aria-label="推薦儀表板">
+          <header className="recommendation-dashboard-hero">
+            <div>
+              <p className="eyebrow">SmartBuy AI · Market Brief</p>
+              <h2>{recommendation ? `${categoryLabel}採買與行動總覽` : 'AI 採買推薦儀表板'}</h2>
+              <p>{recommendation
+                ? '依照目前可取得的行情資料，整理成可直接執行的採買決策。'
+                : '完成市場與分類條件後，這裡會顯示可追溯的行情摘要與行動建議。'}</p>
+            </div>
+            <div className="recommendation-dashboard-hero-meta">
+              <span><CalendarDays size={16} />最新交易日：{recommendation ? (sourceSummary.latest_trade_date || '—') : '尚未生成'}</span>
+              <span><Clock3 size={16} />更新時間：{recommendation ? formatGeneratedAt(recommendation.generated_at || data?.generated_at) : '等待條件'}</span>
+            </div>
+          </header>
+
+          <div className="recommendation-dashboard-kpis" aria-label="推薦摘要指標">
+            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-blue">
+              <span className="recommendation-dashboard-kpi-icon"><Grid2X2 size={22} /></span>
+              <div>
+                <span>監測品項</span>
+                <strong>{recommendation ? (sourceSummary.candidate_count ?? '—') : '—'}</strong>
+                <small>{recommendation ? `${categoryLabel}候選資料` : '完成條件後顯示'}</small>
+              </div>
+            </Card>
+            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-amber">
+              <span className="recommendation-dashboard-kpi-icon"><Activity size={22} /></span>
+              <div>
+                <span>需要留意</span>
+                <strong>{recommendation ? attentionCount : '—'}</strong>
+                <small>{recommendation ? '偏貴或資料不足' : '等待推薦結果'}</small>
+              </div>
+            </Card>
+            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-green">
+              <span className="recommendation-dashboard-kpi-icon"><ListChecks size={22} /></span>
+              <div>
+                <span>行動建議</span>
+                <strong>{recommendation ? dashboardItems.length : '—'}</strong>
+                <small>{recommendation ? `${activeRolePresentation.label}可執行項目` : '等待推薦結果'}</small>
+              </div>
+            </Card>
+            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-purple">
+              <span className="recommendation-dashboard-kpi-icon"><Sparkles size={22} /></span>
+              <div>
+                <span>資料狀態</span>
+                <strong>{recommendation ? dataStatusLabel(data?.data_status || sourceSummary.data_status) : '待生成'}</strong>
+                <small>{recommendation ? (sourceSummary.source_name || '推薦資料來源未提供') : '尚未呼叫 AI推薦'}</small>
+              </div>
+            </Card>
+          </div>
+
+          <div className="recommendation-dashboard-analysis-grid">
+            <Card className="recommendation-dashboard-chart-card">
+              <div className="recommendation-dashboard-card-heading">
+                <div>
+                  <p className="eyebrow">Price Signals</p>
+                  <h3>價格狀態分布</h3>
+                </div>
+                  <span>{recommendation ? `${activeRolePresentation.label} · ${dashboardItems.length} 項` : '完成條件後顯示'}</span>
+              </div>
+              <div className="recommendation-status-bars" role="list" aria-label="價格狀態分布">
+                {PRICE_STATUS_PRESENTATIONS.map((status) => (
+                  <div className={`recommendation-status-row recommendation-status-${status.tone}`} key={status.key} role="listitem">
+                    <div className="recommendation-status-label">
+                      <span>{status.label}</span>
+                      <strong>{statusCounts[status.key]}</strong>
+                    </div>
+                    <div className="recommendation-status-track" aria-hidden="true">
+                      <span style={{ width: recommendation ? `${(statusCounts[status.key] / statusMax) * 100}%` : '0%' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <small className="recommendation-dashboard-source-note">
+                {recommendation
+                  ? '狀態依推薦回應中的品項價格判定，並非額外推算的即時行情。'
+                  : '完成市場、分類與身分條件後，這裡會顯示真實推薦回應中的價格狀態。'}
+              </small>
+            </Card>
+
+            <Card className="recommendation-dashboard-trend-card">
+              <div className="recommendation-dashboard-card-heading">
+                <div>
+                  <p className="eyebrow">Trend Context</p>
+                  <h3>市場趨勢</h3>
+                </div>
+                <span className="recommendation-dashboard-unavailable-badge">{recommendation ? '待補充' : '尚未生成'}</span>
+              </div>
+              <div className="recommendation-dashboard-unavailable-chart" role="status">
+                <Activity size={30} aria-hidden="true" />
+                <strong>{recommendation ? '目前推薦資料沒有歷史序列' : '完成條件後載入推薦資料'}</strong>
+                <p>{recommendation
+                  ? '先依照這次 AI 推薦行動；需要 14 日走勢時，可前往查價頁查看官方行情。'
+                  : '選擇市場與分類，再按下 AI推薦，儀表板會以正式回應更新。'}</p>
+              </div>
+            </Card>
+          </div>
+
+          <div className="recommendation-dashboard-insights" aria-label="採買行動建議">
+            {PRICE_STATUS_PRESENTATIONS.map((status) => (
+              <Card className={`recommendation-dashboard-insight recommendation-dashboard-insight-${status.tone}`} key={status.key}>
+                <div className="recommendation-dashboard-insight-heading">
+                  <strong>{status.label}</strong>
+                  <span>{recommendation ? `${statusCounts[status.key]} 項` : '—'}</span>
+                </div>
+                <p>
+                  {recommendation
+                    ? (
+                      <>
+                        {status.key === '便宜' && '可優先比較市場並安排採買。'}
+                        {status.key === '正常' && '維持比價，依實際需求分批採買。'}
+                        {status.key === '偏貴' && '先確認替代品或延後採買，避免追價。'}
+                        {status.key === '資料不足' && '先補充行情資料，再做價格判斷。'}
+                      </>
+                    )
+                    : '尚未生成推薦，完成上方條件後顯示。'}
+                </p>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {error && (
         <div className="recommendation-error" role="alert">
@@ -185,77 +479,49 @@ export default function DashboardRecommendations() {
         </div>
       )}
 
-      {loading && !recommendation && <LoadingState label="正在讀取推薦快取…" />}
+      {loading && !recommendation && <LoadingState label="正在取得 AI 推薦…" />}
+
+      {!loading && !recommendation && !error && (
+        <Card className="recommendation-empty-card">
+          <Sparkles size={28} aria-hidden="true" />
+          <div>
+            <h2>準備好取得推薦了嗎？</h2>
+            <p>確認上方市場、分類與身分後，按下「AI推薦」查看對應的行動建議。</p>
+          </div>
+        </Card>
+      )}
 
       {recommendation && (
         <>
-          <section className="dashboard-metric-grid recommendation-metrics">
-            <DashboardMetricCard
-              label="推薦分類"
-              value={selectedCategory?.label || category}
-              icon={Sparkles}
-              source="/api/recommendations/categories"
-              updatedAt={data.generated_at}
-              description={selectedCategory?.description}
-            />
-            <DashboardMetricCard
-              label="角色提示語"
-              value="3 套"
-              tone="info"
-              icon={Users}
-              source={data.prompt_set_version || recommendation.prompt_set_version}
-              updatedAt={data.generated_at}
-              description="消費者、農民、商家一次生成"
-            />
-            <DashboardMetricCard
-              label="生成來源"
-              value={sourceLabel(source)}
-              tone={sourceTone(source)}
-              icon={Sparkles}
-              source="推薦 JSON"
-              updatedAt={data.generated_at}
-              description={recommendation.llm_called ? '本次單次呼叫產生三角色結果' : '本次 LLM 未呼叫'}
-            />
-            <DashboardMetricCard
-              label="JSON 快取狀態"
-              value={cacheLabel(recommendation.cache_hit)}
-              tone={recommendation.cache_hit ? 'success' : 'info'}
-              icon={Database}
-              source={recommendation.cache_backend}
-              updatedAt={data.generated_at}
-              description="重新整理只重新讀取，不會強制生成"
-            />
-            <DashboardMetricCard
-              label="候選品項"
-              value={summary?.candidate_count ?? '—'}
-              icon={ListFilter}
-              source={summary?.source_name}
-              updatedAt={summary?.latest_trade_date}
-              description={`資料狀態：${summary?.data_status || '未提供'}`}
-            />
-          </section>
-
-          <section className="recommendation-meta-row" aria-label="推薦狀態">
+          {isSystemAdmin && <section className="recommendation-meta-row" aria-label="推薦狀態">
             <Badge tone={recommendation.cache_hit ? 'success' : 'info'}>{cacheLabel(recommendation.cache_hit)}</Badge>
             <Badge tone={sourceTone(source)}>{sourceLabel(source)}</Badge>
             <Badge tone="info">三套角色提示語</Badge>
             <Badge tone="neutral">LLM {recommendation.llm_called ? '已呼叫 1 次' : '未呼叫'}</Badge>
             <span><Clock3 size={15} />生成時間：{data.generated_at || '—'}</span>
             <span>快取來源：{recommendation.cache_backend || '—'}</span>
-          </section>
+          </section>}
 
-          <section className="recommendation-roles-section" aria-labelledby="role-recommendations-title">
+          <section className="recommendation-roles-section recommendation-results-dashboard" aria-labelledby="role-recommendations-title">
             <div className="recommendation-section-heading">
               <div>
-                <p className="eyebrow">One Market · Three Perspectives</p>
-                <h2 id="role-recommendations-title">同一畫面，三個角色</h2>
+                <p className="eyebrow">{publicMode ? 'Selected Identity · Actionable Advice' : 'One Market · Three Perspectives'}</p>
+                <h2 id="role-recommendations-title">{publicMode ? '你的專屬推薦' : '同一畫面，三個角色'}</h2>
               </div>
-              <span>Prompt set：{data.prompt_set_version || recommendation.prompt_set_version || '—'}</span>
+              {publicMode ? (
+                <span>身分：{ROLE_PRESENTATIONS.find((item) => item.key === selectedRole)?.label || selectedRole}</span>
+              ) : isSystemAdmin ? (
+                <span>Prompt set：{data.prompt_set_version || recommendation.prompt_set_version || '—'}</span>
+              ) : null}
             </div>
 
             <div className="recommendation-role-grid">
-              {ROLE_PRESENTATIONS.map((role) => {
-                const roleContent = roleRecommendations[role.key];
+              {ROLE_PRESENTATIONS.filter((role) => !publicMode || role.key === selectedRole).map((role) => {
+                const roleContent = publicMode
+                  ? (recommendation.selected_role === selectedRole
+                    ? (recommendation.selected_recommendation || roleRecommendations[role.key])
+                    : roleRecommendations[role.key])
+                  : roleRecommendations[role.key];
                 const Icon = role.icon;
                 const items = roleContent?.items || [];
 
@@ -322,20 +588,6 @@ export default function DashboardRecommendations() {
             </div>
           </section>
 
-          <Card className="recommendation-cache-card recommendation-cache-banner">
-            <div className="recommendation-section-heading">
-              <div>
-                <p className="eyebrow">Cost Protection</p>
-                <h2>三角色共用一次生成與一份 JSON</h2>
-              </div>
-              <Database size={22} aria-hidden="true" />
-            </div>
-            <p>同一分類首次建立時，以單次 LLM 請求提交三套角色提示語；成功寫入 v2 JSON 後，後續請求只讀取持久快取。</p>
-            <strong>{recommendation.cache_hit ? '本次直接使用既有三角色 JSON' : '本次完成三角色 JSON 建立'}</strong>
-            <small>
-              Cache key：{data.cache_key || '—'} · Digest：{data.input_digest || '—'} · 資料日期：{summary?.latest_trade_date || '—'}
-            </small>
-          </Card>
         </>
       )}
     </div>

@@ -22,6 +22,11 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
       ],
     },
   ]),
+  '/recommendations': context(
+    'AI 採買推薦',
+    [],
+    '選擇行情分類與使用身分，取得對應的採買與行動建議。',
+  ),
   '/product': context('商品詳情', [
     {
       heading: '查詢條件',
@@ -41,14 +46,15 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
       ],
     },
   ]),
-  '/news': context('📰 農產新知', [
+  '/news': context('SmartBuy AI · 內容中心', [
     {
       heading: '查詢條件',
       links: [
         link('/news', '全部文章', '清除條件並查看全部文章'),
+        link('/news?section=information-sharing', '資訊分享', '查看產地、採購與好物分享'),
       ],
     },
-  ], '彙整農業部、各大媒體農業相關報導，掌握最新產銷動態。'),
+  ], '新知與資訊分享\n掌握農產市場新知，也能查看產地、採購與好物分享。'),
   '/special-offers': context('好康推薦', [
     {
       heading: '查詢條件',
@@ -58,15 +64,16 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
       ],
     },
   ]),
-  '/information-sharing': context('資訊分享', [
+  '/information-sharing': context('SmartBuy AI · 內容中心', [
     {
       heading: '查詢條件',
       links: [
-        link('/information-sharing?type=資訊分享', '全部資訊', '查看資訊分享內容'),
-        link('/information-sharing?share_kind=product_recommendation', '商品推薦', '查看商品推薦內容'),
+        link('/news?section=information-sharing&type=資訊分享', '全部資訊', '查看資訊分享內容'),
+        link('/news?section=information-sharing&share_kind=product_recommendation', '商品推薦', '查看商品推薦內容'),
+        link('/news', '農產新知', '查看農產文章與市場報導'),
       ],
     },
-  ], '保留產地、栽培、產品與採購相關的實用資訊分享。'),
+  ], '新知與資訊分享\n掌握農產市場新知，也能查看產地、採購與好物分享。'),
   '/mutual-aid': context('🎁 好康', [
     {
       heading: '查詢條件',

@@ -1,4 +1,4 @@
-"""AI 採買推薦的快取優先、single-flight 與三角色規則備援流程。"""
+"""AI 採買推薦的情境快取優先、single-flight 與三角色規則備援流程。"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -23,7 +23,14 @@ from .cache_repository import (
     RecommendationCacheRepository,
     build_recommendation_cache_repository,
 )
-from .category_catalog import SCHEMA_VERSION, CategoryDefinition, cache_key_for, get_category
+from .category_catalog import (
+    SCHEMA_VERSION,
+    CategoryDefinition,
+    cache_key_for,
+    get_category,
+    market_matches_region,
+    normalize_recommendation_filters,
+)
 from .llm_recommendation_client import (
     OpenAICompatibleRecommendationClient,
     RecommendationLLMClient,
@@ -66,6 +73,8 @@ class RecommendationResult:
         data["recommendation"] = consumer_recommendation
         return {
             "category": self.document.category.key,
+            "region": self.document.region,
+            "market": self.document.market,
             "cache_hit": self.cache_hit,
             "llm_called": self.llm_called,
             "cache_backend": self.cache_backend,
@@ -106,29 +115,35 @@ class RecommendationService:
             llm_client=OpenAICompatibleRecommendationClient(),
         )
 
-    def get_recommendation(self, category_key: str) -> RecommendationResult:
+    def get_recommendation(
+        self,
+        category_key: str,
+        region: str | None = None,
+        market: str | None = None,
+    ) -> RecommendationResult:
         started = time.perf_counter()
         category = get_category(category_key)
-        cache_key = cache_key_for(category.key)
+        region, market = normalize_recommendation_filters(region, market)
+        cache_key = cache_key_for(category.key, region, market)
 
-        cached = self._read_existing(category, cache_key)
+        cached = self._read_existing(category, cache_key, region, market)
         if cached is not None:
             self._log_result(category, cache_key, cached, cache_hit=True, llm_called=False, started=started)
             return RecommendationResult(cached, cache_hit=True, llm_called=False, cache_backend=self.repository.backend_name)
 
         entry = self._acquire_lock(cache_key)
         try:
-            cached = self._read_existing(category, cache_key)
+            cached = self._read_existing(category, cache_key, region, market)
             if cached is not None:
                 self._log_result(category, cache_key, cached, cache_hit=True, llm_called=False, started=started)
                 return RecommendationResult(cached, cache_hit=True, llm_called=False, cache_backend=self.repository.backend_name)
 
-            candidates, source_summary = self._load_candidates(category)
+            candidates, source_summary = self._load_candidates(category, region, market)
             if not candidates:
                 raise RecommendationDataUnavailable(f"分類沒有可用行情候選品項: {category.key}")
 
-            input_digest = self._input_digest(category, candidates, source_summary)
-            prompt = self._build_prompt(category, candidates, source_summary)
+            input_digest = self._input_digest(category, candidates, source_summary, region, market)
+            prompt = self._build_prompt(category, candidates, source_summary, region, market)
             llm_called = True
             try:
                 raw = self.llm_client.generate(prompt)
@@ -138,6 +153,8 @@ class RecommendationService:
                     candidates,
                     source_summary,
                     input_digest,
+                    region,
+                    market,
                 )
             except Exception as exc:
                 logger.warning(
@@ -149,6 +166,8 @@ class RecommendationService:
                     candidates,
                     source_summary,
                     input_digest,
+                    region,
+                    market,
                 )
 
             try:
@@ -165,7 +184,7 @@ class RecommendationService:
                 return RecommendationResult(document, cache_hit=False, llm_called=llm_called, cache_backend=self.repository.backend_name)
 
             # Another instance may have won the race. Never report our unpersisted document.
-            persisted = self._read_existing(category, cache_key)
+            persisted = self._read_existing(category, cache_key, region, market)
             if persisted is None:
                 raise CacheBackendError(f"推薦快取寫入競態後無法讀回: {cache_key}")
             self._log_result(category, cache_key, persisted, cache_hit=True, llm_called=False, started=started)
@@ -207,14 +226,26 @@ class RecommendationService:
             },
         )
 
-    def _read_existing(self, category: CategoryDefinition, cache_key: str) -> RecommendationDocument | None:
+    def _read_existing(
+        self,
+        category: CategoryDefinition,
+        cache_key: str,
+        region: str | None,
+        market: str | None,
+    ) -> RecommendationDocument | None:
         try:
             if not self.repository.exists(cache_key):
                 return None
             raw = self.repository.read(cache_key)
             document = RecommendationDocument.model_validate(raw)
-            if document.cache_key != category.key or document.category.key != category.key:
-                raise CacheCorruptError(f"推薦快取分類不一致: {cache_key}")
+            if (
+                document.cache_key != category.key
+                or document.cache_object_key != cache_key
+                or document.category.key != category.key
+                or document.region != region
+                or document.market != market
+            ):
+                raise CacheCorruptError(f"推薦快取情境不一致: {cache_key}")
             self._validate_role_metadata(document)
             return document
         except CacheCorruptError:
@@ -230,7 +261,12 @@ class RecommendationService:
             )
             raise CacheCorruptError(f"推薦快取 schema 不合法: {cache_key}") from exc
 
-    def _load_candidates(self, category: CategoryDefinition) -> tuple[list[dict], SourceSummary]:
+    def _load_candidates(
+        self,
+        category: CategoryDefinition,
+        region: str | None = None,
+        market: str | None = None,
+    ) -> tuple[list[dict], SourceSummary]:
         try:
             prices = price_cache.get("prices")
             if prices is None:
@@ -249,8 +285,16 @@ class RecommendationService:
             raise RecommendationSourceUnavailable("行情資料缺少推薦所需欄位")
         mask = data["product_name"].fillna("").astype(str).map(category.matches)
         filtered = data.loc[mask].copy()
+        if market:
+            filtered = filtered[filtered["market_name"].astype(str) == market]
+        elif region:
+            filtered = filtered[
+                filtered["market_name"].astype(str).map(
+                    lambda market_name: market_matches_region(market_name, region)
+                )
+            ]
         if filtered.empty:
-            return [], self._source_summary(data, 0)
+            return [], self._source_summary(filtered, 0)
 
         try:
             statuses = get_all_price_statuses(prices=filtered)
@@ -275,10 +319,18 @@ class RecommendationService:
         )
 
     @staticmethod
-    def _input_digest(category: CategoryDefinition, candidates: list[dict], source_summary: SourceSummary) -> str:
+    def _input_digest(
+        category: CategoryDefinition,
+        candidates: list[dict],
+        source_summary: SourceSummary,
+        region: str | None = None,
+        market: str | None = None,
+    ) -> str:
         raw = json.dumps(
             {
                 "category": category.key,
+                "region": region,
+                "market": market,
                 "prompt_set_version": PROMPT_SET_VERSION,
                 "candidates": candidates,
                 "source_summary": source_summary.model_dump(),
@@ -290,7 +342,13 @@ class RecommendationService:
         return hashlib.sha256(raw).hexdigest()[:16]
 
     @staticmethod
-    def _build_prompt(category: CategoryDefinition, candidates: list[dict], source_summary: SourceSummary) -> str:
+    def _build_prompt(
+        category: CategoryDefinition,
+        candidates: list[dict],
+        source_summary: SourceSummary,
+        region: str | None = None,
+        market: str | None = None,
+    ) -> str:
         content_schema = {
             "summary": "string",
             "market_outlook": "string",
@@ -314,6 +372,11 @@ class RecommendationService:
                 "task": "使用同一份正式行情候選資料，依三套角色提示語分別產生消費者、農民與商家建議；三份結果必須一次回傳。",
                 "prompt_set_version": PROMPT_SET_VERSION,
                 "category": category.as_dict(),
+                "selection": {
+                    "region": region,
+                    "market": market,
+                    "instruction": "推薦只能根據此區域與市場的候選行情產生。",
+                },
                 "source_summary": source_summary.model_dump(),
                 "candidates": candidates,
                 "role_prompts": {
@@ -340,12 +403,38 @@ class RecommendationService:
             ensure_ascii=False,
         )
 
-    def _document_from_llm(self, category, raw, candidates, source_summary, input_digest) -> RecommendationDocument:
+    def _document_from_llm(
+        self,
+        category,
+        raw,
+        candidates,
+        source_summary,
+        input_digest,
+        region=None,
+        market=None,
+    ) -> RecommendationDocument:
+        expected_roles = {definition.key for definition in ROLE_PROMPT_DEFINITIONS}
         role_payload = raw.get("role_recommendations") if isinstance(raw, dict) else None
+        # Gemini may return the three role objects as a top-level array even
+        # when the prompt requests the equivalent named object. Normalize only
+        # this unambiguous shape; all fields still pass the same Pydantic and
+        # candidate-integrity validation below.
+        if role_payload is None and isinstance(raw, list):
+            role_payload = {}
+            for content in raw:
+                if not isinstance(content, dict) or content.get("role") not in expected_roles:
+                    raise ValueError("LLM 角色陣列格式不合法")
+                role = content["role"]
+                if role in role_payload:
+                    raise ValueError("LLM 重複輸出角色")
+                normalized = dict(content)
+                normalized.pop("role", None)
+                normalized.pop("role_label", None)
+                normalized.pop("perspective", None)
+                role_payload[role] = normalized
         if not isinstance(role_payload, dict):
             raise ValueError("LLM role_recommendations 不是 object")
 
-        expected_roles = {definition.key for definition in ROLE_PROMPT_DEFINITIONS}
         if set(role_payload) != expected_roles:
             raise ValueError("LLM 未完整輸出三個正式角色")
 
@@ -354,6 +443,10 @@ class RecommendationService:
             content = role_payload.get(definition.key)
             if not isinstance(content, dict):
                 raise ValueError(f"LLM 角色內容不是 object: {definition.key}")
+            content = dict(content)
+            content.pop("role", None)
+            content.pop("role_label", None)
+            content.pop("perspective", None)
             normalized_roles[definition.key] = RoleRecommendationContent(
                 role=definition.key,
                 role_label=definition.label,
@@ -365,11 +458,14 @@ class RecommendationService:
             "schema_version": SCHEMA_VERSION,
             "prompt_set_version": PROMPT_SET_VERSION,
             "cache_key": category.key,
+            "cache_object_key": cache_key_for(category.key, region, market),
             "category": category.as_dict(),
             "generated_at": datetime.now(timezone.utc),
             "generator": "llm",
             "provider": getattr(self.llm_client, "provider", "openai-compatible"),
             "model": getattr(self.llm_client, "model", None),
+            "region": region,
+            "market": market,
             "input_digest": input_digest,
             "source_summary": source_summary.model_dump(),
             "role_recommendations": RoleRecommendationBundle(**normalized_roles),
@@ -410,7 +506,14 @@ class RecommendationService:
                     raise ValueError("LLM 使用了輸入資料不存在的替代品")
 
     @staticmethod
-    def _document_from_rules(category, candidates, source_summary, input_digest) -> RecommendationDocument:
+    def _document_from_rules(
+        category,
+        candidates,
+        source_summary,
+        input_digest,
+        region=None,
+        market=None,
+    ) -> RecommendationDocument:
         cheap = sum(1 for row in candidates if row.get("status") == "便宜")
         normal = sum(1 for row in candidates if row.get("status") == "正常")
         expensive = sum(1 for row in candidates if row.get("status") == "偏貴")
@@ -462,11 +565,14 @@ class RecommendationService:
 
         return RecommendationDocument(
             cache_key=category.key,
+            cache_object_key=cache_key_for(category.key, region, market),
             category=CategoryInfo(**category.as_dict()),
             generated_at=datetime.now(timezone.utc),
             generator="rules-fallback",
             provider=None,
             model=None,
+            region=region,
+            market=market,
             input_digest=input_digest,
             source_summary=source_summary,
             role_recommendations=RoleRecommendationBundle(**role_contents),

@@ -22,6 +22,9 @@ frontend/playwright-report/
 frontend/test-results/
 .vite/
 backend/.cache/
+.cache/
+frontend/debug.log
+frontend/vite-dev*.log
 
 cookies.txt
 
@@ -33,3 +36,5 @@ cookies.txt
 # Claude Code local permission settings (machine-specific, not shared)
 .claude/settings.local.json
 .runlogs/*
+.codex/runtime/frontend-error.log
+.codex/runtime/frontend.log

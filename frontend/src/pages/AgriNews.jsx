@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
+import MutualAid from './MutualAid';
 import './AgriNews.css';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
@@ -58,7 +59,7 @@ function formatDate(raw) {
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function AgriNews() {
+function AgriNewsArticles() {
   const [searchParams] = useSearchParams();
   const searchParamString = searchParams.toString();
   const initialCache = readNewsCache(getNewsCacheKey({
@@ -421,10 +422,46 @@ export default function AgriNews() {
             <strong>{INFO_SHARE_COPY.title}</strong>
             <span>{INFO_SHARE_COPY.description}</span>
           </div>
-          <Link className="agri-news-info-link" to="/information-sharing">{INFO_SHARE_COPY.action}</Link>
+          <Link className="agri-news-info-link" to="/news?section=information-sharing">查看資訊分享</Link>
         </section>
       </div>
       <Toast message={toastMsg} />
+    </div>
+  );
+}
+
+function ContentHubTabs({ activeSection }) {
+  return (
+    <nav className="content-hub-tabs" aria-label="新知與資訊分享分頁">
+      <Link
+        className={activeSection === 'news' ? 'is-active' : ''}
+        to="/news"
+        aria-current={activeSection === 'news' ? 'page' : undefined}
+      >
+        📰 農產新知
+      </Link>
+      <Link
+        className={activeSection === 'information-sharing' ? 'is-active' : ''}
+        to="/news?section=information-sharing"
+        aria-current={activeSection === 'information-sharing' ? 'page' : undefined}
+      >
+        📣 資訊分享
+      </Link>
+    </nav>
+  );
+}
+
+export default function AgriNews() {
+  const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
+  const isInformationSharing = pathname === '/information-sharing'
+    || searchParams.get('section') === 'information-sharing';
+  const activeSection = isInformationSharing ? 'information-sharing' : 'news';
+
+  return (
+    <div className="content-hub-page">
+      <ContentHubTabs activeSection={activeSection} />
+      {isInformationSharing ? <MutualAid allowedTypes={['資訊分享']} /> : <AgriNewsArticles />}
     </div>
   );
 }

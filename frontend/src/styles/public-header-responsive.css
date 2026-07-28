@@ -6,10 +6,6 @@
     padding-inline: 12px;
   }
 
-  .public-header > .brand {
-    display: none;
-  }
-
   .public-nav {
     min-width: 0;
     flex: 1 1 auto;
@@ -25,10 +21,6 @@
 html[data-layout-mode="tablet"] .public-header {
   gap: 8px;
   padding-inline: 12px;
-}
-
-html[data-layout-mode="tablet"] .public-header > .brand {
-  display: none;
 }
 
 html[data-layout-mode="tablet"] .public-nav {

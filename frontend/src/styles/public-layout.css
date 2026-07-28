@@ -11,13 +11,6 @@
   z-index: 20;
 }
 
-.brand {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--yz-g);
-  white-space: nowrap;
-}
-
 .public-nav {
   display: flex;
   gap: 4px;
@@ -114,11 +107,6 @@
     gap: 8px;
   }
 
-  .brand {
-    font-size: 16px;
-    flex: 1;
-  }
-
   .public-nav,
   .settings-link {
     display: none;
@@ -182,7 +170,6 @@ html[data-layout-mode="mobile"] .public-header {
   gap: 8px;
   padding-inline: 12px;
 }
-html[data-layout-mode="mobile"] .brand { font-size: 16px; flex: 1; }
 html[data-layout-mode="mobile"] .public-nav,
 html[data-layout-mode="mobile"] .settings-link { display: none; }
 html[data-layout-mode="mobile"] .mobile-icon { display: grid; }
@@ -310,6 +297,7 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
   color: var(--yz-mut);
   font-size: 12px;
   line-height: 1.6;
+  white-space: pre-line;
 }
 
 .public-sidebar-nav {

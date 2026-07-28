@@ -30,7 +30,6 @@ export default function PublicHeader({ onMenu }) {
 
   return (
     <header className="public-header">
-      <NavLink className="brand" to="/">🌿 SmartBuy AI</NavLink>
       <nav className="public-nav">
         {links.map(({ to, label, description }) => (
           <NavLink key={to} to={to} end={to === '/'} title={description} aria-label={description}>

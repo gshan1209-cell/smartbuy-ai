@@ -2,9 +2,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+import json
 
 
-SCHEMA_VERSION = 2
+# v3 scopes durable recommendation objects by category + region + market.
+SCHEMA_VERSION = 3
+
+REGION_MARKET_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "north": ("台北", "三重", "板橋", "桃園", "桃農", "新竹", "宜蘭"),
+    "central": ("台中", "南投", "彰化", "苗栗", "東勢", "永靖", "溪湖", "豐原", "西螺"),
+    "south": ("台南", "嘉義", "高雄", "鳳山", "屏東"),
+    "east_island": ("花蓮", "台東", "澎湖", "金門", "連江"),
+}
 
 
 class UnknownRecommendationCategory(ValueError):
@@ -82,7 +92,38 @@ def list_categories() -> list[dict]:
     return [category.as_dict() for category in CATEGORY_CATALOG]
 
 
-def cache_key_for(category_key: str) -> str:
-    """Return the validated relative key used by cache repositories."""
+def normalize_recommendation_filters(
+    region: str | None = None,
+    market: str | None = None,
+) -> tuple[str | None, str | None]:
+    """Normalize user-selected context before filtering and key generation."""
+    normalized_region = str(region or "").strip() or None
+    normalized_market = str(market or "").strip() or None
+    if normalized_region and normalized_region not in REGION_MARKET_KEYWORDS:
+        raise ValueError("不支援的推薦區域")
+    return normalized_region, normalized_market
+
+
+def market_matches_region(market_name: str, region: str | None) -> bool:
+    normalized_region, _ = normalize_recommendation_filters(region, None)
+    if not normalized_region:
+        return True
+    name = str(market_name or "")
+    return any(keyword in name for keyword in REGION_MARKET_KEYWORDS[normalized_region])
+
+
+def cache_key_for(
+    category_key: str,
+    region: str | None = None,
+    market: str | None = None,
+) -> str:
+    """Return a safe relative key scoped by category, region and market."""
     get_category(category_key)
-    return f"v{SCHEMA_VERSION}/{category_key}.json"
+    normalized_region, normalized_market = normalize_recommendation_filters(region, market)
+    context = json.dumps(
+        {"region": normalized_region, "market": normalized_market},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    digest = hashlib.sha256(context.encode("utf-8")).hexdigest()[:12]
+    return f"v{SCHEMA_VERSION}/{category_key}-{digest}.json"

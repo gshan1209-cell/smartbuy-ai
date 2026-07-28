@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 import pytest
 
 from backend.routers.recommendations import get_recommendation_service, router
-from backend.security.roles import get_current_member
 from src.recommendation.recommendation_service import RecommendationService
 from src.recommendation.role_prompts import PROMPT_SET_VERSION, ROLE_KEYS
 
@@ -19,37 +18,32 @@ def _service():
 def _client_for_role(role: str | None, service: RecommendationService | None = None):
     app = FastAPI()
     app.include_router(router)
-    if role is not None:
-        app.dependency_overrides[get_current_member] = lambda: {
-            "id": 1,
-            "email": "recommendation@example.test",
-            "name": "Recommendation Test",
-            "role": role,
-        }
+    # 推薦端點為公開讀取；role 參數保留用來明確驗證各身分邊界皆不影響結果。
     if service is not None:
         app.dependency_overrides[get_recommendation_service] = lambda: service
     return TestClient(app)
 
 
-def test_unauthenticated_categories_are_rejected():
+def test_unauthenticated_categories_are_public():
     response = _client_for_role(None).get("/api/recommendations/categories")
-    assert response.status_code == 401
+    assert response.status_code == 200
+    assert len(response.json()["categories"]) >= 5
 
 
-def test_consumer_cannot_access_recommendations():
+def test_consumer_can_access_recommendations():
     response = _client_for_role("consumer").get("/api/recommendations/categories")
-    assert response.status_code == 403
+    assert response.status_code == 200
 
 
-@pytest.mark.parametrize("role", ["farmer", "merchant", "admin"])
-def test_farmer_merchant_admin_can_access_recommendations(role):
+@pytest.mark.parametrize("role", ["farmer", "merchant", "admin", "unknown"])
+def test_all_authenticated_roles_can_access_public_recommendations(role):
     response = _client_for_role(role, _service()).get("/api/recommendations/categories")
     assert response.status_code == 200
     assert len(response.json()["categories"]) >= 5
 
 
-def test_api_exposes_three_role_payload_cache_observability_and_compatibility_alias():
-    response = _client_for_role("admin", _service()).get(
+def test_unauthenticated_api_exposes_three_role_payload_cache_observability_and_compatibility_alias():
+    response = _client_for_role(None, _service()).get(
         "/api/recommendations?category=leafy-vegetables"
     )
     assert response.status_code == 200
@@ -67,7 +61,45 @@ def test_api_exposes_three_role_payload_cache_observability_and_compatibility_al
 
 
 def test_api_rejects_unknown_category():
-    invalid = _client_for_role("admin", _service()).get(
+    invalid = _client_for_role(None, _service()).get(
         "/api/recommendations?category=unknown"
+    )
+    assert invalid.status_code == 422
+
+
+def test_api_can_select_a_formal_role_without_changing_three_role_generation_contract():
+    response = _client_for_role(None, _service()).get(
+        "/api/recommendations?category=leafy-vegetables&role=farmer"
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["selected_role"] == "farmer"
+    assert payload["selected_recommendation"] == payload["role_recommendations"]["farmer"]
+    assert payload["data"]["selected_role"] == "farmer"
+
+
+def test_api_scopes_recommendation_to_region_and_market():
+    response = _client_for_role(None, _service()).get(
+        "/api/recommendations?category=leafy-vegetables&region=north&market=%E5%8F%B0%E5%8C%97%E4%B8%80"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["filters"] == {"region": "north", "market": "台北一"}
+    assert payload["data"]["region"] == "north"
+    assert payload["data"]["market"] == "台北一"
+
+
+def test_api_rejects_market_outside_selected_region():
+    response = _client_for_role(None, _service()).get(
+        "/api/recommendations?category=leafy-vegetables&region=north&market=%E5%8F%B0%E4%B8%AD%E4%B8%80"
+    )
+
+    assert response.status_code == 422
+
+
+def test_api_rejects_unknown_recommendation_role():
+    invalid = _client_for_role(None, _service()).get(
+        "/api/recommendations?category=leafy-vegetables&role=admin"
     )
     assert invalid.status_code == 422

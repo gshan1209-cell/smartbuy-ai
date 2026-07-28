@@ -3,10 +3,41 @@
   gap: 16px;
 }
 
+.recommendation-results-dashboard {
+  border: 1px solid var(--yz-bdr);
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--yz-card-bg);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--yz-txt) 8%, transparent);
+}
+
+.recommendation-results-dashboard > .recommendation-section-heading {
+  align-items: center;
+  border-bottom: 1px solid var(--yz-bdr);
+  padding-bottom: 16px;
+}
+
+.recommendation-results-dashboard > .recommendation-section-heading .eyebrow {
+  margin-bottom: 6px;
+  color: var(--yz-g);
+  font-size: 11px;
+  letter-spacing: .12em;
+}
+
+.recommendation-results-dashboard > .recommendation-section-heading h2 {
+  font-size: 26px;
+  letter-spacing: -.02em;
+}
+
 .recommendation-roles-section > .recommendation-section-heading > span {
-  color: var(--yz-mut);
+  border: 1px solid var(--yz-bdr);
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: color-mix(in srgb, var(--yz-g) 7%, var(--yz-card-bg));
+  color: var(--yz-g);
   font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .recommendation-role-grid {
@@ -184,6 +215,19 @@
 }
 
 @media (max-width: 767px) {
+  .recommendation-results-dashboard {
+    padding: 16px;
+  }
+
+  .recommendation-results-dashboard > .recommendation-section-heading {
+    display: grid;
+    gap: 10px;
+  }
+
+  .recommendation-results-dashboard > .recommendation-section-heading h2 {
+    font-size: 22px;
+  }
+
   .recommendation-role-heading {
     grid-template-columns: auto minmax(0, 1fr);
   }

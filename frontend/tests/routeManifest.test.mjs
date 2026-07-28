@@ -24,6 +24,7 @@ test('public route contract preserves all primary user journeys', () => {
       '/news',
       '/points',
       '/product/:name',
+      '/recommendations',
       '/register',
       '/search',
       '/season',
@@ -62,6 +63,7 @@ test('route paths are unique and use the expected nesting form', () => {
 test('404 fallback and critical named routes cannot silently disappear', () => {
   assert.equal(ROUTE_FALLBACK, '*');
   assert.equal(PUBLIC_ROUTES.SEARCH, '/search');
+  assert.equal(PUBLIC_ROUTES.RECOMMENDATIONS, '/recommendations');
   assert.equal(PUBLIC_ROUTES.POINTS, '/points');
   assert.equal(PUBLIC_ROUTES.FORBIDDEN, '/403');
   assert.equal(DASHBOARD_ROUTES.RECOMMENDATIONS, 'recommendations');

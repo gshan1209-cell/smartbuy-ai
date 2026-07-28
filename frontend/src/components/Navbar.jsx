@@ -10,7 +10,7 @@ const NOTIF_PAGE_SIZE = 10;
 const links = [
   { to: '/',           label: '首頁',     ready: true },
   { to: '/search',     label: '售價動態', ready: true },
-  { to: '/news',       label: '農產新知', ready: true },
+  { to: '/news',       label: '新知與資訊分享', ready: true },
   { to: '/special-offers', label: '特賣會', ready: true },
   { to: '/basket',     label: '我的菜籃', ready: true },
   { to: '/settings',   label: '設定',     ready: true },

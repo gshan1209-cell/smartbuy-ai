@@ -1,7 +1,7 @@
 """跨執行個體的推薦生成鎖。
 
 正式 R2 模式使用 PostgreSQL advisory lock，確保不同 Render instance
-針對同一分類不會同時呼叫 LLM；本機 JSON 模式仍使用 Service 內既有鎖。
+針對同一個分類／區域／市場情境不會同時呼叫 LLM；本機 JSON 模式仍使用 Service 內既有鎖。
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class RecommendationGenerationLockTimeout(RuntimeError):
-    """等待其他執行個體完成同分類推薦時超時。"""
+    """等待其他執行個體完成同一推薦情境時超時。"""
 
 
 class RecommendationGenerationLock(Protocol):
@@ -78,7 +78,7 @@ class PostgresRecommendationGenerationLock:
                     break
                 if time.monotonic() >= deadline:
                     raise RecommendationGenerationLockTimeout(
-                        f"等待同分類推薦生成超時: {cache_key}"
+                        f"等待同一推薦情境生成超時: {cache_key}"
                     )
                 time.sleep(self.poll_interval_seconds)
 
