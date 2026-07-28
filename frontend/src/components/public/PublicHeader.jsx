@@ -4,7 +4,6 @@ import { NavLink } from 'react-router-dom';
 import { NotificationBell } from '../Navbar';
 import {
   DASHBOARD_NAV_LINK,
-  POINTS_NAV_LINK,
   PUBLIC_NAV_LINKS,
   SETTINGS_NAV_LINK,
 } from '../../config/publicNavigation';
@@ -15,7 +14,7 @@ import IdentityRoleSelect from './IdentityRoleSelect';
 export default function PublicHeader({ onMenu }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
   const { layoutMode, updateLayoutMode } = useLayoutMode();
-  const links = [...PUBLIC_NAV_LINKS, POINTS_NAV_LINK];
+  const links = [...PUBLIC_NAV_LINKS];
   if (isAuthenticated) links.push(SETTINGS_NAV_LINK);
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
