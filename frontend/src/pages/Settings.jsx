@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
 import { applyLayoutMode, DEFAULT_LAYOUT_MODE, LAYOUT_MODE_OPTIONS } from '../hooks/useLayoutMode';
+import { API_BASE_URL } from '../lib/apiClient';
 
-const BASE = import.meta.env.VITE_API_URL ?? '';
+const BASE = API_BASE_URL;
 const LS_KEY = 'smartbuy_notif_prefs';
 const DEFAULT_PREFS = { weatherAlert: true, mutualAidReply: true, mutualAidLike: true };
 

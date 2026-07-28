@@ -4,9 +4,10 @@ import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesSer
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 import MutualAid from './MutualAid';
+import { API_BASE_URL } from '../lib/apiClient';
 import './AgriNews.css';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? '';
+const API_BASE = API_BASE_URL;
 const PAGE_SIZE = 12;
 const NEWS_CACHE_PREFIX = 'smartbuy:agri-news:v1:';
 const INFO_SHARE_COPY = {
