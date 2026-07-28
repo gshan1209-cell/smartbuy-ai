@@ -23,10 +23,10 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "vite",
+    "start": "node scripts/sync-recommendation-cache.mjs && vite",
     "test": "node --test",
     "test:e2e": "playwright test",
-    "build": "vite build",
+    "build": "node scripts/sync-recommendation-cache.mjs && vite build",
     "build:check": "npm run build && node scripts/check-build-budget.mjs",
     "preview": "vite preview"
   },

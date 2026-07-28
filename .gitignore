@@ -20,6 +20,7 @@ frontend/dist/
 frontend/.env.local
 frontend/playwright-report/
 frontend/test-results/
+frontend/public/recommendations-cache/
 .vite/
 backend/.cache/
 .cache/
