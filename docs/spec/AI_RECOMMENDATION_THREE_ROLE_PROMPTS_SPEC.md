@@ -69,9 +69,9 @@ src/recommendation/role_prompts.py
 本功能使用：
 
 ```text
-schema_version = 4
+schema_version = 5
 prompt_set_version = three-role-v1
-R2 Object Key = recommendations/v4/{market}-{category}.json
+R2 Object Key = recommendations/v5/{market}-{category}.json
 ```
 
 舊版 `recommendations/v1/` 保留，不覆寫、不刪除。若部署環境仍設定 `R2_RECOMMENDATION_PREFIX=recommendations/v1/`，Repository 會將尾端版本正規化為目前 schema 的 `v2`，避免寫入 `v1/v2/` 巢狀路徑。

@@ -5,10 +5,10 @@ from dataclasses import dataclass
 import re
 
 
-# v4 makes the durable object name identify the market and category. When no
-# market is selected, the region is retained so regional requests do not share
-# an all-markets object accidentally.
-SCHEMA_VERSION = 4
+# v5 starts a fresh durable namespace so existing fallback objects are not
+# reused after AI configuration is corrected. The object name still identifies
+# the market and category; when no market is selected, region is retained.
+SCHEMA_VERSION = 5
 
 _CACHE_SEGMENT_PATTERN = re.compile(r"[^0-9A-Za-z\u3400-\u9fff_-]+")
 
