@@ -3,10 +3,12 @@ import { NavLink } from 'react-router-dom';
 
 import { NotificationBell } from '../Navbar';
 import {
+  ALL_PUBLIC_NAV_LINKS,
   DASHBOARD_NAV_LINK,
   PUBLIC_NAV_LINKS,
   SETTINGS_NAV_LINK,
 } from '../../config/publicNavigation';
+import { IS_TEST_MODE } from '../../config/testMode';
 import { useAuth } from '../../context/AuthContext';
 import useLayoutMode, { LAYOUT_MODE_OPTIONS } from '../../hooks/useLayoutMode';
 import IdentityRoleSelect from './IdentityRoleSelect';
@@ -14,11 +16,17 @@ import IdentityRoleSelect from './IdentityRoleSelect';
 export default function PublicHeader({ onMenu }) {
   const { user, isAuthenticated, dashboardAccess } = useAuth();
   const { layoutMode, updateLayoutMode } = useLayoutMode();
-  const links = [...PUBLIC_NAV_LINKS];
-  if (isAuthenticated) links.push(SETTINGS_NAV_LINK);
+  const links = IS_TEST_MODE
+    ? [...ALL_PUBLIC_NAV_LINKS, DASHBOARD_NAV_LINK]
+    : [...PUBLIC_NAV_LINKS];
+
+  if (!IS_TEST_MODE && isAuthenticated) links.push(SETTINGS_NAV_LINK);
+
   const currentRole = dashboardAccess?.role || user?.role;
   const hasDashboardRole = ['admin', 'farmer', 'merchant'].includes(currentRole);
-  if (isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole)) links.push(DASHBOARD_NAV_LINK);
+  if (!IS_TEST_MODE && isAuthenticated && (dashboardAccess?.dashboardAccess || hasDashboardRole)) {
+    links.push(DASHBOARD_NAV_LINK);
+  }
 
   return (
     <header className="public-header">
@@ -31,6 +39,7 @@ export default function PublicHeader({ onMenu }) {
         ))}
       </nav>
       <div className="header-actions">
+        {IS_TEST_MODE && <span className="test-mode-badge">測試模式</span>}
         <div className="layout-mode-switch" role="group" aria-label="版面模式">
           {LAYOUT_MODE_OPTIONS.map(option => (
             <button
