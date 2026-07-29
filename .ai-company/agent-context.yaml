@@ -1,0 +1,139 @@
+schemaVersion: "1.0"
+systemIdentity:
+  repository: gshan1209-cell/smartbuy-ai
+  systemId: smartbuy-ai
+  systemType: web-product
+  profile: operational
+  roles:
+    - consumer-agriculture-intelligence-product
+    - role-based-public-and-dashboard-application
+    - light-armor-consumer
+
+context:
+  generatedAt: "2026-07-29T13:51:00+08:00"
+  freshness: fresh
+  depth: brief
+  digest: sha256:268ea904c5264cd8bd5dadc7584c815b9c669b671dafa6ea4751f8f4011b41fa
+  digestBasis: identity-profile-phase-state-next-action-and-source-references
+  changedSinceDigest: null
+  canonical: false
+  readOnly: true
+  status: baseline-recorded
+
+briefing:
+  headline: SmartBuy is an active independently deployable product with verified public frontend availability, while current recommendation-cache progress, backend health and Original-to-Light conformance remain incomplete or unverified.
+  currentPhase: portfolio-baseline
+  highestPriority:
+    - validate the current Product Phase and recent recommendation-cache work
+    - complete Issue #37 Original-to-Light Host／Pack／Adapter Conformance
+    - preserve Product Core fallback and role-based authorization
+
+state:
+  status: active
+  phase: portfolio-baseline
+  progress: null
+  confidence: reported
+  integrity: not-tested
+
+attention:
+  blockers: []
+  risks:
+    - id: smartbuy-snapshot-drift
+      status: open
+      severity: medium
+      title: Existing Product Adoption Snapshot may lag recent recommendation-cache development.
+    - id: light-armor-conformance-pending
+      status: open
+      severity: high
+      title: SmartBuy remains at original stage until LLM JSON Pack／Adapter conformance and Armor Lock evidence exist.
+    - id: product-core-fallback-incomplete
+      status: open
+      severity: high
+      title: AI-disabled core workflow, JSON validation and graceful fallback lack complete evidence.
+    - id: backend-production-health-unverified
+      status: open
+      severity: medium
+      title: Render backend health and current production backend URL were not verified in the latest snapshot.
+  driftFindings: []
+  pullRequests: []
+
+execution:
+  nextActions:
+    - id: validate-smartbuy-current-state
+      priority: P0
+      status: ready
+      owner: smartbuy-product-owner
+      title: Validate current product phase, recommendation cache progress, and Issue #37 conformance status.
+    - id: complete-original-to-light-conformance
+      priority: P0
+      status: in-progress
+      owner: system-development-studio
+      title: Complete Original-to-Light Host／Pack／Adapter Conformance in Issue #37.
+  owners:
+    - id: smartbuy-product-owner
+      responsibility: product-business-rules-runtime-release-and-user-experience
+    - id: system-development-studio
+      responsibility: product-engineering-host-adapter-and-conformance
+    - id: ai-workstream
+      responsibility: company-module-armor-pack-and-dual-interface-adoption-capability
+    - id: ai-ceo-control-tower
+      responsibility: portfolio-priority-global-context-and-major-gates
+    - id: github-knowledge-hub
+      responsibility: architecture-standard-and-compliance-assessment
+    - id: codex
+      responsibility: local-browser-docker-database-and-e2e-validation-when-required
+  dependencies:
+    - source: smartbuy-ai
+      dependsOn: gshan1209-cell/AI-Workstream@443eaf2ed7735e313405a8da9735118d73e758ee
+      purpose: dual-interface templates, planner and validator
+    - source: smartbuy-ai
+      dependsOn: gshan1209-cell/GitHub-Knowledge-Hub@0bbac3faa636aa073e8e59eac7dc3bc0ea0bd27b
+      purpose: canonical Human／Agent dual-interface standard
+  allowedOperations:
+    - read-derived-context
+    - inspect-canonical-source-references
+    - prepare-change-on-feature-branch
+    - run-non-destructive-backend-frontend-and-data-validation
+    - preserve-role-based-access-and-product-core-fallback
+    - prepare-pull-request-with-evidence
+  forbiddenOperations:
+    - treat-derived-context-as-canonical
+    - expose-or-persist-secrets
+    - mark-unverified-work-as-passed
+    - replace-live-api-with-static-mock
+    - elevate-unknown-role-permissions
+    - automatic-merge-without-governance
+    - automatic-release-or-deployment
+  humanApprovalRequiredFor:
+    - architecture-exception
+    - canonical-or-production-write
+    - destructive-database-migration
+    - credential-or-security-boundary-change
+    - armor-stage-promotion
+    - release-or-deployment
+    - formal-gate-approval
+  primaryDevelopmentAgent: current-task-owner
+  codexRole: local-browser-docker-database-and-e2e-validation-when-required
+
+evidence:
+  sourceCommit: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
+  sourceRefs:
+    - README.md
+    - AGENTS.md
+    - AGENT.md
+    - .ai-company/repo-manifest.yaml
+    - .ai-company/product-manifest.yaml
+    - .ai-company/status-snapshot.yaml
+    - docs/architecture/PROJECT_STRUCTURE.md
+    - docs/architecture/AI_ARMOR_PROFILE.md
+    - docs/architecture/AI_FAILURE_AND_FALLBACK.md
+    - docs/governance/PRODUCT_ADOPTION_BASELINE.md
+  verificationRefs:
+    - github://gshan1209-cell/smartbuy-ai/issues/37
+    - https://smartbuy-ai-alpha.vercel.app/
+
+limitations:
+  - Product phase and recent recommendation-cache progress require Product Owner validation.
+  - Public frontend availability was previously verified but was not rechecked in this change.
+  - Backend tests, frontend tests/build, browser E2E and production backend health were not executed in this change.
+  - Full context depth and automatic digest regeneration are not implemented.
