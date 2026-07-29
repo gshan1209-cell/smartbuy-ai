@@ -5,7 +5,7 @@ standardRef:
   repository: gshan1209-cell/GitHub-Knowledge-Hub
   path: docs/HUMAN_AGENT_DUAL_INTERFACE_STANDARD.md
   version: "1.0.0"
-  mergeCommit: 0bbac3faa636aa073e8e59eac7dc3bc0ea0bd27b
+  decisionRecordCommit: 561c7eee0dfdfae4ae070ff47e9b383029c6268e
 
 humanEntry:
   status: implemented-verification-pending
@@ -20,7 +20,7 @@ agentEntry:
   status: implemented-verification-pending
   type: context-file
   path: .ai-company/agent-context.yaml
-  depths: [brief, standard]
+  depths: [brief]
   additionalRefs:
     - AGENTS.md
     - AGENT.md
@@ -45,26 +45,39 @@ sourceModel:
     - frontend/src
     - .ai-company/agent-context.yaml
 
+confidenceSemantics:
+  overallConfidence: reported
+  publicFrontendAvailability: previously-verified-not-rechecked
+  runtimeVerification: not-run-for-current-main
+  verifiedConformance: false
+  singleUrlCheckMayPromoteOverallConfidence: false
+
 status:
-  consistency: not-tested
-  freshness: fresh
+  consistency: implementation-aligned-verification-pending
+  freshness: reviewed-source-recorded
   confidence: reported
   owner: smartbuy-product-owner
-  nextAction: validate current product phase, recommendation cache progress, and Issue #37 conformance status
+  verifiedConformance: false
+  nextAction: validate current Product Phase, recommendation cache, backend health and Issue #37 Conformance on exact Main
 
 verification:
   status: not-run
+  observedSourceSha: 3ca0e23f9bb446417b62350c2717bcd5c6569555
+  observedBranch: main
+  reviewedAt: "2026-07-29T19:42:00+08:00"
+  reviewer: ChatGPT-primary-development-agent
   evidenceRefs:
     - .ai-company/status-snapshot.yaml
     - docs/governance/PRODUCT_ADOPTION_BASELINE.md
     - github://gshan1209-cell/smartbuy-ai/issues/37
-  sourceCommit: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
+    - github://gshan1209-cell/GitHub-Knowledge-Hub/issues/16
 
 safety:
   readOnlyByDefault: true
   automaticRepositoryWrite: false
   automaticIssueCreation: false
   automaticPullRequestCreation: false
+  automaticCrossRepositoryWrite: false
   automaticMerge: false
   automaticRelease: false
   automaticDeployment: false
@@ -73,6 +86,6 @@ safety:
     - canonical-or-production-write
     - destructive-database-migration
     - credential-or-security-boundary-change
-    - armor-stage-promotion
+    - armor-stage-or-conformance-promotion
     - release-or-deployment
     - formal-gate-approval
