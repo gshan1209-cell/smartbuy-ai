@@ -1,8 +1,20 @@
 schemaVersion: "1.0"
 repository: gshan1209-cell/smartbuy-ai
 productId: smartbuy-ai
-reportedAt: "2026-07-27T10:05:00Z"
-statusConfidence: verified
+reportedAt: "2026-07-29T19:42:00+08:00"
+statusConfidence: reported
+verifiedConformance: false
+
+confidenceSemantics:
+  overallConfidence: reported
+  publicFrontendAvailability:
+    status: previously-verified-not-rechecked
+    observedHttpStatus: 200
+    observedUrl: https://smartbuy-ai-alpha.vercel.app/
+  runtimeVerification: not-run-for-current-main
+  backendHealth: not-verified
+  armorConformance: not-tested
+  rule: a-previous-http-200-must-not-promote-the-entire-snapshot-to-verified
 
 migration:
   mode: adopt-in-place
@@ -48,25 +60,25 @@ architecture:
   failurePolicyRef: docs/architecture/AI_FAILURE_AND_FALLBACK.md
 
 baseline:
-  sourceStructure: verified
+  sourceStructure: previously-reviewed-not-rechecked
   buildCommand: documented-not-run
   testCommand: documented-not-run
-  ciWorkflow: verified-present
+  ciWorkflow: previously-observed-present-not-rechecked
   frontendPublicUrl: https://smartbuy-ai-alpha.vercel.app/
   frontendPublicHttpStatus: 200
-  frontendPublicAvailability: verified
+  frontendPublicAvailability: previously-verified-not-rechecked
   vercelProjectId: prj_d9eKTjLrp3H7hJYDFBTeKWyA9Emi
   latestReadyDeploymentId: dpl_AAZYq6tF4mhLLbycB2S1zqEGvpCA
   latestObservedDeploymentId: dpl_D5qdWz2GXJ7ky7utVYVAxxeqWcNr
-  latestObservedDeploymentState: INITIALIZING
-  backendDeployment: configured-render
+  latestObservedDeploymentState: historical-initializing-observation
+  backendDeployment: configured-render-not-rechecked
   database: reported-supabase-postgresql
   dataLake: reported-cloudflare-r2
-  productDriveWorkspace: verified-created
-  productionBackendHealth: not-verified-in-this-adoption
+  productDriveWorkspace: previously-verified-created
+  productionBackendHealth: not-verified
 
 moduleComposition:
-  registrySearchPerformed: true
+  registrySearchPerformed: previously-reported
   adoptedCompanyModules: 0
   candidateAssessmentRef: docs/governance/MODULE_CANDIDATE_ASSESSMENT.md
   lockRef: .ai-company/module-lock.yaml
@@ -74,16 +86,16 @@ moduleComposition:
 knownLimitations:
   - SmartBuy remains at original stage until the LLM JSON Pack／Adapter passes Conformance and is written to Armor Lock.
   - No Company Module or Armor Pack is currently released and locked for SmartBuy AI.
-  - Product backend tests, frontend tests/build, browser E2E and backend production health were not verified by this adoption change.
-  - Product Core without AI, Light Armor JSON validation and failure fallback tests have not yet produced complete Evidence.
-  - The public Vercel URL returned HTTP 200, while the newest observed Git deployment was still INITIALIZING at capture time.
+  - Product backend tests, frontend tests/build, browser E2E and backend production health were not verified for current Main.
+  - Product Core without AI, Light Armor JSON validation and failure fallback tests have not produced complete current-main Evidence.
+  - The public Vercel URL returned HTTP 200 in an earlier observation; availability was not rechecked in this remediation.
   - Render provider health and current backend URL remain to be verified.
   - The repository currently has no immutable product tag linked to the adoption baseline.
 
 nextAction:
-  title: Complete Original-to-Light Host／Pack／Adapter Conformance in Issue #37
-  owner: system-development-studio
-  status: in-progress
+  title: Validate current Product Phase, recommendation cache progress and Original-to-Light Conformance against current Main
+  owner: smartbuy-product-owner
+  status: ready
 
 # Task Control Center reads only this namespace and preserves all sections above.
 taskCenter:
@@ -92,8 +104,8 @@ taskCenter:
   projectId: null
   productId: smartbuy-ai
   defaultBranch: main
-  sourceCommit: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
-  generatedAt: 2026-07-29T00:28:00Z
+  sourceCommit: 3ca0e23f9bb446417b62350c2717bcd5c6569555
+  generatedAt: "2026-07-29T19:42:00+08:00"
   statusIntegrity: reported
 
   currentState:
@@ -101,15 +113,15 @@ taskCenter:
     phase: portfolio-baseline
     workstream: verification
     gate: null
-    summary: 既有 Snapshot 顯示 SmartBuy AI 為 active mainline Product，已完成 adopt-in-place 登錄並可獨立運作；本次只建立 Task Center 相容接入，不重新推定產品完成百分比，最新推薦快取開發與 Issue #37 狀態仍需 Product Owner 驗證。
+    summary: SmartBuy AI is an active mainline Product with independent operation and a declared Light Armor target. Current-main Runtime, recent recommendation-cache work, Product Core fallback, backend health and Issue #37 Conformance remain unverified.
     progressPercent: null
     progressMethod: not-calculated
 
   milestones: []
 
   nextAction:
-    title: 驗證目前產品 Phase、推薦快取進度與 Issue #37 Conformance 狀態
-    owner: system-development-studio
+    title: Validate current Product Phase, recommendation cache progress and Issue #37 Conformance on exact Main
+    owner: smartbuy-product-owner
     status: ready
     dueAt: null
     blockerIds: []
@@ -118,34 +130,42 @@ taskCenter:
   blockers: []
   risks:
     - id: risk-smartbuy-snapshot-drift
-      title: 既有 Product Adoption Snapshot 可能落後於近期推薦快取開發
+      title: Product Adoption and recommendation-cache status may lag current Main implementation
       level: medium
       status: open
-      mitigation: 合併本相容接入後，由 Product Owner 重新產生 taskCenter Phase、Milestones 與 Evidence。
+      mitigation: Run current-main tests and regenerate scoped Evidence without promoting overall Confidence from a single deployment observation.
       evidenceRefs:
         - .ai-company/status-snapshot.yaml
         - docs/governance/PRODUCT_ADOPTION_BASELINE.md
+    - id: risk-product-core-fallback
+      title: AI-disabled core workflow and failure fallback lack complete Evidence
+      level: high
+      status: open
+      mitigation: Complete focused and independent tests before any Armor stage promotion.
+      evidenceRefs:
+        - docs/architecture/AI_FAILURE_AND_FALLBACK.md
+        - github://gshan1209-cell/smartbuy-ai/issues/37
 
   github:
     openIssues: null
     openPullRequests: null
     waitingReview: null
     latestCommitAt: null
-    latestCiStatus: unknown
+    latestCiStatus: not-tested
     latestRelease: null
     deploymentUrl: https://smartbuy-ai-alpha.vercel.app/
 
   evidence:
     - type: document
       ref: docs/governance/PRODUCT_ADOPTION_BASELINE.md
-      observedAt: 2026-07-29T00:28:00Z
-      status: referenced-by-existing-snapshot
-      digest: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
+      observedAt: "2026-07-29T19:42:00+08:00"
+      status: referenced-not-revalidated
+      digest: 3ca0e23f9bb446417b62350c2717bcd5c6569555
     - type: issue
       ref: github://gshan1209-cell/smartbuy-ai/issues/37
-      observedAt: 2026-07-29T00:28:00Z
-      status: referenced-by-existing-snapshot
-      digest: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
+      observedAt: "2026-07-29T19:42:00+08:00"
+      status: referenced-not-revalidated
+      digest: 3ca0e23f9bb446417b62350c2717bcd5c6569555
     - type: deployment
       ref: https://smartbuy-ai-alpha.vercel.app/
       observedAt: 2026-07-29T00:28:00Z
@@ -153,9 +173,21 @@ taskCenter:
       digest: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
 
   dataQuality:
-    completenessScore: 100
+    completenessScore: null
     evidenceCoverageScore: null
-    freshnessStatus: fresh
+    freshnessStatus: reviewed-source-recorded-runtime-unverified
     findings:
-      - 本次只完成 Task Center namespace 接入；未重新判定 SmartBuy AI 的正式開發百分比。
-      - 近期推薦快取 Commit 與既有 Issue #37／Adoption Snapshot 的關聯仍需 Product Owner／Codex 驗證。
+      - Overall Confidence is reported, not verified.
+      - The prior HTTP 200 is scoped only to the earlier Public Frontend Availability observation.
+      - Recent recommendation cache, current backend health, tests and Conformance still require Product Owner／Codex verification.
+
+evidence:
+  observedSourceSha: 3ca0e23f9bb446417b62350c2717bcd5c6569555
+  observedBranch: main
+  reviewedAt: "2026-07-29T19:42:00+08:00"
+  reviewer: ChatGPT-primary-development-agent
+  verificationStatus: not-run
+  evidenceRefs:
+    - github://gshan1209-cell/GitHub-Knowledge-Hub/commit/c7fe190295757626526b918cd2c0fbf329103c50
+    - github://gshan1209-cell/GitHub-Knowledge-Hub/issues/16
+    - github://gshan1209-cell/smartbuy-ai/issues/37
