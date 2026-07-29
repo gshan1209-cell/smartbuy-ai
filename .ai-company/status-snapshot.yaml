@@ -84,3 +84,78 @@ nextAction:
   title: Complete Original-to-Light Host／Pack／Adapter Conformance in Issue #37
   owner: system-development-studio
   status: in-progress
+
+# Task Control Center reads only this namespace and preserves all sections above.
+taskCenter:
+  schemaVersion: "1.0"
+  repoClass: product
+  projectId: null
+  productId: smartbuy-ai
+  defaultBranch: main
+  sourceCommit: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
+  generatedAt: 2026-07-29T00:28:00Z
+  statusIntegrity: reported
+
+  currentState:
+    status: active
+    phase: portfolio-baseline
+    workstream: verification
+    gate: null
+    summary: 既有 Snapshot 顯示 SmartBuy AI 為 active mainline Product，已完成 adopt-in-place 登錄並可獨立運作；本次只建立 Task Center 相容接入，不重新推定產品完成百分比，最新推薦快取開發與 Issue #37 狀態仍需 Product Owner 驗證。
+    progressPercent: null
+    progressMethod: not-calculated
+
+  milestones: []
+
+  nextAction:
+    title: 驗證目前產品 Phase、推薦快取進度與 Issue #37 Conformance 狀態
+    owner: system-development-studio
+    status: ready
+    dueAt: null
+    blockerIds: []
+    evidenceRef: docs/governance/PRODUCT_ADOPTION_BASELINE.md
+
+  blockers: []
+  risks:
+    - id: risk-smartbuy-snapshot-drift
+      title: 既有 Product Adoption Snapshot 可能落後於近期推薦快取開發
+      level: medium
+      status: open
+      mitigation: 合併本相容接入後，由 Product Owner 重新產生 taskCenter Phase、Milestones 與 Evidence。
+      evidenceRefs:
+        - .ai-company/status-snapshot.yaml
+        - docs/governance/PRODUCT_ADOPTION_BASELINE.md
+
+  github:
+    openIssues: null
+    openPullRequests: null
+    waitingReview: null
+    latestCommitAt: null
+    latestCiStatus: unknown
+    latestRelease: null
+    deploymentUrl: https://smartbuy-ai-alpha.vercel.app/
+
+  evidence:
+    - type: document
+      ref: docs/governance/PRODUCT_ADOPTION_BASELINE.md
+      observedAt: 2026-07-29T00:28:00Z
+      status: referenced-by-existing-snapshot
+      digest: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
+    - type: issue
+      ref: github://gshan1209-cell/smartbuy-ai/issues/37
+      observedAt: 2026-07-29T00:28:00Z
+      status: referenced-by-existing-snapshot
+      digest: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
+    - type: deployment
+      ref: https://smartbuy-ai-alpha.vercel.app/
+      observedAt: 2026-07-29T00:28:00Z
+      status: previously-verified-availability-not-rechecked
+      digest: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
+
+  dataQuality:
+    completenessScore: 100
+    evidenceCoverageScore: null
+    freshnessStatus: fresh
+    findings:
+      - 本次只完成 Task Center namespace 接入；未重新判定 SmartBuy AI 的正式開發百分比。
+      - 近期推薦快取 Commit 與既有 Issue #37／Adoption Snapshot 的關聯仍需 Product Owner／Codex 驗證。
