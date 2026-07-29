@@ -1,0 +1,78 @@
+schemaVersion: "1.0"
+repository: gshan1209-cell/smartbuy-ai
+profile: operational
+standardRef:
+  repository: gshan1209-cell/GitHub-Knowledge-Hub
+  path: docs/HUMAN_AGENT_DUAL_INTERFACE_STANDARD.md
+  version: "1.0.0"
+  mergeCommit: 0bbac3faa636aa073e8e59eac7dc3bc0ea0bd27b
+
+humanEntry:
+  status: implemented-verification-pending
+  type: web-dashboard
+  path: frontend/src
+  additionalRefs:
+    - README.md
+    - .ai-company/status-snapshot.yaml
+    - https://smartbuy-ai-alpha.vercel.app/
+
+agentEntry:
+  status: implemented-verification-pending
+  type: context-file
+  path: .ai-company/agent-context.yaml
+  depths: [brief, standard]
+  additionalRefs:
+    - AGENTS.md
+    - AGENT.md
+    - .agents/skills/
+
+sourceModel:
+  canonicalRefs:
+    - .ai-company/repo-manifest.yaml
+    - .ai-company/product-manifest.yaml
+    - .ai-company/status-snapshot.yaml
+    - README.md
+    - AGENT.md
+    - AGENTS.md
+    - docs/architecture/PROJECT_STRUCTURE.md
+    - docs/architecture/AI_ARMOR_PROFILE.md
+    - docs/architecture/AI_FAILURE_AND_FALLBACK.md
+  runtimeEvidenceRefs:
+    - backend/tests/
+    - frontend/src/
+    - .github/workflows/
+  derivedViewRefs:
+    - frontend/src
+    - .ai-company/agent-context.yaml
+
+status:
+  consistency: not-tested
+  freshness: fresh
+  confidence: reported
+  owner: smartbuy-product-owner
+  nextAction: validate current product phase, recommendation cache progress, and Issue #37 conformance status
+
+verification:
+  status: not-run
+  evidenceRefs:
+    - .ai-company/status-snapshot.yaml
+    - docs/governance/PRODUCT_ADOPTION_BASELINE.md
+    - github://gshan1209-cell/smartbuy-ai/issues/37
+  sourceCommit: 18914fe5e495a885ac5240a05cabd9b0bf6d5336
+
+safety:
+  readOnlyByDefault: true
+  automaticRepositoryWrite: false
+  automaticIssueCreation: false
+  automaticPullRequestCreation: false
+  automaticMerge: false
+  automaticRelease: false
+  automaticDeployment: false
+  humanApprovalRequiredFor:
+    - architecture-exception
+    - canonical-or-production-write
+    - destructive-database-migration
+    - credential-or-security-boundary-change
+    - armor-stage-promotion
+    - release-or-deployment
+    - formal-gate-approval
