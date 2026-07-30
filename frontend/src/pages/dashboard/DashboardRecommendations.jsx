@@ -470,7 +470,63 @@ export default function DashboardRecommendations({ publicMode = false }) {
           <section className="recommendation-decision-grid" aria-label="推薦決策摘要">
             <Card className="recommendation-conclusion-card" aria-label="採買結論">
               <div className="recommendation-context-heading">
-                <s…1053 tokens truncated…
+                <span className="recommendation-context-icon" role="img" aria-label="採買結論"><Target size={20} aria-hidden="true" /></span>
+                <h3>AI推薦：<span className="recommendation-heading-product"><span className="recommendation-product-icon" role="img" aria-label={`${aiRecommendedItem?.product_name || '尚未選定品項'}圖示`}>{productGlyph(aiRecommendedItem?.product_name || '')}</span>{aiRecommendedItem?.product_name || '尚未選定品項'}</span></h3>
+              </div>
+              <p className="recommendation-conclusion-text">{buildRecommendationConclusion({ market, categoryLabel, item: aiRecommendedItem })}</p>
+            </Card>
+
+            <Card className="recommendation-expert-card" aria-label="專家評語">
+              <div className="recommendation-context-heading">
+                <span className="recommendation-context-icon recommendation-context-icon-warm" role="img" aria-label="專家評語"><Sparkles size={20} aria-hidden="true" /></span>
+                <h3>專家推薦：<span className="recommendation-heading-product"><span className="recommendation-product-icon" role="img" aria-label={`${expertRecommendedItem?.product_name || '尚未選定品項'}圖示`}>{productGlyph(expertRecommendedItem?.product_name || '')}</span>{expertRecommendedItem?.product_name || '尚未選定品項'}</span></h3>
+              </div>
+              <p className="recommendation-expert-text">{expertCommentary}</p>
+            </Card>
+          </section>
+
+          <div className="recommendation-dashboard-kpis" aria-label="推薦摘要指標">
+            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-blue">
+              <span className="recommendation-dashboard-kpi-icon"><Grid2X2 size={22} /></span>
+              <div>
+                <span>監測品項</span>
+                <strong>{recommendation ? (sourceSummary.candidate_count ?? '—') : '—'}</strong>
+                <small>{recommendation ? `${categoryLabel}候選資料` : '完成條件後顯示'}</small>
+              </div>
+            </Card>
+            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-amber">
+              <span className="recommendation-dashboard-kpi-icon"><Activity size={22} /></span>
+              <div>
+                <span>需要留意</span>
+                <strong>{recommendation ? attentionCount : '—'}</strong>
+                <small>{recommendation ? '偏貴或資料不足' : '等待推薦結果'}</small>
+              </div>
+            </Card>
+            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-green">
+              <span className="recommendation-dashboard-kpi-icon"><ListChecks size={22} /></span>
+              <div>
+                <span>行動建議</span>
+                <strong>{recommendation ? dashboardItems.length : '—'}</strong>
+                <small>{recommendation ? `${activeRolePresentation.label}可執行項目` : '等待推薦結果'}</small>
+              </div>
+            </Card>
+            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-purple">
+              <span className="recommendation-dashboard-kpi-icon"><Sparkles size={22} /></span>
+              <div>
+                <span>資料狀態</span>
+                <strong>{recommendation ? dataStatusLabel(data?.data_status || sourceSummary.data_status) : '待生成'}</strong>
+                <small>{recommendation ? (sourceSummary.source_name || '推薦資料來源未提供') : '尚未呼叫 AI推薦'}</small>
+              </div>
+            </Card>
+          </div>
+
+          <div className="recommendation-dashboard-analysis-grid">
+            <Card className="recommendation-dashboard-chart-card">
+              <div className="recommendation-dashboard-card-heading">
+                <div>
+                  <p className="eyebrow">Price Signals</p>
+                  <h3>價格狀態分布</h3>
+                </div>
                   <span>{recommendation ? `${activeRolePresentation.label} · ${dashboardItems.length} 項` : '完成條件後顯示'}</span>
               </div>
               <div className="recommendation-status-bars" role="list" aria-label="價格狀態分布">
