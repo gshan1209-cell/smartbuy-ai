@@ -29,7 +29,9 @@ export function applyLayoutMode(layoutMode) {
   const next = LAYOUT_MODE_OPTIONS.some(option => option.value === layoutMode)
     ? layoutMode
     : DEFAULT_LAYOUT_MODE;
-  document.documentElement.setAttribute('data-layout-mode', next);
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-layout-mode', next);
+  }
   return next;
 }
 
@@ -38,20 +40,25 @@ export default function useLayoutMode() {
 
   useEffect(() => {
     applyLayoutMode(layoutMode);
+  }, [layoutMode]);
+
+  useEffect(() => {
     const onChange = event => {
       const next = event.detail?.layoutMode || readLayoutMode();
-      setLayoutMode(applyLayoutMode(next));
+      setLayoutMode(next);
     };
     window.addEventListener('smartbuy:layout-mode', onChange);
     return () => window.removeEventListener('smartbuy:layout-mode', onChange);
-  }, [layoutMode]);
+  }, []);
 
   const updateLayoutMode = useCallback(nextValue => {
     const next = applyLayoutMode(nextValue);
     setLayoutMode(next);
     let current = {};
     try { current = JSON.parse(localStorage.getItem(DISPLAY_PREFS_KEY) || '{}'); } catch { /* ignore invalid local preference */ }
-    localStorage.setItem(DISPLAY_PREFS_KEY, JSON.stringify({ ...current, layoutMode: next }));
+    try {
+      localStorage.setItem(DISPLAY_PREFS_KEY, JSON.stringify({ ...current, layoutMode: next }));
+    } catch { /* storage may be disabled; the current page still switches modes */ }
     window.dispatchEvent(new CustomEvent('smartbuy:layout-mode', { detail: { layoutMode: next } }));
   }, []);
 

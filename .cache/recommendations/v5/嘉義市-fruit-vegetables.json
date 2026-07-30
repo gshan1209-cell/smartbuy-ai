@@ -1,0 +1,90 @@
+{
+  "schema_version": 5,
+  "prompt_set_version": "three-role-v1",
+  "cache_key": "fruit-vegetables",
+  "cache_object_key": "v5/嘉義市-fruit-vegetables.json",
+  "category": {
+    "key": "fruit-vegetables",
+    "label": "果菜類",
+    "description": "番茄、茄子、瓜類、甜椒與豆類"
+  },
+  "generated_at": "2026-07-30T05:19:33.746974Z",
+  "generator": "rules-fallback",
+  "provider": null,
+  "model": null,
+  "region": "south",
+  "market": "嘉義市",
+  "input_digest": "f60299a87099a4c2",
+  "source_summary": {
+    "candidate_count": 1,
+    "latest_trade_date": "2026-07-23",
+    "historical_data": false,
+    "data_status": "cached",
+    "source_name": "本機 CSV"
+  },
+  "role_recommendations": {
+    "consumer": {
+      "role": "consumer",
+      "role_label": "消費者",
+      "perspective": "家庭採買端",
+      "summary": "果菜類目前有 1 個可比較品項，其中 0 個相對便宜、0 個偏貴。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "優先選擇價格便宜或正常的品項；偏貴品項少量購買，必要時比較同分類替代品。",
+      "items": [
+        {
+          "product_name": "小番茄-聖女",
+          "market_name": "嘉義市",
+          "price_status": "正常",
+          "today_price": 77.0,
+          "recent_average": 76.7,
+          "action": "依需求採買",
+          "reason": "今日價格接近近期平均，可依家中實際需求購買。",
+          "priority": "medium",
+          "substitute": null
+        }
+      ]
+    },
+    "farmer": {
+      "role": "farmer",
+      "role_label": "農民",
+      "perspective": "農業生產端",
+      "summary": "果菜類目前有 1 個行情候選，其中 0 個高於近期平均、1 個接近近期平均。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "行情偏高時核對可交付量後分批出貨；行情偏低時先檢查成本與既定安排，不依單日價格擴大生產。",
+      "items": [
+        {
+          "product_name": "小番茄-聖女",
+          "market_name": "嘉義市",
+          "price_status": "正常",
+          "today_price": 77.0,
+          "recent_average": 76.7,
+          "action": "維持既定節奏",
+          "reason": "目前行情接近近期平均，可依既定採收與出貨計畫執行並持續觀察。",
+          "priority": "medium",
+          "substitute": null
+        }
+      ]
+    },
+    "merchant": {
+      "role": "merchant",
+      "role_label": "商家",
+      "perspective": "通路銷售端",
+      "summary": "果菜類目前有 1 個可供採購比較的品項，其中 0 個相對便宜、1 個價格正常。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "便宜品項可依銷售速度分批補貨；偏貴品項控制庫存並比較替代品，避免把行情誤當成需求資料。",
+      "items": [
+        {
+          "product_name": "小番茄-聖女",
+          "market_name": "嘉義市",
+          "price_status": "正常",
+          "today_price": 77.0,
+          "recent_average": 76.7,
+          "action": "依銷售速度補貨",
+          "reason": "今日行情接近近期平均，可依現有庫存與銷售速度安排補貨。",
+          "priority": "medium",
+          "substitute": null
+        }
+      ]
+    }
+  }
+}

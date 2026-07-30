@@ -23,7 +23,12 @@ frontend/test-results/
 frontend/public/recommendations-cache/
 .vite/
 backend/.cache/
-.cache/
+.cache/*
+!.cache/
+!.cache/recommendations/
+.cache/recommendations/*
+!.cache/recommendations/v5/
+!.cache/recommendations/v5/*.json
 frontend/debug.log
 frontend/vite-dev*.log
 
