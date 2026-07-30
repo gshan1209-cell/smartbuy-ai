@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   Sparkles,
   Store,
+  Target,
   Tractor,
   Users,
 } from 'lucide-react';
@@ -75,6 +76,14 @@ const PRICE_STATUS_PRESENTATIONS = [
   { key: '資料不足', label: '資料不足', tone: 'muted' },
 ];
 
+const DEMO_TREND_SERIES = [
+  { label: '07/16', value: 42 }, { label: '07/17', value: 37 }, { label: '07/18', value: 45 },
+  { label: '07/19', value: 34 }, { label: '07/20', value: 39 }, { label: '07/21', value: 31 },
+  { label: '07/22', value: 47 }, { label: '07/23', value: 43 }, { label: '07/24', value: 54 },
+  { label: '07/25', value: 49 }, { label: '07/26', value: 62 }, { label: '07/27', value: 56 },
+  { label: '07/28', value: 68 }, { label: '07/29', value: 61 },
+];
+
 function marketMatchesRegion(marketName, regionId) {
   if (!regionId) return true;
   const keywords = REGION_MARKET_KEYWORDS[regionId] || [];
@@ -82,10 +91,12 @@ function marketMatchesRegion(marketName, regionId) {
 }
 
 function sourceLabel(source) {
+  if (source === 'demo') return '範例資料';
   return source === 'rules-fallback' ? '規則備援' : 'LLM 生成';
 }
 
 function sourceTone(source) {
+  if (source === 'demo') return 'info';
   return source === 'rules-fallback' ? 'warning' : 'success';
 }
 
@@ -129,10 +140,57 @@ function recommendationErrorMessage(error) {
   return message;
 }
 
+function itemScore(item) {
+  const statusScore = { 便宜: 40, 正常: 20, 偏貴: 0, 資料不足: -20 }[item?.price_status] ?? -30;
+  const priorityScore = { high: 12, medium: 6, low: 2 }[item?.priority] ?? 0;
+  return statusScore + priorityScore;
+}
+
+function pickBestItem(items, excludedProductName = '') {
+  return [...items]
+    .filter((item) => item?.price_status !== '資料不足' && item?.product_name !== excludedProductName)
+    .sort((left, right) => itemScore(right) - itemScore(left))[0] || null;
+}
+
+function buildRecommendationConclusion({ market, categoryLabel, item }) {
+  if (!item) return `目前無法判定${market || '此市場'}的${categoryLabel}最推薦，請先補充可用行情。`;
+  const action = item.action || '先比較後採買';
+  return `${market || item.market_name || '目前選定市場'}的${categoryLabel}，最推薦先買${item.product_name}（${item.price_status}），${action}。`;
+}
+
+function buildExpertCommentary({ item, activeRecommendation, sourceSummary }) {
+  if (!item) return '目前候選品項不足，先不要用單一價格做決策，等行情補齊後再比較。';
+  return `${item.product_name}目前${item.price_status}；${item.reason || activeRecommendation?.shopping_strategy || '建議搭配替代品與實際需求分批採買'}。`;
+}
+
+function productGlyph(productName) {
+  if (/高麗菜|青江菜|小白菜/.test(productName)) return '🥬';
+  if (/菠菜|空心菜|芥藍|地瓜葉|A菜/.test(productName)) return '🌿';
+  if (/番茄|牛番茄/.test(productName)) return '🍅';
+  if (/小黃瓜|絲瓜|苦瓜/.test(productName)) return '🥒';
+  if (/甜椒|彩椒/.test(productName)) return '🫑';
+  if (/茄子/.test(productName)) return '🍆';
+  if (/蘿蔔|紅蘿蔔/.test(productName)) return '🥕';
+  if (/馬鈴薯/.test(productName)) return '🥔';
+  if (/地瓜/.test(productName)) return '🍠';
+  if (/洋蔥/.test(productName)) return '🧅';
+  if (/山藥/.test(productName)) return '🌱';
+  if (/香蕉/.test(productName)) return '🍌';
+  if (/芭樂/.test(productName)) return '🍐';
+  if (/鳳梨/.test(productName)) return '🍍';
+  if (/西瓜/.test(productName)) return '🍉';
+  if (/水梨/.test(productName)) return '🍐';
+  if (/木瓜/.test(productName)) return '🥭';
+  if (/菇|香菇|杏鮑菇|金針菇|鴻喜菇|秀珍菇|舞菇/.test(productName)) return '🍄';
+  return '🌱';
+}
+
 export default function DashboardRecommendations({ publicMode = false }) {
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState('');
   const [selectedRole, setSelectedRole] = useState('consumer');
+  const [demoMode, setDemoMode] = useState(() => Boolean(import.meta.env.DEV));
+  const [hoveredTrendPoint, setHoveredTrendPoint] = useState(null);
   const [region, setRegion] = useState('');
   const [market, setMarket] = useState('');
   const [markets, setMarkets] = useState([]);
@@ -149,9 +207,9 @@ export default function DashboardRecommendations({ publicMode = false }) {
     setCategoriesLoading(true);
     setCategoriesError(null);
     try {
-      const nextCategories = await loadRecommendationCategories();
+      const nextCategories = await loadRecommendationCategories({ demo: demoMode });
       setCategories(nextCategories);
-      setCategory((current) => current || '');
+      setCategory((current) => current || (demoMode ? nextCategories[0]?.key || '' : ''));
     } catch (loadError) {
       setCategoriesError(recommendationErrorMessage(loadError));
     } finally {
@@ -170,13 +228,21 @@ export default function DashboardRecommendations({ publicMode = false }) {
       setRecommendation(await loadRecommendation(
         selectedCategory,
         publicMode ? selectedIdentity : undefined,
-        { region, market },
+        { region, market, demo: demoMode },
       ));
     } catch (loadError) {
       setError(recommendationErrorMessage(loadError));
     } finally {
       setLoading(false);
     }
+  }
+
+  function toggleDemoMode(nextMode) {
+    setDemoMode(nextMode);
+    setRecommendation(null);
+    setError(null);
+    setCategory('');
+    setMarket('');
   }
 
   function chooseCategory(nextCategory) {
@@ -206,19 +272,28 @@ export default function DashboardRecommendations({ publicMode = false }) {
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [demoMode]);
 
   useEffect(() => {
-    loadRecommendationMarkets({ region })
+    loadRecommendationMarkets({ region, demo: demoMode })
       .then((nextMarkets) => {
         setMarkets(nextMarkets);
-        setMarket((current) => (current && nextMarkets.includes(current) ? current : ''));
+        setMarket((current) => (
+          current && nextMarkets.includes(current)
+            ? current
+            : (demoMode ? nextMarkets[0] || '' : '')
+        ));
       })
       .catch(() => setMarkets([]));
-  }, [region]);
+  }, [region, demoMode]);
+
+  useEffect(() => {
+    if (!demoMode || !category || !market || recommendation || loading) return;
+    loadSelectedRecommendation(category, selectedRole);
+  }, [demoMode, category, market]);
 
   const data = recommendation?.data;
-  const source = data?.generator;
+  const source = recommendation?.generation_source === 'demo' ? 'demo' : data?.generator;
   const roleRecommendations = roleRecommendationsFrom(data);
   const activeRolePresentation = ROLE_PRESENTATIONS.find((item) => item.key === selectedRole) || ROLE_PRESENTATIONS[0];
   const activeRecommendation = publicMode
@@ -234,7 +309,20 @@ export default function DashboardRecommendations({ publicMode = false }) {
   const categoryLabel = data?.category?.label
     || categories.find((item) => item.key === category)?.label
     || '推薦分類';
+
   const attentionCount = statusCounts['偏貴'] + statusCounts['資料不足'];
+  const aiRecommendedItem = pickBestItem(roleRecommendations.consumer?.items || dashboardItems);
+  const expertRecommendation = roleRecommendations.farmer || roleRecommendations.merchant || activeRecommendation;
+  const expertRecommendedItem = pickBestItem(expertRecommendation?.items || [], aiRecommendedItem?.product_name)
+    || pickBestItem(expertRecommendation?.items || []);
+  const expertCommentary = buildExpertCommentary({ item: expertRecommendedItem, activeRecommendation: expertRecommendation, sourceSummary });
+  const trendMin = Math.min(...DEMO_TREND_SERIES.map((point) => point.value));
+  const trendMax = Math.max(...DEMO_TREND_SERIES.map((point) => point.value));
+  const trendPoints = DEMO_TREND_SERIES.map((point, index) => {
+    const x = (index / (DEMO_TREND_SERIES.length - 1)) * 320;
+    const y = 100 - ((point.value - trendMin) / Math.max(trendMax - trendMin, 1)) * 72;
+    return { ...point, x, y };
+  });
   const filteredMarkets = useMemo(
     () => markets.filter((item) => marketMatchesRegion(item, region)),
     [markets, region],
@@ -281,6 +369,21 @@ export default function DashboardRecommendations({ publicMode = false }) {
             <Sparkles size={18} className={loading ? 'spin' : ''} />
             {loading ? 'AI 產生中…' : 'AI推薦'}
           </button>
+        </div>
+
+        <div className="recommendation-display-setting">
+          <label className="recommendation-display-toggle">
+            <input
+              type="checkbox"
+              checked={demoMode}
+              onChange={(event) => toggleDemoMode(event.target.checked)}
+            />
+            <span className="recommendation-toggle-track" aria-hidden="true" />
+            <span>
+              <strong>資料模式</strong>
+              <small>{demoMode ? '使用完整範例內容' : '使用正式 API／快取資料'}</small>
+            </span>
+          </label>
         </div>
 
         {publicMode && (
@@ -364,48 +467,10 @@ export default function DashboardRecommendations({ publicMode = false }) {
             </div>
           </header>
 
-          <div className="recommendation-dashboard-kpis" aria-label="推薦摘要指標">
-            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-blue">
-              <span className="recommendation-dashboard-kpi-icon"><Grid2X2 size={22} /></span>
-              <div>
-                <span>監測品項</span>
-                <strong>{recommendation ? (sourceSummary.candidate_count ?? '—') : '—'}</strong>
-                <small>{recommendation ? `${categoryLabel}候選資料` : '完成條件後顯示'}</small>
-              </div>
-            </Card>
-            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-amber">
-              <span className="recommendation-dashboard-kpi-icon"><Activity size={22} /></span>
-              <div>
-                <span>需要留意</span>
-                <strong>{recommendation ? attentionCount : '—'}</strong>
-                <small>{recommendation ? '偏貴或資料不足' : '等待推薦結果'}</small>
-              </div>
-            </Card>
-            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-green">
-              <span className="recommendation-dashboard-kpi-icon"><ListChecks size={22} /></span>
-              <div>
-                <span>行動建議</span>
-                <strong>{recommendation ? dashboardItems.length : '—'}</strong>
-                <small>{recommendation ? `${activeRolePresentation.label}可執行項目` : '等待推薦結果'}</small>
-              </div>
-            </Card>
-            <Card className="recommendation-dashboard-kpi recommendation-dashboard-kpi-purple">
-              <span className="recommendation-dashboard-kpi-icon"><Sparkles size={22} /></span>
-              <div>
-                <span>資料狀態</span>
-                <strong>{recommendation ? dataStatusLabel(data?.data_status || sourceSummary.data_status) : '待生成'}</strong>
-                <small>{recommendation ? (sourceSummary.source_name || '推薦資料來源未提供') : '尚未呼叫 AI推薦'}</small>
-              </div>
-            </Card>
-          </div>
-
-          <div className="recommendation-dashboard-analysis-grid">
-            <Card className="recommendation-dashboard-chart-card">
-              <div className="recommendation-dashboard-card-heading">
-                <div>
-                  <p className="eyebrow">Price Signals</p>
-                  <h3>價格狀態分布</h3>
-                </div>
+          <section className="recommendation-decision-grid" aria-label="推薦決策摘要">
+            <Card className="recommendation-conclusion-card" aria-label="採買結論">
+              <div className="recommendation-context-heading">
+                <s…1053 tokens truncated…
                   <span>{recommendation ? `${activeRolePresentation.label} · ${dashboardItems.length} 項` : '完成條件後顯示'}</span>
               </div>
               <div className="recommendation-status-bars" role="list" aria-label="價格狀態分布">
@@ -434,15 +499,58 @@ export default function DashboardRecommendations({ publicMode = false }) {
                   <p className="eyebrow">Trend Context</p>
                   <h3>市場趨勢</h3>
                 </div>
-                <span className="recommendation-dashboard-unavailable-badge">{recommendation ? '待補充' : '尚未生成'}</span>
+                <span className="recommendation-dashboard-unavailable-badge">{demoMode ? '趨勢示意' : recommendation ? '待補充' : '尚未生成'}</span>
               </div>
-              <div className="recommendation-dashboard-unavailable-chart" role="status">
-                <Activity size={30} aria-hidden="true" />
-                <strong>{recommendation ? '目前推薦資料沒有歷史序列' : '完成條件後載入推薦資料'}</strong>
-                <p>{recommendation
-                  ? '先依照這次 AI 推薦行動；需要 14 日走勢時，可前往查價頁查看官方行情。'
-                  : '選擇市場與分類，再按下 AI推薦，儀表板會以正式回應更新。'}</p>
-              </div>
+              {demoMode ? (
+                <div className="recommendation-demo-trend" role="img" aria-label="近七日價格曲線與價格狀態條狀圖">
+                  <div className="recommendation-demo-chart-labels"><span>近 7 日價格方向</span><small>示意曲線</small></div>
+                  <svg className="recommendation-trend-line" viewBox="0 0 320 120" preserveAspectRatio="none" aria-label="近七日價格方向曲線" onMouseLeave={() => setHoveredTrendPoint(null)}>
+                    <path className="recommendation-trend-grid" d="M0 24H320M0 60H320M0 96H320" />
+                    <polyline points={trendPoints.map((point) => `${point.x},${point.y}`).join(' ')} />
+                    {trendPoints.map((point, index) => (
+                      <circle
+                        key={point.label}
+                        cx={point.x}
+                        cy={point.y}
+                        r={hoveredTrendPoint === index ? 6 : 4}
+                        tabIndex="0"
+                        role="button"
+                        aria-label={`${point.label}價格指數 ${point.value}`}
+                        onMouseEnter={() => setHoveredTrendPoint(index)}
+                        onFocus={() => setHoveredTrendPoint(index)}
+                        onBlur={() => setHoveredTrendPoint(null)}
+                      />
+                    ))}
+                    {hoveredTrendPoint !== null && (
+                      <g className="recommendation-trend-tooltip" pointerEvents="none">
+                        <rect x={Math.min(Math.max(trendPoints[hoveredTrendPoint].x - 35, 2), 248)} y={Math.max(trendPoints[hoveredTrendPoint].y - 34, 2)} width="70" height="25" rx="6" />
+                        <text x={Math.min(Math.max(trendPoints[hoveredTrendPoint].x, 37), 283)} y={Math.max(trendPoints[hoveredTrendPoint].y - 18, 18)} textAnchor="middle">{`${trendPoints[hoveredTrendPoint].label} ${trendPoints[hoveredTrendPoint].value}`}</text>
+                      </g>
+                    )}
+                  </svg>
+                  <div className="recommendation-demo-bar-title">價格狀態分布</div>
+                  <div className="recommendation-demo-bars" aria-hidden="true">
+                    {[
+                      ['便宜', statusCounts['便宜'], 'positive'],
+                      ['正常', statusCounts['正常'], 'neutral'],
+                      ['偏貴', statusCounts['偏貴'], 'warning'],
+                      ['資料不足', statusCounts['資料不足'], 'muted'],
+                    ].map(([label, count, tone]) => (
+                      <div className="recommendation-demo-bar" key={label}>
+                        <span>{label}</span><i className={`recommendation-demo-bar-fill recommendation-demo-bar-${tone}`} style={{ height: `${Math.max(12, (count / Math.max(dashboardItems.length, 1)) * 100)}%` }} /><strong>{count}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="recommendation-dashboard-unavailable-chart" role="status">
+                  <Activity size={30} aria-hidden="true" />
+                  <strong>{recommendation ? '目前推薦資料沒有歷史序列' : '完成條件後載入推薦資料'}</strong>
+                  <p>{recommendation
+                    ? '先依照這次 AI 推薦行動；需要 14 日走勢時，可前往查價頁查看官方行情。'
+                    : '選擇市場與分類，再按下 AI推薦，儀表板會以正式回應更新。'}</p>
+                </div>
+              )}
             </Card>
           </div>
 
@@ -564,7 +672,10 @@ export default function DashboardRecommendations({ publicMode = false }) {
                         >
                           <div className="recommendation-role-item-title">
                             <div>
-                              <h4>{item.product_name}</h4>
+                              <div className="recommendation-product-name">
+                                <span className="recommendation-product-icon" role="img" aria-label={`${item.product_name}圖示`}>{productGlyph(item.product_name)}</span>
+                                <h4>{item.product_name}</h4>
+                              </div>
                               <span>{item.market_name || '市場未提供'}</span>
                             </div>
                             <Badge tone={item.price_status === '偏貴' ? 'warning' : item.price_status === '便宜' ? 'success' : 'neutral'}>

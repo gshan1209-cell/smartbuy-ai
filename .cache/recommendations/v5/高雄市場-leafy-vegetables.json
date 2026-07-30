@@ -1,0 +1,54 @@
+{
+  "schema_version": 5,
+  "prompt_set_version": "three-role-v1",
+  "cache_key": "leafy-vegetables",
+  "cache_object_key": "v5/高雄市場-leafy-vegetables.json",
+  "category": {
+    "key": "leafy-vegetables",
+    "label": "葉菜類",
+    "description": "高麗菜、白菜、菠菜等葉菜"
+  },
+  "generated_at": "2026-07-30T05:19:34.638151Z",
+  "generator": "rules-fallback",
+  "provider": null,
+  "model": null,
+  "region": "south",
+  "market": "高雄市場",
+  "input_digest": "55eac4daf091b62b",
+  "source_summary": {
+    "candidate_count": 0,
+    "latest_trade_date": null,
+    "historical_data": false,
+    "data_status": "cached",
+    "source_name": "本機 CSV"
+  },
+  "role_recommendations": {
+    "consumer": {
+      "role": "consumer",
+      "role_label": "消費者",
+      "perspective": "家庭採買端",
+      "summary": "葉菜類目前有 0 個可比較品項，其中 0 個相對便宜、0 個偏貴。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "優先選擇價格便宜或正常的品項；偏貴品項少量購買，必要時比較同分類替代品。",
+      "items": []
+    },
+    "farmer": {
+      "role": "farmer",
+      "role_label": "農民",
+      "perspective": "農業生產端",
+      "summary": "葉菜類目前有 0 個行情候選，其中 0 個高於近期平均、0 個接近近期平均。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "行情偏高時核對可交付量後分批出貨；行情偏低時先檢查成本與既定安排，不依單日價格擴大生產。",
+      "items": []
+    },
+    "merchant": {
+      "role": "merchant",
+      "role_label": "商家",
+      "perspective": "通路銷售端",
+      "summary": "葉菜類目前有 0 個可供採購比較的品項，其中 0 個相對便宜、0 個價格正常。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "便宜品項可依銷售速度分批補貨；偏貴品項控制庫存並比較替代品，避免把行情誤當成需求資料。",
+      "items": []
+    }
+  }
+}

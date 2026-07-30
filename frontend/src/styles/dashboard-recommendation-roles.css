@@ -174,6 +174,24 @@
   font-size: 16px;
 }
 
+.recommendation-product-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.recommendation-role-item-title .recommendation-product-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: #edf7ef;
+  color: #2e8a57;
+  font-size: 17px;
+  line-height: 1;
+}
+
 .recommendation-role-item p {
   margin: 0;
   line-height: 1.55;

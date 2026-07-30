@@ -1,0 +1,189 @@
+{
+  "schema_version": 5,
+  "prompt_set_version": "three-role-v1",
+  "cache_key": "leafy-vegetables",
+  "cache_object_key": "v5/溪湖鎮-leafy-vegetables.json",
+  "category": {
+    "key": "leafy-vegetables",
+    "label": "葉菜類",
+    "description": "高麗菜、白菜、菠菜等葉菜"
+  },
+  "generated_at": "2026-07-30T05:19:34.273902Z",
+  "generator": "rules-fallback",
+  "provider": null,
+  "model": null,
+  "region": "central",
+  "market": "溪湖鎮",
+  "input_digest": "0cf92b5dd1d766c7",
+  "source_summary": {
+    "candidate_count": 4,
+    "latest_trade_date": "2026-07-23",
+    "historical_data": false,
+    "data_status": "cached",
+    "source_name": "本機 CSV"
+  },
+  "role_recommendations": {
+    "consumer": {
+      "role": "consumer",
+      "role_label": "消費者",
+      "perspective": "家庭採買端",
+      "summary": "葉菜類目前有 4 個可比較品項，其中 1 個相對便宜、1 個偏貴。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "優先選擇價格便宜或正常的品項；偏貴品項少量購買，必要時比較同分類替代品。",
+      "items": [
+        {
+          "product_name": "小白菜-土白菜",
+          "market_name": "溪湖鎮",
+          "price_status": "便宜",
+          "today_price": 29.4,
+          "recent_average": 32.2,
+          "action": "優先採買",
+          "reason": "今日價格低於近期平均，可依家庭需求列入採買清單，避免因便宜而過量囤貨。",
+          "priority": "high",
+          "substitute": null
+        },
+        {
+          "product_name": "油菜",
+          "market_name": "溪湖鎮",
+          "price_status": "正常",
+          "today_price": 29.4,
+          "recent_average": 26.2,
+          "action": "依需求採買",
+          "reason": "今日價格接近近期平均，可依家中實際需求購買。",
+          "priority": "medium",
+          "substitute": null
+        },
+        {
+          "product_name": "芥藍菜",
+          "market_name": "溪湖鎮",
+          "price_status": "正常",
+          "today_price": 46.5,
+          "recent_average": 47.0,
+          "action": "依需求採買",
+          "reason": "今日價格接近近期平均，可依家中實際需求購買。",
+          "priority": "medium",
+          "substitute": null
+        },
+        {
+          "product_name": "青江白菜-小梗",
+          "market_name": "溪湖鎮",
+          "price_status": "偏貴",
+          "today_price": 33.7,
+          "recent_average": 26.5,
+          "action": "少量購買",
+          "reason": "今日價格高於近期平均，建議控制購買量並比較同分類替代品。",
+          "priority": "low",
+          "substitute": "小白菜-土白菜"
+        }
+      ]
+    },
+    "farmer": {
+      "role": "farmer",
+      "role_label": "農民",
+      "perspective": "農業生產端",
+      "summary": "葉菜類目前有 4 個行情候選，其中 1 個高於近期平均、2 個接近近期平均。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "行情偏高時核對可交付量後分批出貨；行情偏低時先檢查成本與既定安排，不依單日價格擴大生產。",
+      "items": [
+        {
+          "product_name": "小白菜-土白菜",
+          "market_name": "溪湖鎮",
+          "price_status": "便宜",
+          "today_price": 29.4,
+          "recent_average": 32.2,
+          "action": "檢查出貨節奏",
+          "reason": "目前行情低於近期平均，應先核對成本、保存條件與既定合約，避免只因單日價格改變生產。",
+          "priority": "medium",
+          "substitute": null
+        },
+        {
+          "product_name": "油菜",
+          "market_name": "溪湖鎮",
+          "price_status": "正常",
+          "today_price": 29.4,
+          "recent_average": 26.2,
+          "action": "維持既定節奏",
+          "reason": "目前行情接近近期平均，可依既定採收與出貨計畫執行並持續觀察。",
+          "priority": "medium",
+          "substitute": null
+        },
+        {
+          "product_name": "芥藍菜",
+          "market_name": "溪湖鎮",
+          "price_status": "正常",
+          "today_price": 46.5,
+          "recent_average": 47.0,
+          "action": "維持既定節奏",
+          "reason": "目前行情接近近期平均，可依既定採收與出貨計畫執行並持續觀察。",
+          "priority": "medium",
+          "substitute": null
+        },
+        {
+          "product_name": "青江白菜-小梗",
+          "market_name": "溪湖鎮",
+          "price_status": "偏貴",
+          "today_price": 33.7,
+          "recent_average": 26.5,
+          "action": "評估分批出貨",
+          "reason": "目前行情高於近期平均，可核對可交付量與自身成本後安排分批出貨，不代表價格會持續。",
+          "priority": "high",
+          "substitute": null
+        }
+      ]
+    },
+    "merchant": {
+      "role": "merchant",
+      "role_label": "商家",
+      "perspective": "通路銷售端",
+      "summary": "葉菜類目前有 4 個可供採購比較的品項，其中 1 個相對便宜、2 個價格正常。",
+      "market_outlook": "以下僅依目前行情與近期平均提供保守判斷，不代表未來價格、需求或供應保證。",
+      "shopping_strategy": "便宜品項可依銷售速度分批補貨；偏貴品項控制庫存並比較替代品，避免把行情誤當成需求資料。",
+      "items": [
+        {
+          "product_name": "小白菜-土白菜",
+          "market_name": "溪湖鎮",
+          "price_status": "便宜",
+          "today_price": 29.4,
+          "recent_average": 32.2,
+          "action": "分批補貨",
+          "reason": "今日行情低於近期平均，可依實際銷售速度分批補貨，避免一次建立過高庫存。",
+          "priority": "high",
+          "substitute": null
+        },
+        {
+          "product_name": "油菜",
+          "market_name": "溪湖鎮",
+          "price_status": "正常",
+          "today_price": 29.4,
+          "recent_average": 26.2,
+          "action": "依銷售速度補貨",
+          "reason": "今日行情接近近期平均，可依現有庫存與銷售速度安排補貨。",
+          "priority": "medium",
+          "substitute": null
+        },
+        {
+          "product_name": "芥藍菜",
+          "market_name": "溪湖鎮",
+          "price_status": "正常",
+          "today_price": 46.5,
+          "recent_average": 47.0,
+          "action": "依銷售速度補貨",
+          "reason": "今日行情接近近期平均，可依現有庫存與銷售速度安排補貨。",
+          "priority": "medium",
+          "substitute": null
+        },
+        {
+          "product_name": "青江白菜-小梗",
+          "market_name": "溪湖鎮",
+          "price_status": "偏貴",
+          "today_price": 33.7,
+          "recent_average": 26.5,
+          "action": "控制進貨量",
+          "reason": "今日行情高於近期平均，建議降低單次進貨量並比較同分類替代品。",
+          "priority": "low",
+          "substitute": "小白菜-土白菜"
+        }
+      ]
+    }
+  }
+}

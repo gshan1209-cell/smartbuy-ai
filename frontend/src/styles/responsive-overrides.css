@@ -19,3 +19,126 @@
     justify-self: start;
   }
 }
+
+/*
+ * 手動版型切換的最後覆蓋層。
+ *
+ * 版型模式是可持久化的預覽設定，不能只依賴瀏覽器目前的 viewport。
+ * 否則在手機視窗切到桌機時，早先的 @media 規則仍會把側欄隱藏、
+ * header/app-main 的左邊距歸零，最後變成桌機導覽 + 手機內容的混合版型。
+ */
+html[data-layout-mode="desktop"] .public-layout,
+html[data-layout-mode="tablet"] .public-layout {
+  --public-sidebar-width: 248px;
+}
+
+html[data-layout-mode="desktop"] .public-layout.sidebar-collapsed,
+html[data-layout-mode="tablet"] .public-layout.sidebar-collapsed {
+  --public-sidebar-width: 76px;
+}
+
+html[data-layout-mode="desktop"] .public-sidebar,
+html[data-layout-mode="tablet"] .public-sidebar {
+  display: flex;
+}
+
+html[data-layout-mode="desktop"] .public-header,
+html[data-layout-mode="desktop"] .app-main,
+html[data-layout-mode="tablet"] .public-header,
+html[data-layout-mode="tablet"] .app-main {
+  margin-left: var(--public-sidebar-width);
+  width: calc(100% - var(--public-sidebar-width));
+  max-width: calc(100% - var(--public-sidebar-width));
+  padding-bottom: 0;
+}
+
+html[data-layout-mode="desktop"] .public-header {
+  gap: 28px;
+  padding-inline: 32px;
+}
+
+html[data-layout-mode="desktop"] .container {
+  max-width: 1100px;
+  padding-inline: 24px;
+}
+
+html[data-layout-mode="tablet"] .public-header {
+  gap: 16px;
+  padding-inline: 20px;
+}
+
+html[data-layout-mode="tablet"] .container {
+  max-width: 860px;
+  padding-inline: 20px;
+}
+
+html[data-layout-mode="desktop"] .public-nav,
+html[data-layout-mode="tablet"] .public-nav {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+}
+
+html[data-layout-mode="desktop"] .settings-link,
+html[data-layout-mode="tablet"] .settings-link {
+  display: block;
+}
+
+html[data-layout-mode="desktop"] .mobile-icon,
+html[data-layout-mode="desktop"] .menu-button,
+html[data-layout-mode="desktop"] .mobile-bottom-nav,
+html[data-layout-mode="tablet"] .mobile-icon,
+html[data-layout-mode="tablet"] .menu-button,
+html[data-layout-mode="tablet"] .mobile-bottom-nav {
+  display: none;
+}
+
+html[data-layout-mode="desktop"] .header-identity-role,
+html[data-layout-mode="tablet"] .header-identity-role {
+  display: inline-flex;
+}
+
+html[data-layout-mode="mobile"] .public-layout {
+  --public-sidebar-width: 0px;
+}
+
+html[data-layout-mode="mobile"] .public-sidebar {
+  display: none;
+}
+
+html[data-layout-mode="mobile"] .public-header,
+html[data-layout-mode="mobile"] .app-main {
+  margin-left: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+html[data-layout-mode="mobile"] .app-main {
+  padding-bottom: 72px;
+}
+
+html[data-layout-mode="mobile"] .public-header {
+  gap: 8px;
+  padding-inline: 12px;
+}
+
+html[data-layout-mode="mobile"] .container {
+  max-width: 100%;
+  padding-inline: 16px;
+}
+
+html[data-layout-mode="mobile"] .public-nav,
+html[data-layout-mode="mobile"] .settings-link,
+html[data-layout-mode="mobile"] .header-identity-role {
+  display: none;
+}
+
+html[data-layout-mode="mobile"] .mobile-icon,
+html[data-layout-mode="mobile"] .menu-button {
+  display: grid;
+}
+
+html[data-layout-mode="mobile"] .mobile-bottom-nav {
+  display: flex;
+}

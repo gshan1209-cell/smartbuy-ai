@@ -1,5 +1,6 @@
 import { IS_TEST_MODE } from '../config/testMode';
 import { apiRequest } from './apiClient';
+import { DEMO_CATEGORIES, DEMO_MARKETS, getRecommendationDemo } from '../config/recommendationDemo';
 
 let latestRecommendationRequest = 0;
 let latestRecommendationPromise = Promise.resolve(null);
@@ -92,8 +93,9 @@ function normalizeRecommendationError(error) {
   return error instanceof Error ? error : new Error(message);
 }
 
-export async function loadRecommendationCategories() {
+export async function loadRecommendationCategories({ demo = false } = {}) {
   try {
+    if (demo) return DEMO_CATEGORIES;
     if (USE_STATIC_RECOMMENDATION_CACHE) {
       const manifest = await loadStaticManifest();
       return Array.isArray(manifest.categories) ? manifest.categories : [];
@@ -107,6 +109,9 @@ export async function loadRecommendationCategories() {
 
 export async function loadRecommendationMarkets(filters = {}) {
   try {
+    if (filters.demo) {
+      return DEMO_MARKETS.filter((market) => !filters.region || marketMatchesRegion(market, filters.region));
+    }
     if (USE_STATIC_RECOMMENDATION_CACHE) {
       const manifest = await loadStaticManifest();
       const markets = new Set(
@@ -133,6 +138,28 @@ export async function loadRecommendationMarkets(filters = {}) {
 export function loadRecommendation(category, role, filters = {}) {
   if (!category) return Promise.reject(new Error('請先選擇推薦分類。'));
 
+  if (filters.demo) {
+    const document = getRecommendationDemo(category, filters.market);
+    return Promise.resolve({
+      category: document.category.key,
+      region: document.region,
+      market: document.market,
+      cache_hit: true,
+      llm_called: false,
+      cache_backend: 'demo-fixture',
+      generation_source: 'demo',
+      generated_at: document.generated_at,
+      data_status: 'demo',
+      source_name: document.source_summary.source_name,
+      prompt_set_version: document.prompt_set_version,
+      data: document,
+      role_recommendations: document.role_recommendations,
+      recommendations: document.role_recommendations.consumer.items,
+      selected_role: role || 'consumer',
+      selected_recommendation: document.role_recommendations[role || 'consumer'],
+    });
+  }
+
   const requestId = ++latestRecommendationRequest;
   const params = new URLSearchParams({ category });
   if (role) params.set('role', role);
@@ -152,4 +179,14 @@ export function loadRecommendation(category, role, filters = {}) {
     if (requestId !== latestRecommendationRequest) return latestRecommendationPromise;
     return payload;
   });
+}
+
+function marketMatchesRegion(marketName, regionId) {
+  const regionKeywords = {
+    north: ['台北', '三重', '板橋', '桃園', '桃農', '新竹', '宜蘭'],
+    central: ['台中', '南投', '彰化', '苗栗', '東勢', '永靖', '溪湖', '豐原', '西螺'],
+    south: ['台南', '嘉義', '高雄', '鳳山', '屏東'],
+    east_island: ['花蓮', '台東', '澎湖', '金門', '連江'],
+  };
+  return (regionKeywords[regionId] || []).some((keyword) => marketName.includes(keyword));
 }
