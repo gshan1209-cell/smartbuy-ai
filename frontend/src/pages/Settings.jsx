@@ -2,15 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
-import { applyLayoutMode, DEFAULT_LAYOUT_MODE, LAYOUT_MODE_OPTIONS } from '../hooks/useLayoutMode';
-import { API_BASE_URL } from '../lib/apiClient';
 
-const BASE = API_BASE_URL;
+const BASE = import.meta.env.VITE_API_URL ?? '';
 const LS_KEY = 'smartbuy_notif_prefs';
 const DEFAULT_PREFS = { weatherAlert: true, mutualAidReply: true, mutualAidLike: true };
 
 const LS_DISPLAY_KEY = 'smartbuy_display_prefs';
-const DEFAULT_DISPLAY = { theme: 'light', layoutMode: DEFAULT_LAYOUT_MODE };
+const DEFAULT_DISPLAY = { theme: 'light' };
 
 function loadPrefs() {
   try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(LS_KEY)) }; }
@@ -25,8 +23,6 @@ function loadDisplayPrefs() {
 function saveDisplayPrefs(next) {
   localStorage.setItem(LS_DISPLAY_KEY, JSON.stringify(next));
   document.documentElement.setAttribute('data-theme', next.theme);
-  applyLayoutMode(next.layoutMode);
-  window.dispatchEvent(new CustomEvent('smartbuy:layout-mode', { detail: { layoutMode: next.layoutMode } }));
 }
 
 function splitPrefs(data) {
@@ -38,7 +34,6 @@ function splitPrefs(data) {
     },
     display: {
       theme: data.theme ?? DEFAULT_DISPLAY.theme,
-      layoutMode: loadDisplayPrefs().layoutMode ?? DEFAULT_DISPLAY.layoutMode,
     },
   };
 }
@@ -210,7 +205,6 @@ export default function Settings() {
     const nextDisplay = { ...displayPrefs, [key]: val };
     setDisplayPrefs(nextDisplay);
     saveDisplayPrefs(nextDisplay);
-    if (key === 'layoutMode') return;
     savePreferences({ [key]: val })
       .catch(err => {
         setDisplayPrefs(prevDisplay);
@@ -298,7 +292,7 @@ export default function Settings() {
         )}
 
         {/* 帳號資料 */}
-        <div id="profile-settings" className="yz-card" style={sectionStyle}>
+        <div className="yz-card" style={sectionStyle}>
           <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>帳號資料</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--yz-gl)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: 'var(--yz-gd)' }}>
@@ -332,7 +326,6 @@ export default function Settings() {
           <hr style={{ border: 'none', borderTop: '1px solid var(--yz-bdr)', margin: '16px 0' }} />
 
           <button
-            id="security-settings"
             type="button"
             className="yz-btn yz-btn-gho yz-btn-sm"
             onClick={openPwModal}
@@ -390,7 +383,7 @@ export default function Settings() {
         </div>
 
         {/* 顯示與版面 */}
-        <div id="display-settings" className="yz-card" style={sectionStyle}>
+        <div className="yz-card" style={sectionStyle}>
           <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 18 }}>顯示與版面</h2>
 
           <div style={{ ...rowStyle, marginBottom: 0 }}>
@@ -402,17 +395,6 @@ export default function Settings() {
               options={[{ val: 'light', label: '亮色' }, { val: 'dark', label: '暗色' }]}
               value={displayPrefs.theme}
               onChange={val => updateDisplay('theme', val)}
-            />
-          </div>
-          <div style={{ ...rowStyle, marginTop: 20, marginBottom: 0 }}>
-            <div>
-              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>版面模式</p>
-              <p style={{ fontSize: 12, color: 'var(--yz-mut)' }}>切換電腦、平板或手機整體版型</p>
-            </div>
-            <OptionGroup
-              options={LAYOUT_MODE_OPTIONS.map(option => ({ val: option.value, label: option.label }))}
-              value={displayPrefs.layoutMode}
-              onChange={val => updateDisplay('layoutMode', val)}
             />
           </div>
         </div>

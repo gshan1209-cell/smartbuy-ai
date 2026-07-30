@@ -2,12 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { get } from '../hooks/useApi';
 import Chart from 'chart.js/auto';
-import { Heart, ArrowRight } from 'lucide-react';
-import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesService';
-import { useToast } from '../hooks/useToast';
-import Toast from '../components/Toast';
-import { getConsumerAdvice } from '../lib/consumerAdvice';
-import './ProductDetail.css';
 
 // ── 常數 ───────────────────────────────────────────────────────────────────────
 
@@ -268,12 +262,7 @@ export default function ProductDetail() {
         {detailLoading && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>載入中…</p>}
         {!detailLoading && !detail && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>無法取得詳細資料</p>}
         {!detailLoading && detail && (
-          <DetailContent
-            productName={productName}
-            market={market}
-            detail={detail}
-            initialPeriod={searchParams.get('period')}
-          />
+          <DetailContent productName={productName} market={market} detail={detail} />
         )}
       </div>
     </div>
@@ -390,9 +379,8 @@ const crosshairPlugin = {
 
 // ── 詳情內容 ──────────────────────────────────────────────────────────────────
 
-function DetailContent({ productName, market, detail, initialPeriod }) {
-  const validInitialPeriod = ['7', '14', '30', 'custom'].includes(initialPeriod) ? initialPeriod : '7';
-  const [period, setPeriod] = useState(validInitialPeriod);
+function DetailContent({ productName, market, detail }) {
+  const [period, setPeriod] = useState('30');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [history, setHistory] = useState(null);
@@ -403,29 +391,6 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
     ma7: true, ma14: true, ma30: true,
     volume: true,
   });
-  const [isSaved, setIsSaved] = useState(false);
-  const [toastMessage, showToast] = useToast();
-
-  useEffect(() => {
-    setPeriod(validInitialPeriod);
-  }, [validInitialPeriod]);
-
-  useEffect(() => {
-    fetchFavorites('product').then((names) => setIsSaved(names.includes(productName))).catch(() => {});
-  }, [productName]);
-
-  async function toggleSaved() {
-    const previous = isSaved;
-    setIsSaved(!previous);
-    try {
-      if (previous) await removeFavorite('product', productName);
-      else await addFavorite('product', productName);
-      showToast(previous ? '已從我的菜籃移除' : '已加入我的菜籃');
-    } catch {
-      setIsSaved(previous);
-      showToast('操作失敗，請稍後再試');
-    }
-  }
 
   const priceChartRef = useRef(null);
   const priceChartInst = useRef(null);
@@ -768,12 +733,39 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
   const todayPriceColor = priceDiff == null ? 'var(--yz-txt)' : priceDiff > 0 ? '#DC2626' : priceDiff < 0 ? '#16A34A' : 'var(--yz-txt)';
 
   const hasVolumeData = (history || []).some(r => r.volume != null);
-  const purchaseAdvice = getConsumerAdvice(priceStatus, detail.prediction_direction);
 
   return (
     <>
-      {/* 查詢條件置頂：先選擇要查看的價格期間 */}
-      <div className="product-detail-query-tools" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+      {/* 1. 品名 + 狀態 badge + 今日漲跌 */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 900 }}>{productName}</h2>
+          <span className={`yz-bdg ${STATUS_BADGE[priceStatus] || 'yz-bdg-gr'}`}>{priceStatus}</span>
+        </div>
+        {/* 股票風格：大數字 + 漲跌幅 */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 36, fontWeight: 900, color: todayPriceColor, lineHeight: 1.1 }}>
+            {todayPrice ?? '—'}
+          </span>
+          {todayPrice != null && <span style={{ fontSize: 16, color: 'var(--yz-mut)', fontWeight: 500 }}>元/kg</span>}
+          {priceDiff != null && (
+            <span style={{ fontSize: 16, fontWeight: 700, color: diffColor }}>
+              {diffArrow} {priceDiff > 0 ? '+' : ''}{priceDiff} ({pricePct > 0 ? '+' : ''}{pricePct}%)
+            </span>
+          )}
+          {priceDiff == null && history !== null && (
+            <span style={{ fontSize: 12, color: 'var(--yz-mut)' }}>（昨日資料載入中）</span>
+          )}
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--yz-mut)', marginTop: 4 }}>
+          {pd.market_name ? `${pd.market_name} · ` : ''}
+          {pd.trans_date ? `${pd.trans_date} ` : ''}
+          資料範圍依下方切換器決定
+        </p>
+      </div>
+
+      {/* 1b. 日期切換器 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         {[['7', '7 天'], ['14', '14 天'], ['30', '30 天']].map(([val, label]) => (
           <button key={val} onClick={() => setPeriod(val)} style={{
             padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
@@ -806,39 +798,6 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
             />
           </div>
         )}
-      </div>
-
-      {/* 1. 品名 + 狀態 badge + 今日漲跌 */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 900 }}>{productName}</h2>
-          <span className={`yz-bdg ${STATUS_BADGE[priceStatus] || 'yz-bdg-gr'}`}>{priceStatus}</span>
-        </div>
-        {/* 股票風格：大數字 + 漲跌幅 */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 36, fontWeight: 900, color: todayPriceColor, lineHeight: 1.1 }}>
-            {todayPrice ?? '—'}
-          </span>
-          {todayPrice != null && <span style={{ fontSize: 16, color: 'var(--yz-mut)', fontWeight: 500 }}>元/kg</span>}
-          {priceDiff != null && (
-            <span style={{ fontSize: 16, fontWeight: 700, color: diffColor }}>
-              {diffArrow} {priceDiff > 0 ? '+' : ''}{priceDiff} ({pricePct > 0 ? '+' : ''}{pricePct}%)
-            </span>
-          )}
-          {priceDiff == null && history !== null && (
-            <span style={{ fontSize: 12, color: 'var(--yz-mut)' }}>（昨日資料載入中）</span>
-          )}
-        </div>
-        <p style={{ fontSize: 12, color: 'var(--yz-mut)', marginTop: 4 }}>
-          {pd.market_name ? `${pd.market_name} · ` : ''}
-          {pd.trans_date ? `${pd.trans_date} ` : ''}
-          資料範圍依下方切換器決定
-        </p>
-        <div className="consumer-detail-advice">
-          <div><strong>{purchaseAdvice.label}</strong><span>{purchaseAdvice.text}</span></div>
-          <button className="detail-save-button" onClick={toggleSaved} aria-pressed={isSaved}><Heart size={18} fill={isSaved ? 'currentColor' : 'none'} />{isSaved ? '已收藏' : '收藏品項'}</button>
-        </div>
-        <p className="detail-disclaimer">價格與預測僅供採買參考，不保證未來價格；資料日期以 API 回傳為準。</p>
       </div>
 
       {/* 2. 三格 metric 卡 */}
@@ -1128,8 +1087,6 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
 
       {/* 6. AI 方向預測卡 */}
       <DirectionCard productName={productName} market={market} />
-      <div className="detail-related-links"><button onClick={() => window.location.assign('/season')}>看看節氣推薦 <ArrowRight size={15} /></button><button onClick={() => window.location.assign('/alerts')}>查看提醒中心 <ArrowRight size={15} /></button></div>
-      <Toast message={toastMessage} />
     </>
   );
 }

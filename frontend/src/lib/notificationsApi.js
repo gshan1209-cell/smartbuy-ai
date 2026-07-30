@@ -1,20 +1,33 @@
-import { apiRequest } from './apiClient';
+// 站內通知 API 封裝：所有請求帶 cookie（credentials: 'include'）以配合後端 JWT cookie 認證。
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
+
+async function request(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, { credentials: 'include', ...options });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.detail || `HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
 
 export function fetchNotifications({ limit = 20, offset = 0 } = {}) {
   const params = new URLSearchParams();
   params.set('limit', String(limit));
   params.set('offset', String(offset));
-  return apiRequest(`/api/notifications?${params.toString()}`);
+  return request(`/api/notifications?${params.toString()}`);
 }
 
 export function fetchUnreadCount() {
-  return apiRequest('/api/notifications/unread-count');
+  return request('/api/notifications/unread-count');
 }
 
 export function markNotificationRead(id) {
-  return apiRequest(`/api/notifications/${id}/read`, { method: 'PATCH' });
+  return request(`/api/notifications/${id}/read`, { method: 'PATCH' });
 }
 
 export function markAllNotificationsRead() {
-  return apiRequest('/api/notifications/read-all', { method: 'PATCH' });
+  return request('/api/notifications/read-all', { method: 'PATCH' });
 }

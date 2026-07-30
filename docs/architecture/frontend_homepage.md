@@ -25,7 +25,7 @@
    - 3 則 mock 文章卡（`MOCK_NEWS`），tag 顯示節氣/市場/農技
 
 5. **互助網**（split 區，圖左文右）
-   - `PublishMockup` 發文模擬 UI（阿仁·雲林縣，絲瓜產地特惠）
+   - `PublishMockup` 發文模擬 UI（阿仁·雲林縣，絲瓜急售）
    - 「加入互助網」→ `/mutual-aid`
 
 6. **頁尾 CTA**

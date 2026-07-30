@@ -18,14 +18,7 @@ data/private/
 frontend/node_modules/
 frontend/dist/
 frontend/.env.local
-frontend/playwright-report/
-frontend/test-results/
-frontend/public/recommendations-cache/
 .vite/
-backend/.cache/
-.cache/
-frontend/debug.log
-frontend/vite-dev*.log
 
 cookies.txt
 
@@ -36,6 +29,3 @@ cookies.txt
 
 # Claude Code local permission settings (machine-specific, not shared)
 .claude/settings.local.json
-.runlogs/*
-.codex/runtime/frontend-error.log
-.codex/runtime/frontend.log

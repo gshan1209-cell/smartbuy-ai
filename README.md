@@ -1,169 +1,43 @@
 # SmartBuy AI｜便宜買 AI
 
-SmartBuy AI 是一套將農產品行情、天氣、二十四節氣與 AI 價格方向預測，轉換成白話採買建議的智慧買菜助手。
+把農產品行情、24 節氣與下一交易日價格方向分類轉成簡單採買建議的 React + FastAPI MVP。
 
 - 🌐 線上體驗：https://smartbuy-ai-alpha.vercel.app/
 
-## 本機啟動
-
-### 前置需求
-
-- Python 3.10 以上
-- Node.js 18 以上與 npm
-- Git
-
-先將專案複製到本機並進入專案根目錄：
-
-```bash
-git clone https://github.com/gshan1209-cell/smartbuy-ai.git
-cd smartbuy-ai
-```
-
-### 1. 啟動後端
-
-在專案根目錄建立 Python 虛擬環境並安裝依賴：
-
-```bash
-python -m venv .venv
-```
-
-Windows PowerShell：
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-macOS／Linux：
-
-```bash
-source .venv/bin/activate
-```
-
-安裝並啟動 FastAPI：
-
-```bash
-python -m pip install -r backend/requirements.txt
-python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-後端啟動後可開啟：
-
-- 健康檢查：http://localhost:8000/health
-- Swagger API 文件：http://localhost:8000/docs
-
-需要使用資料庫與會員功能時，在 `backend/.env` 設定：
-
-```dotenv
-DATABASE_URL=postgresql://user:password@host:5432/database
-JWT_SECRET_KEY=請替換成安全的隨機字串
-JWT_EXPIRE_MINUTES=60
-```
-
-`DATABASE_URL` 未設定時，依賴資料庫的功能將無法使用；正式環境不可沿用開發用的 JWT 預設密鑰。
-
-### 2. 啟動前端
-
-另開一個終端機，從專案根目錄執行：
-
-```bash
-cd frontend
-npm install
-npm start
-```
-
-Vite 開發伺服器預設位於 http://localhost:5173，並會將 `/api` 請求代理至 `http://localhost:8000`。
-
-若要直接指定後端或啟用 Supabase 前端連線，可建立 `frontend/.env.local`：
-
-```dotenv
-VITE_API_URL=http://localhost:8000
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-本機使用 Vite proxy 時可省略 `VITE_API_URL`；Supabase 相關設定沒有使用時也可省略。
-
-### 3. 驗證與正式建置
-
-在專案根目錄執行後端測試：
-
-```bash
-python -m pip install -r requirements.txt
-python -m pytest
-```
-
-在 `frontend` 目錄建立正式版前端：
-
-```bash
-npm run build
-npm run preview
-```
-
-## 系統定位
-
-SmartBuy AI 希望讓沒有農業或數據背景的使用者，也能快速知道：
-
-- 今天什麼菜比較便宜
-- 哪些品項適合現在購買
-- 哪些蔬果可能受到天氣影響
-- 收藏品項是否降價或可能漲價
-- 現在是什麼節氣、適合買什麼
-
-## 主要功能
-
-| 功能 | 說明 |
-|---|---|
-| 今日採買提醒 | 將行情與預測轉換成簡單的購買建議 |
-| 售價動態 | 搜尋農產品，查看近期價格與走勢 |
-| 商品詳細資訊 | 查看單一品項行情、價格狀態與下一交易日方向預測 |
-| 我的菜籃 | 收藏常買品項，集中追蹤價格變化 |
-| 價格與天氣提醒 | 接收降價、漲價、天氣與供應風險提醒 |
-| 二十四節氣 | 顯示目前節氣、當季蔬果、採買與料理建議 |
-| 農產新知 | 閱讀農產、食材、節氣與市場相關內容 |
-| 互助網 | 發布與瀏覽產地特惠、合作互助及資訊分享 |
-| 會員設定 | 管理個人資料、通知與顯示偏好 |
 
 ## 系統架構
 
 ![SmartBuy AI 系統架構圖](docs/assets/architecture.svg)
 
-SmartBuy AI 採用前後端分離架構。前端透過 REST API 呼叫 FastAPI 後端，後端再依用途存取即時資料庫、歷史資料湖與 AI 預測結果。
+## 功能總覽
 
-## 技術架構
+| 頁面 | 路徑 | 說明 |
+|---|---|---|
+| 首頁 | `/` | 今日採買提醒 |
+| 售價動態 | `/search` | 品項搜尋、歷史價格走勢 |
+| 品項詳細 | `/product/:name` | 單一品項行情、購買建議、下一交易日方向預測 |
+| 我的收藏 | `/basket` | 收藏品項，雲端同步（`/api/favorites`） |
+| 農產新知 | `/news` | 農產相關文章（目前為 mock 資料） |
+| 互助網 | `/mutual-aid` | 社群貼文、留言、按讚、收藏、圖片上傳 |
+| 會員設定 | `/settings` | 會員資料、通知與顯示偏好 |
+| 登入／註冊 | `/login`、`/register` | 帳號系統 |
 
-| 領域 | 技術 |
-|---|---|
-| 前端 | React 19、Vite、React Router v6、Tailwind CSS、Chart.js、Lucide React |
-| 後端 | FastAPI、SQLAlchemy、Pydantic、psycopg2 |
-| 資料庫 | Supabase PostgreSQL |
-| 歷史資料湖 | Cloudflare R2、Parquet |
-| AI 模型 | LightGBM，預測下一交易日「跌／持平／漲」方向 |
-| 身分驗證 | JWT、bcrypt、httpOnly Cookie |
-| 自動化 | GitHub Actions 每日更新行情與預測結果 |
-| 部署 | 前端 Vercel、後端 Render |
+## 技術棧
 
-## 資料架構
+- **前端**：React 19 + Vite + React Router v6 + Tailwind CSS，Chart.js 繪製價格走勢
+- **後端**：FastAPI + SQLAlchemy + psycopg2（連線 Supabase PostgreSQL）
+- **ML**：LightGBM 價格方向分類模型（`models/07_lightgbm_selected_final.joblib`）
+- **認證**：自建 JWT（bcrypt + python-jose），非 Supabase Auth
+- **部署**：前端 Vercel、後端 Render Free tier（使用cron-job，每10分鐘呼叫，減少等待）
 
-為兼顧線上查詢速度、雲端成本與機器學習訓練需求，系統採用雙層資料儲存：
+## 資料儲存與雙層架構 (Data Storage Architecture)
 
-- **Supabase PostgreSQL**：保存近期行情、會員、收藏、通知、互助網等即時互動資料。
-- **Cloudflare R2 Parquet 資料湖**：保存完整歷史行情，供資料分析與 AI 模型訓練使用。
-- **GitHub Actions**：每日執行資料更新與價格方向預測，將結果寫回線上資料庫供前台查詢。
+前端透過 REST API 呼叫後端 FastAPI，後端再依用途讀寫兩層資料儲存：
 
-## 使用者發展方向
+為了在免費雲端資源限制下支撐機器學習 (ML) 訓練所需的兩年歷史行情資料，SmartBuy AI 採用**雙層資料儲存架構**：
 
-### 初期｜買菜消費者
+- **Supabase PostgreSQL**：作為線上 App 即時查詢與每日行情更新之用，僅保留最近 1 年資料，並用於會員、收藏、互助網等即時互動資料。
+- **Cloudflare R2 Parquet 資料湖**：專為 ML 訓練保存的完整歷史行情，每日與行情更新雙向同步。
+- **每日價格方向預測**：GitHub Actions 每日排程讀取 Parquet 資料湖，以 LightGBM 模型產生「下一交易日跌／持平／漲」方向分類，寫回 `price_direction_predictions`（正式 MVP 預測路徑；舊版五日數值預測 `prediction_results` 已棄用，不作為 fallback）。
 
-提供簡單菜價、採買建議、收藏、提醒、節氣與當季推薦。
-
-### 中期｜農民
-
-提供市場行情、產地天氣風險、供應資訊與產地合作互助。
-
-### 後期｜商家
-
-提供採購、庫存、促銷、供需與顧客洞察。
-
-## 系統願景
-
-SmartBuy AI 不只呈現價格數字，而是把複雜資訊整理成每個人都能理解、能立即採取行動的建議，逐步串聯消費者、農民與商家。
+完整資料架構規格（欄位、SQL、去重與安全機制）見 [docs/SPEC.md](docs/SPEC.md)；完整原始規格請見根目錄的 `SmartBuy_AI_便宜買AI_MVP完整開發規格書_v1.1_含任務中心與24節氣.md`（部分內容已隨開發調整，實際行為以 `docs/SPEC.md` 為準）。

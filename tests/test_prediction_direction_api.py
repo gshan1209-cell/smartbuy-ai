@@ -5,13 +5,19 @@
 """
 from __future__ import annotations
 
-import backend.routers.prediction as prediction_router
+import sys
+import types
+
+from fastapi.testclient import TestClient
+
+fake_db = types.ModuleType("backend.db")
+fake_db.get_session = lambda: None
+sys.modules.setdefault("backend.db", fake_db)
+
+import backend.main as main
 
 
-def test_prediction_direction_latest_api_returns_batch_prediction(
-    monkeypatch,
-    router_client_factory,
-):
+def test_prediction_direction_latest_api_returns_batch_prediction(monkeypatch):
     """測試單筆方向預測 API 回傳 price_direction_predictions 格式資料。"""
     expected = {
         "market_id": "104",
@@ -42,12 +48,8 @@ def test_prediction_direction_latest_api_returns_batch_prediction(
         assert kwargs["market_id"] == "104"
         return expected
 
-    monkeypatch.setattr(
-        prediction_router,
-        "query_latest_prediction",
-        fake_query_latest_prediction,
-    )
-    client = router_client_factory(prediction_router.router)
+    monkeypatch.setattr(main, "query_latest_prediction", fake_query_latest_prediction)
+    client = TestClient(main.app)
 
     response = client.get("/api/predictions/direction/latest?crop_id=11&market_id=104")
 
@@ -55,17 +57,10 @@ def test_prediction_direction_latest_api_returns_batch_prediction(
     assert response.json() == expected
 
 
-def test_prediction_direction_latest_api_returns_404_when_missing(
-    monkeypatch,
-    router_client_factory,
-):
+def test_prediction_direction_latest_api_returns_404_when_missing(monkeypatch):
     """測試查無方向預測時不 fallback 舊版 prediction_results。"""
-    monkeypatch.setattr(
-        prediction_router,
-        "query_latest_prediction",
-        lambda **kwargs: None,
-    )
-    client = router_client_factory(prediction_router.router)
+    monkeypatch.setattr(main, "query_latest_prediction", lambda **kwargs: None)
+    client = TestClient(main.app)
 
     response = client.get("/api/predictions/direction/latest?crop_name=椰子")
 

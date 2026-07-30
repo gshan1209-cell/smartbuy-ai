@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { loadNotificationPage, fetchUnreadCount, markNotificationRead, markAllNotificationsRead } from '../lib/notificationsAdapter';
+import { fetchNotifications, fetchUnreadCount, markNotificationRead, markAllNotificationsRead } from '../lib/notificationsApi';
 
 const NOTIF_POLL_MS = 45000; // 未讀通知輪詢間隔：介於已確認的 30~60 秒範圍內
 const NOTIF_PAGE_SIZE = 10;
@@ -10,8 +10,8 @@ const NOTIF_PAGE_SIZE = 10;
 const links = [
   { to: '/',           label: '首頁',     ready: true },
   { to: '/search',     label: '售價動態', ready: true },
-  { to: '/news',       label: '新知與資訊分享', ready: true },
-  { to: '/special-offers', label: '特賣會', ready: true },
+  { to: '/news',       label: '農產新知', ready: true },
+  { to: '/mutual-aid', label: '互助網',   ready: true },
   { to: '/basket',     label: '我的菜籃', ready: true },
   { to: '/settings',   label: '設定',     ready: true },
 ];
@@ -26,7 +26,7 @@ function notifText(item) {
     : `${item.actorName} 按讚了你的貼文`;
 }
 
-export function NotificationBell() {
+function NotificationBell() {
   const navigate = useNavigate();
   const ref = useRef(null);
   const [open, setOpen] = useState(false);
@@ -59,7 +59,7 @@ export function NotificationBell() {
   function loadNotifications(offset) {
     setLoading(true);
     setLoadError('');
-    loadNotificationPage({ limit: NOTIF_PAGE_SIZE, offset })
+    fetchNotifications({ limit: NOTIF_PAGE_SIZE, offset })
       .then(data => {
         setItems(list => (offset === 0 ? data.items : [...list, ...data.items]));
         setHasMore(offset + data.items.length < data.total);
@@ -84,7 +84,7 @@ export function NotificationBell() {
       setUnreadCount(c => Math.max(c - 1, 0));
       markNotificationRead(item.id).catch(() => {});
     }
-    navigate('/alerts');
+    navigate(`/mutual-aid?post=${item.postId}`);
   }
 
   function handleMarkAllRead() {

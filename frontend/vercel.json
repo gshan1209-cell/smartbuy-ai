@@ -1,14 +1,5 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    {
-      "source": "/recommendations/api/:path*",
-      "destination": "https://smartbuyai-react.onrender.com/api/:path*"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "https://smartbuyai-react.onrender.com/api/:path*"
-    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

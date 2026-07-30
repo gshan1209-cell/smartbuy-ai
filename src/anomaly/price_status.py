@@ -35,30 +35,9 @@ def get_price_status(
     prices: pd.DataFrame | None = None,
 ) -> dict:
     data = load_price_history(days=30) if prices is None else prices.copy()
-    data_source = data.attrs.get("source")
-    age_days = data.attrs.get("age_days")
-    is_historical = bool(data.attrs.get("is_historical"))
     selected = data[data["product_name"] == product_name]
     if market_name:
         selected = selected[selected["market_name"] == market_name]
-    return _build_price_status(
-        product_name,
-        selected,
-        market_name,
-        data_source,
-        age_days,
-        is_historical,
-    )
-
-
-def _build_price_status(
-    product_name: str,
-    selected: pd.DataFrame,
-    market_name: str | None,
-    data_source: str | None,
-    age_days: int | None,
-    is_historical: bool,
-) -> dict:
     if selected.empty:
         return {
             "product_name": product_name,
@@ -73,9 +52,6 @@ def _build_price_status(
             "middle_price": None,
             "lower_price": None,
             "volume": None,
-            "data_source": data_source,
-            "age_days": age_days,
-            "is_historical": is_historical,
         }
 
     selected = selected.sort_values("trans_date")
@@ -101,9 +77,6 @@ def _build_price_status(
         "middle_price": _safe_round(latest.get("middle_price")),
         "lower_price": _safe_round(latest.get("lower_price")),
         "volume": _safe_round(latest.get("volume"), 0),
-        "data_source": data_source,
-        "age_days": age_days,
-        "is_historical": is_historical,
     }
 
 
@@ -114,19 +87,5 @@ def get_all_price_statuses(
     data = load_price_history(days=30) if prices is None else prices.copy()
     if market_name:
         data = data[data["market_name"] == market_name]
-    data_source = data.attrs.get("source")
-    age_days = data.attrs.get("age_days")
-    is_historical = bool(data.attrs.get("is_historical"))
-    grouped = data.groupby("product_name", sort=False)
-    return [
-        _build_price_status(
-            name,
-            selected.sort_values("trans_date"),
-            market_name,
-            data_source,
-            age_days,
-            is_historical,
-        )
-        for name, selected in sorted(grouped, key=lambda item: item[0])
-    ]
+    return [get_price_status(name, prices=data) for name in sorted(data["product_name"].unique())]
 

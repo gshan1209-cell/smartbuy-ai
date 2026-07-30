@@ -1,177 +1,60 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 
-import { normalizeRole } from '../config/roles';
-import { IS_TEST_MODE, TEST_PERMISSIONS, TEST_USER } from '../config/testMode';
-import {
-  fetchDashboardAccess,
-  loginAccount,
-  logoutAccount,
-  updateAccountProfile,
-} from '../lib/authApi';
-import { resetFavoriteAuthCheck } from '../lib/favoritesService';
-
+const BASE = import.meta.env.VITE_API_URL ?? '';
 const LS_USER = 'yz_auth_user';
 
-function normalizeUser(user) {
-  if (!user) return null;
-  return { ...user, role: normalizeRole(user.role) };
-}
-
 function loadUser() {
-  try {
-    return normalizeUser(JSON.parse(localStorage.getItem(LS_USER)));
-  } catch {
-    return null;
-  }
-}
-
-function persistUser(user) {
-  const normalized = normalizeUser(user);
-  if (normalized) localStorage.setItem(LS_USER, JSON.stringify(normalized));
-  else localStorage.removeItem(LS_USER);
-  return normalized;
+  try { return JSON.parse(localStorage.getItem(LS_USER)); }
+  catch { return null; }
 }
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => (IS_TEST_MODE ? TEST_USER : loadUser()));
-  const [authLoading, setAuthLoading] = useState(() => (IS_TEST_MODE ? false : Boolean(loadUser())));
-  const [dashboardAccess, setDashboardAccess] = useState(() => (IS_TEST_MODE ? {
-    dashboardAccess: true,
-    role: TEST_USER.role,
-    permissions: TEST_PERMISSIONS,
-  } : null));
-  const [accessDenied, setAccessDenied] = useState(false);
-  const [accessError, setAccessError] = useState(null);
-
-  const clearSessionState = useCallback(() => {
-    setUser(null);
-    setDashboardAccess(null);
-    setAccessDenied(false);
-    setAccessError(null);
-    localStorage.removeItem(LS_USER);
-    resetFavoriteAuthCheck();
-  }, []);
-
-  const refreshSession = useCallback(async () => {
-    if (IS_TEST_MODE) {
-      setUser(TEST_USER);
-      setDashboardAccess({
-        dashboardAccess: true,
-        role: TEST_USER.role,
-        permissions: TEST_PERMISSIONS,
-      });
-      setAccessDenied(false);
-      setAccessError(null);
-      setAuthLoading(false);
-      return;
-    }
-
-    if (!user) {
-      setDashboardAccess(null);
-      setAccessDenied(false);
-      setAccessError(null);
-      setAuthLoading(false);
-      return;
-    }
-
-    setAuthLoading(true);
-    setAccessError(null);
-
-    try {
-      const access = await fetchDashboardAccess();
-      const normalizedRole = normalizeRole(access.role);
-      const nextUser = persistUser({ ...user, role: normalizedRole });
-
-      setUser(nextUser);
-      setDashboardAccess({
-        ...access,
-        role: normalizedRole,
-        permissions: Array.isArray(access.permissions) ? access.permissions : [],
-        dashboardAccess: access.dashboardAccess === true,
-      });
-      setAccessDenied(false);
-    } catch (error) {
-      if (error?.status === 401) {
-        clearSessionState();
-        return;
-      }
-
-      if (error?.status === 403) {
-        setDashboardAccess({
-          dashboardAccess: false,
-          role: normalizeRole(user.role),
-          permissions: [],
-        });
-        setAccessDenied(true);
-        return;
-      }
-
-      setAccessError(error instanceof Error ? error : new Error('權限服務暫時無法取得。'));
-    } finally {
-      setAuthLoading(false);
-    }
-  }, [clearSessionState, user]);
-
-  useEffect(() => {
-    refreshSession();
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [user, setUser] = useState(loadUser);
 
   async function login(email, password) {
-    if (IS_TEST_MODE) return;
-    const { member } = await loginAccount({ email, password });
-    setDashboardAccess(null);
-    setAccessDenied(false);
-    setAccessError(null);
-    setAuthLoading(true);
-    resetFavoriteAuthCheck();
-    setUser(persistUser(member));
+    const res = await fetch(`${BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || '登入失敗');
+    }
+    const { member: u } = await res.json();
+    localStorage.setItem(LS_USER, JSON.stringify(u));
+    setUser(u);
   }
 
   async function logout() {
-    if (IS_TEST_MODE) return;
-    await logoutAccount().catch(() => {});
-    clearSessionState();
-    setAuthLoading(false);
+    await fetch(`${BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
+    setUser(null);
+    localStorage.removeItem(LS_USER);
   }
 
-  function setAuthData(nextUser) {
-    if (IS_TEST_MODE) return;
-    setDashboardAccess(null);
-    setAccessDenied(false);
-    setAccessError(null);
-    setAuthLoading(Boolean(nextUser));
-    resetFavoriteAuthCheck();
-    setUser(persistUser(nextUser));
+  function setAuthData(u) {
+    localStorage.setItem(LS_USER, JSON.stringify(u));
+    setUser(u);
   }
 
   async function updateProfile(patch) {
-    if (IS_TEST_MODE) return;
-    const { member: updated } = await updateAccountProfile(patch);
-    const nextUser = persistUser({ ...user, ...updated });
-    setUser(nextUser);
+    const res = await fetch(`${BASE}/api/auth/profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) throw new Error('更新失敗');
+    const { member: updated } = await res.json();
+    localStorage.setItem(LS_USER, JSON.stringify(updated));
+    setUser(updated);
   }
 
-  const permissions = dashboardAccess?.permissions || [];
-
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: Boolean(user),
-        authLoading,
-        dashboardAccess,
-        permissions,
-        accessDenied,
-        accessError,
-        refreshSession,
-        login,
-        logout,
-        updateProfile,
-        setAuthData,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, updateProfile, setAuthData }}>
       {children}
     </AuthContext.Provider>
   );

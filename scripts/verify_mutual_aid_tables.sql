@@ -15,9 +15,6 @@ expected_columns(table_name, column_name, expected_type, should_be_not_null, sho
         ('mutual_aid_posts', 'member_id', 'integer', TRUE, FALSE),
         ('mutual_aid_posts', 'type', 'text', TRUE, FALSE),
         ('mutual_aid_posts', 'content', 'text', TRUE, FALSE),
-        ('mutual_aid_posts', 'share_kind', 'text', FALSE, FALSE),
-        ('mutual_aid_posts', 'title', 'text', FALSE, FALSE),
-        ('mutual_aid_posts', 'website_url', 'text', FALSE, FALSE),
         ('mutual_aid_posts', 'farm_name', 'text', FALSE, FALSE),
         ('mutual_aid_posts', 'location_city', 'text', FALSE, FALSE),
         ('mutual_aid_posts', 'location_addr', 'text', FALSE, FALSE),
@@ -109,8 +106,6 @@ actual_fks AS (
 expected_checks(table_name, constraint_name) AS (
     VALUES
         ('mutual_aid_posts', 'mutual_aid_posts_type_check'),
-        ('mutual_aid_posts', 'mutual_aid_posts_share_kind_check'),
-        ('mutual_aid_posts', 'mutual_aid_posts_website_url_check'),
         ('mutual_aid_posts', 'mutual_aid_posts_content_not_blank'),
         ('mutual_aid_posts', 'mutual_aid_posts_images_max_check'),
         ('mutual_aid_posts', 'mutual_aid_posts_status_check'),
@@ -123,7 +118,6 @@ expected_indexes(index_name) AS (
     VALUES
         ('mutual_aid_posts_created_at_idx'),
         ('mutual_aid_posts_type_idx'),
-        ('mutual_aid_posts_share_kind_idx'),
         ('mutual_aid_posts_location_city_idx'),
         ('mutual_aid_posts_like_count_created_at_idx'),
         ('mutual_aid_comments_post_id_idx'),

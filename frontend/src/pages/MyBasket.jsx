@@ -1,50 +1,31 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchFavorites, removeFavorite } from '../lib/favoritesService';
-import { get } from '../hooks/useApi';
-import { getConsumerAdvice, getPriceStatus } from '../lib/consumerAdvice';
-import LoadingState from '../components/shared/LoadingState';
-import EmptyState from '../components/shared/EmptyState';
 import './MyBasket.css';
 
 function SavedProductsList({ savedProducts, onRemove }) {
   const navigate = useNavigate();
-  const [details, setDetails] = useState({});
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const next = {};
-      for (const name of savedProducts) {
-        try { next[name] = await get(`/api/products/${encodeURIComponent(name)}`); }
-        catch { next[name] = { error: true }; }
-      }
-      if (!cancelled) { setDetails(next); setLoading(false); }
-    })();
-    return () => { cancelled = true; };
-  }, [savedProducts]);
-  if (loading) return <LoadingState label="正在更新收藏品項…" />;
-  if (!savedProducts.length) return <EmptyState title="還沒有收藏的品項" description="前往查價頁收藏想追蹤的蔬果。" action={<button className="consumer-link" onClick={() => navigate('/search')}>前往查價</button>} />;
+  const [expandedName, setExpandedName] = useState(null);
   return (
     <div className="mb-grid">
       {savedProducts.map(name => {
-        const detail = details[name];
-        const status = detail?.error ? '資料不足' : getPriceStatus(detail);
-        const advice = getConsumerAdvice(status, detail?.prediction_direction);
+        const expanded = expandedName === name;
         return (
-          <div key={name} className="card basket-product-card">
+          <div
+            key={name}
+            className="card"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setExpandedName(expanded ? null : name)}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span className="badge badge-green">{status}</span>
+              <span className="badge badge-green">品項</span>
               <button
                 className="mb-chip-remove"
                 onClick={e => { e.stopPropagation(); onRemove(name); }}
-                title="取消收藏" aria-label={`移除 ${name} 收藏`}
+                title="取消收藏"
               >×</button>
             </div>
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{name}</h3>
-            <p className="basket-price">{detail?.today_price == null ? '資料不足' : `${detail.today_price} 元`} <small>{detail?.price_detail?.market_name || '市場資料未提供'}</small></p>
-            <p className="basket-advice"><strong>{advice.label}</strong>：{advice.text}</p>
-            <small className="basket-updated">更新：{detail?.price_detail?.trans_date || '資料日期未提供'}</small>
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10,
@@ -62,7 +43,7 @@ function SavedProductsList({ savedProducts, onRemove }) {
                 查看品項詳情 ↗
               </button>
               <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
-                查看詳情 →
+                {expanded ? '收合 ↑' : '展開 →'}
               </span>
             </div>
           </div>
@@ -158,9 +139,8 @@ export default function MyBasket() {
   }
 
   function handleRemoveSavedProduct(name) {
-    if (!window.confirm(`確定要移除 ${name} 的收藏嗎？`)) return;
     setSavedProducts(prev => prev.filter(n => n !== name));
-    removeFavorite('product', name).catch(() => setSavedProducts(prev => [...prev, name]));
+    removeFavorite('product', name).catch(() => {});
   }
 
   return (
@@ -171,7 +151,7 @@ export default function MyBasket() {
       {favLoading && <div className="spinner" />}
 
       {/* 收藏品項（來自售價動態頁） */}
-        <h2 id="saved-products" className="page-title" style={{ fontSize: 20, marginTop: 40 }}>⭐ 收藏品項</h2>
+      <h2 className="page-title" style={{ fontSize: 20, marginTop: 40 }}>⭐ 收藏品項</h2>
       {!favLoading && savedProducts.length === 0 ? (
         <p className="empty">還沒有收藏的品項，前往<a href="/search" onClick={e => { e.preventDefault(); navigate('/search'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>售價動態</a>收藏</p>
       ) : (
@@ -179,9 +159,9 @@ export default function MyBasket() {
       )}
 
       {/* 收藏文章（來自農產新知頁，獨立於品項清單） */}
-        <h2 id="saved-news" className="page-title" style={{ fontSize: 20, marginTop: 40 }}>📰 收藏文章</h2>
+      <h2 className="page-title" style={{ fontSize: 20, marginTop: 40 }}>📰 收藏文章</h2>
       {!favLoading && savedNews.length === 0 ? (
-        <p className="empty">還沒有收藏的文章，前往<a href="/news" onClick={e => { e.preventDefault(); navigate('/news'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>新知與資訊分享</a>看看</p>
+        <p className="empty">還沒有收藏的文章，前往<a href="/news" onClick={e => { e.preventDefault(); navigate('/news'); }} style={{ color: 'var(--green)', fontWeight: 500 }}>農產新知</a>看看</p>
       ) : (
         <SavedNewsList savedNews={savedNews} onRemove={handleRemoveSavedNews} />
       )}

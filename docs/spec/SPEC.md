@@ -49,7 +49,7 @@ Supabase PostgreSQL（近期資料）＋ Cloudflare R2 Parquet 資料湖（歷�
 
 ### 互助網（`/mutual-aid`，`MutualAid.jsx`）
 
-單一 `DiscussionBoard` 元件：發文（產地特惠／合作互助／資訊分享）、留言、按讚、收藏、狀態流程（待處理／處理中／已結案）、最多 3 張圖片上傳。2026-07-20～21 已改接真實後端 `backend/routers/mutual_aid.py`（`/api/mutual-aid/*`），圖片以 Pillow 轉 webp 後 base64 存入 `mutual_aid_posts.images`，不依賴任何物件儲存服務。原「買貴通報」分頁與相關後端模組已於 2026-07-21 整批移除。詳細架構見 memory `project_mutualaid.md`。
+單一 `DiscussionBoard` 元件：發文（滯銷急售／求助／資訊分享）、留言、按讚、收藏、狀態流程（待處理／處理中／已結案）、最多 3 張圖片上傳。2026-07-20～21 已改接真實後端 `backend/routers/mutual_aid.py`（`/api/mutual-aid/*`），圖片以 Pillow 轉 webp 後 base64 存入 `mutual_aid_posts.images`，不依賴任何物件儲存服務。原「買貴通報」分頁與相關後端模組已於 2026-07-21 整批移除。詳細架構見 memory `project_mutualaid.md`。
 
 ### 會員設定（`/settings`，`Settings.jsx`）
 

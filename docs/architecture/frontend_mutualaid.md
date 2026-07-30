@@ -10,7 +10,7 @@
 - 發文觸發卡（登入/未登入皆可見）
 - 搜尋框（300ms debounce）
 - 「★ 只看收藏」「🙋 只看我的」切換（互斥，`viewFilter` state：`'all' | 'saved' | 'mine'`，再按一次回 `'all'`）
-- 貼文類型 pills（全部／產地特惠／合作互助／資訊分享）+ 城市 select（台灣 22 縣市）。API 仍使用既有類型值以維持相容。
+- 貼文類型 pills（全部／滯銷急售／求助／資訊分享）+ 城市 select（台灣 22 縣市）
 - 貼文卡片列表（type badge、狀態 chip、日期、收藏☆★、按讚♡♥ + like_count、首張圖片縮圖）
 - 本人貼文額外顯示：狀態切換 select、編輯（含圖片增刪）、刪除（二次確認）
 - 「載入更多」分頁按鈕（`viewFilter==='saved'` 時停用；用回傳筆數 < limit 判斷 hasMore）
@@ -52,16 +52,6 @@
 ## 收藏機制
 
 走後端 `mutual_aid_saved` 表（`toggleSave` / `fetchSavedPosts`），與 MyBasket 的 `favoritesService.js`（`user_favorites` 表）是完全獨立的兩套系統，互不共用。
-
-## Information-share card contract (2026-07-26)
-
-For public information sharing, `type` remains `資訊分享` and the additive fields are:
-
-- `share_kind`: `special_offer` (self-posted sale) or `product_recommendation` (high-CP recommendation); existing null values are treated as recommendations.
-- `title`: card title or product name.
-- `website_url`: optional `http://` or `https://` merchant website.
-
-The public page presents these as coupon-style cards with a merchant initial icon, title, description, and an external official-site link. Existing comments, likes, saves, image uploads, and post status actions remain unchanged.
 
 ## 401 處理
 
