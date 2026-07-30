@@ -377,6 +377,43 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
   .public-layout {
     --public-sidebar-width: 76px;
   }
+
+  /* html[data-layout-mode] (set by useLayoutMode once React mounts) is the source of
+     truth for sidebar width + label visibility once it's present — see the
+     data-layout-mode rules in responsive-overrides.css. Before that attribute exists
+     (first paint / pre-hydration), only plain CSS applies: the rule above already
+     narrows the sidebar to 76px at this breakpoint, so it must hide labels too,
+     otherwise text has no room and wraps character-by-character. Scoped to
+     :not([data-layout-mode]) so it never fights the JS-driven state afterwards. */
+  html:not([data-layout-mode]) .public-sidebar {
+    padding-inline: 10px;
+  }
+
+  html:not([data-layout-mode]) .public-sidebar-brand {
+    justify-content: center;
+  }
+
+  html:not([data-layout-mode]) .public-sidebar-logo {
+    flex: 0 0 auto;
+  }
+
+  html:not([data-layout-mode]) .public-sidebar-toggle {
+    position: absolute;
+    top: 18px;
+    right: 10px;
+  }
+
+  html:not([data-layout-mode]) .public-sidebar-label,
+  html:not([data-layout-mode]) .public-sidebar-heading,
+  html:not([data-layout-mode]) .public-sidebar-context-title,
+  html:not([data-layout-mode]) .public-sidebar-context-description {
+    display: none;
+  }
+
+  html:not([data-layout-mode]) .public-sidebar-link {
+    justify-content: center;
+    padding-inline: 0;
+  }
 }
 
 @media (max-width: 767px) {
