@@ -49,9 +49,16 @@ export function mapMarketsToCounties(markets) {
   return set.size > 1 ? Array.from(set) : defaultAvailable;
 }
 
+const COUNTY_TO_MARKET = {
+  '臺北市': '台北一',
+  '臺中市': '台中市',
+  '高雄市': '高雄市',
+};
+
 function mapCountyToMarketName(county) {
   if (!county) return '';
-  return String(county).replace(/臺/g, '台').trim();
+  const key = String(county).replace(/台/g, '臺').trim();
+  return COUNTY_TO_MARKET[key] ?? String(county).replace(/臺/g, '台').trim();
 }
 
 function normalizeExplorerItem(item) {

@@ -9,6 +9,10 @@ function countyId(properties) {
   return properties?.name || properties?.NAME || properties?.COUNTYNAME || properties?.C_Name || '';
 }
 
+function normalizeCounty(name) {
+  return String(name || '').replace(/台/g, '臺').trim();
+}
+
 export default function TaiwanCountyMap({ selectedCounty, onSelectCounty, availableCounties = null }) {
   const [geojson, setGeojson] = useState(null);
   const [error, setError] = useState(false);
@@ -23,12 +27,12 @@ export default function TaiwanCountyMap({ selectedCounty, onSelectCounty, availa
 
   function isAvailable(id) {
     if (!availableCounties || availableCounties.length === 0) return true;
-    return availableCounties.includes(id);
+    return availableCounties.includes(normalizeCounty(id));
   }
 
   function style(feature) {
     const id = countyId(feature.properties);
-    const selected = id === selectedCounty;
+    const selected = normalizeCounty(id) === normalizeCounty(selectedCounty);
     const active = isAvailable(id);
 
     if (selected) {
@@ -45,12 +49,12 @@ export default function TaiwanCountyMap({ selectedCounty, onSelectCounty, availa
     const active = isAvailable(id);
     const labelText = id + (active ? '' : '（無資料）');
     layer.bindTooltip(labelText, {
-      permanent: true,
+      permanent: false,
       direction: 'center',
       className: active ? 'county-map-label' : 'county-map-label county-map-label--disabled',
     });
     if (active) {
-      layer.on({ click: () => onSelectCounty(id) });
+      layer.on({ click: () => onSelectCounty(normalizeCounty(id)) });
     }
   }
 
