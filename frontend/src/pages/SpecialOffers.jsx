@@ -147,100 +147,11 @@ export default function SpecialOffers() {
           </button>
         </header>
 
-        <section className="special-offers-toolbar" aria-label={`${COPY.title}\u7be9\u9078\u5de5\u5177`}>
-          <label className="special-offers-search">
-            <Search size={18} aria-hidden="true" />
-            <span className="sr-only">{COPY.searchLabel}</span>
-            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={COPY.searchPlaceholder} />
-          </label>
-          <label className="special-offers-sort">
-            {COPY.sortLabel}
-            <select value={sort} onChange={(event) => setSort(event.target.value)}>
-              <option value="savings">{COPY.sortSavings}</option>
-              <option value="price">{COPY.sortPrice}</option>
-            </select>
-          </label>
-        </section>
-
-        <section className="special-offers-urgency" aria-label={`${COPY.title}\u6ce8\u610f\u4e8b\u9805`}>
-          <span className="special-offers-urgency-badge"><Clock3 size={18} aria-hidden="true" />{COPY.urgencyLabel}</span>
-          <div>
-            <strong>{COPY.urgencyTitle}</strong>
-            <span>{COPY.urgencyDescription}</span>
-          </div>
-        </section>
-
         <DemoOfferCards
           title="特賣卡片"
           description="先用卡片快速看懂商家、商品、優惠與限時資訊。"
           cards={DEMO_SPECIAL_OFFERS}
         />
-
-        <section className="special-offers-summary" aria-label={COPY.summaryLabel}>
-          <TrendingDown size={22} aria-hidden="true" />
-          <div>
-            <strong>{allOffers.length} {COPY.offerCount}</strong>
-            <span>{COPY.summaryHint}</span>
-          </div>
-        </section>
-
-        {loading && <LoadingState label={COPY.loading} />}
-        {!loading && error && (
-          <EmptyState title={COPY.loadErrorTitle} description={error} action={<button className="consumer-link" type="button" onClick={() => loadOffers()}>{COPY.retry}</button>} />
-        )}
-        {!loading && !error && !allOffers.length && (
-          <EmptyState title={COPY.emptyTitle} description={COPY.emptyDescription} action={<Link className="consumer-link" to="/search">{COPY.browsePrices}</Link>} />
-        )}
-        {!loading && !error && allOffers.length > 0 && !visibleOffers.length && (
-          <EmptyState title={COPY.noResultsTitle} description={COPY.noResultsDescription} />
-        )}
-        {!loading && !error && visibleOffers.length > 0 && (
-          <section className="special-offers-table-section" aria-label={`${COPY.title}${COPY.product}\u8868`}>
-            <div className="special-offers-table-meta">
-              <span>{COPY.shown} {visibleOffers.length} / {allOffers.length} {COPY.items}</span>
-              <small>{COPY.sortSavings}</small>
-            </div>
-            <div className="special-offers-table-wrap">
-              <table className="special-offers-table">
-                <thead>
-                  <tr>
-                    <th scope="col">{COPY.product}</th>
-                    <th scope="col">{COPY.price}</th>
-                    <th scope="col">{COPY.average}</th>
-                    <th scope="col">{COPY.saved}</th>
-                    <th scope="col">{COPY.market}</th>
-                    <th scope="col">{COPY.date}</th>
-                    <th scope="col"><span className="sr-only">{COPY.detail}</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleOffers.map((item) => {
-                    const savings = getSavings(item);
-                    return (
-                      <tr key={`${item.product_name}-${item.market_name || 'market'}`}>
-                        <th scope="row"><strong>{item.product_name}</strong><small>{item.status}</small></th>
-                        <td className="special-offers-price">{formatPrice(item.today_price)}</td>
-                        <td>{formatPrice(item.recent_average)}</td>
-                        <td className="special-offers-saving">
-                          {savings ? `${savings.amount.toFixed(1)} ${COPY.savingUnit} (${savings.percent.toFixed(1)}%)` : COPY.unavailable}
-                        </td>
-                        <td>{item.market_name || COPY.unavailable}</td>
-                        <td>{formatDate(item.trans_date)}</td>
-                        <td>
-                          <button type="button" className="special-offers-detail" onClick={() => navigate(`/product/${encodeURIComponent(item.product_name)}`)}>
-                            {COPY.detail} <ExternalLink size={14} aria-hidden="true" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <p className="special-offers-source-note">{COPY.sourceNote}</p>
-          </section>
-        )}
-
       </div>
     </main>
   );
