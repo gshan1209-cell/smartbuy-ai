@@ -8,16 +8,10 @@ import MonthlyProduceCard from './MonthlyProduceCard';
 import ProduceOriginPanel from './ProduceOriginPanel';
 import SourceBadge from './SourceBadge';
 import TaiwanCountyMap from './TaiwanCountyMap';
-import {
-  AGRICULTURE_CATEGORIES,
-  AGRICULTURE_CATEGORY_SOURCE,
-} from '../../config/agricultureCategories';
 import { loadHomeAgricultureExplorer } from '../../lib/homeAgricultureExplorerAdapter';
 
 export default function HomeAgricultureExplorer() {
   const [activeTab, setActiveTab] = useState('local');
-  const [availabilityFilter, setAvailabilityFilter] = useState('正常');
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedCounty, setSelectedCounty] = useState('全部');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,35 +46,12 @@ export default function HomeAgricultureExplorer() {
   const openDataUrl = data?.officialCountySources?.openData?.url;
   const visibleProduce = useMemo(() => {
     const source = activeTab === 'monthly' ? data?.monthlyProduce : data?.localSpecialties;
-    return [...(source || [])]
-      .filter((item) => (item.availabilityStatus || '資料不足') === availabilityFilter)
-      .filter((item) => categoryFilter === 'all' || (item.category || 'other') === categoryFilter)
-      .sort((left, right) => {
-        const leftPrice = Number.isFinite(Number(left.todayPrice)) ? Number(left.todayPrice) : Number.POSITIVE_INFINITY;
-        const rightPrice = Number.isFinite(Number(right.todayPrice)) ? Number(right.todayPrice) : Number.POSITIVE_INFINITY;
-        return leftPrice - rightPrice || String(left.name).localeCompare(String(right.name), 'zh-Hant');
-      });
-  }, [activeTab, availabilityFilter, categoryFilter, data]);
-  const availabilityCounts = useMemo(() => {
-    const source = activeTab === 'monthly' ? data?.monthlyProduce : data?.localSpecialties;
-    return ['正常', '資料不足', '尚無行情'].reduce((counts, status) => {
-      counts[status] = (source || []).filter((item) => (item.availabilityStatus || '資料不足') === status).length;
-      return counts;
-    }, {});
+    return [...(source || [])].sort((left, right) => {
+      const leftPrice = Number.isFinite(Number(left.todayPrice)) ? Number(left.todayPrice) : Number.POSITIVE_INFINITY;
+      const rightPrice = Number.isFinite(Number(right.todayPrice)) ? Number(right.todayPrice) : Number.POSITIVE_INFINITY;
+      return leftPrice - rightPrice || String(left.name).localeCompare(String(right.name), 'zh-Hant');
+    });
   }, [activeTab, data]);
-  const categoryCounts = useMemo(() => {
-    const source = activeTab === 'monthly' ? data?.monthlyProduce : data?.localSpecialties;
-    return AGRICULTURE_CATEGORIES.reduce((counts, category) => {
-      counts[category.key] = (source || []).filter((item) => (
-        (item.availabilityStatus || '資料不足') === availabilityFilter
-        && (category.key === 'all' || (item.category || 'other') === category.key)
-      )).length;
-      return counts;
-    }, {});
-  }, [activeTab, availabilityFilter, data]);
-  const activeCategoryLabel = AGRICULTURE_CATEGORIES.find(
-    (category) => category.key === categoryFilter,
-  )?.label || '全部';
 
   return (
     <section className="home-agri-explorer-section" aria-label="農產探索">
@@ -109,56 +80,6 @@ export default function HomeAgricultureExplorer() {
         onTabChange={setActiveTab}
       />
 
-      {(activeTab === 'local' || activeTab === 'monthly') && (
-        <>
-          <div className="explorer-category-filter" aria-label="品項分類">
-            <div className="explorer-category-heading">
-              <span className="explorer-availability-label">品項分類</span>
-              <a
-                className="explorer-category-source"
-                href={AGRICULTURE_CATEGORY_SOURCE.url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                參考農業部分類 <ExternalLink size={13} aria-hidden="true" />
-              </a>
-            </div>
-            <div className="explorer-category-tags" role="group" aria-label="篩選品項分類">
-              {AGRICULTURE_CATEGORIES.map((category) => (
-                <button
-                  key={category.key}
-                  type="button"
-                  className={`explorer-category-tag ${categoryFilter === category.key ? 'is-active' : ''}`}
-                  onClick={() => setCategoryFilter(category.key)}
-                  aria-pressed={categoryFilter === category.key}
-                >
-                  {category.label}
-                  <span>{categoryCounts[category.key] || 0}</span>
-                </button>
-              ))}
-            </div>
-            <span className="explorer-sort-note">官方大類包含水果、蔬菜、花卉、雜糧；未能判定的品項歸入其他。</span>
-          </div>
-          <div className="explorer-availability-filter" aria-label="農產行情資料狀態">
-            <span className="explorer-availability-label">行情資料</span>
-            <div className="explorer-availability-tags" role="group" aria-label="篩選行情資料狀態">
-              {['正常', '資料不足', '尚無行情'].map((status) => (
-                <button
-                  key={status}
-                  type="button"
-                  className={`explorer-availability-tag explorer-availability-tag--${status} ${availabilityFilter === status ? 'is-active' : ''}`}
-                  onClick={() => setAvailabilityFilter(status)}
-                  aria-pressed={availabilityFilter === status}
-                >
-                  {status}
-                  <span>{availabilityCounts[status] || 0}</span>
-                </button>
-              ))}
-            </div>
-            <span className="explorer-sort-note">目前依價格由低到高排序，無價格資料列在後方。</span>
-          </div>
-        </>
-      )}
 
       <div className="agri-explorer-content-box">
         {activeTab === 'local' && (
@@ -217,20 +138,11 @@ export default function HomeAgricultureExplorer() {
                     </div>
                   </div>
                 )}
-                {data?.localSpecialties?.length > 0 && visibleProduce.length > 0 && (
+                {visibleProduce.length > 0 && (
                   <div className="specialties-cards-grid">
                     {visibleProduce.map((item) => (
                       <LocalSpecialtyCard key={item.name} item={item} />
                     ))}
-                  </div>
-                )}
-                {!loading && !error && data?.localSpecialties?.length > 0 && visibleProduce.length === 0 && (
-                  <div className="explorer-unavailable-card">
-                    <Info size={22} aria-hidden="true" />
-                    <div>
-                      <strong>目前沒有「{activeCategoryLabel}／{availabilityFilter}」品項</strong>
-                      <p>請切換其他分類或行情資料 Tag 查看 {selectedCounty} 的農產。</p>
-                    </div>
                   </div>
                 )}
               </div>
@@ -289,15 +201,6 @@ export default function HomeAgricultureExplorer() {
                 );
               })}
             </div>
-            {!loading && data?.monthlyProduce?.length > 0 && visibleProduce.length === 0 && (
-              <div className="explorer-unavailable-card">
-                <Info size={22} aria-hidden="true" />
-                <div>
-                  <strong>目前沒有「{activeCategoryLabel}／{availabilityFilter}」品項</strong>
-                  <p>請切換其他分類或行情資料 Tag 查看本月尚青品項。</p>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
