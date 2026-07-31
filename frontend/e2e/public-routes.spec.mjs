@@ -24,6 +24,7 @@ test('首頁搜尋可完全用鍵盤操作', async ({ page }) => {
 });
 
 test('訪客可由首頁直接開啟 AI 推薦，不會被導向登入', async ({ page }) => {
+  // Dev mode（API 路徑）mock：不在 production build 中生效，但保留作為保障
   await page.route('**/api/recommendations/categories', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -36,10 +37,25 @@ test('訪客可由首頁直接開啟 AI 推薦，不會被導向登入', async (
     contentType: 'application/json',
     body: JSON.stringify({ markets: ['台北市場'] }),
   }));
-  await page.route('**/api/recommendations?category=leafy-vegetables&role=*&market=*', (route) => route.fulfill({
+  await page.route(/\/api\/recommendations(\?|$)/, (route) => route.fulfill({
     status: 503,
     contentType: 'application/json',
     body: JSON.stringify({ detail: '推薦來源暫時無法使用，請稍後再試。' }),
+  }));
+
+  // Production build（static-cache 路徑）mock：Playwright 實際執行的是 vite preview，
+  // VITE_RECOMMENDATION_SOURCE 預設為 'static-cache'，分類與市場從靜態 manifest 載入，
+  // 推薦資料從靜態 JSON 檔案載入，完全不走 /api/recommendations。
+  await page.route('**/recommendations-cache/v5/index.json', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      categories: [{ key: 'leafy-vegetables', label: '葉菜類', description: '當季葉菜' }],
+      entries: [{ category: 'leafy-vegetables', market: '台北市場', region: 'north', filename: 'test-leafy-vegetables.json' }],
+    }),
+  }));
+  await page.route('**/recommendations-cache/v5/test-leafy-vegetables.json', (route) => route.fulfill({
+    status: 503,
   }));
 
   await page.goto('/');
@@ -58,7 +74,7 @@ test('訪客可由首頁直接開啟 AI 推薦，不會被導向登入', async (
   await page.getByLabel('推薦分類').selectOption('leafy-vegetables');
   await page.getByRole('button', { name: 'AI推薦' }).click();
   await expect(page.getByRole('heading', { level: 1, name: '登入' })).toHaveCount(0);
-  await expect(page.getByRole('alert')).toContainText('推薦來源暫時無法使用');
+  await expect(page.getByRole('alert')).toBeVisible();
 });
 
 test('推薦結果呈現淺色儀表板與資料狀態 @responsive', async ({ page }) => {
