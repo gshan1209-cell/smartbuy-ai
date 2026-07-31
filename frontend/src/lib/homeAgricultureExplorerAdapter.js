@@ -1,4 +1,5 @@
 import { classifyAgricultureItem } from '../config/agricultureCategories.js';
+import { COUNTY_SPECIALTIES, FALLBACK_SPECIALTIES } from '../config/countySpecialties.js';
 import { clearCachedGet, getCached } from '../hooks/useApi.js';
 import { loadConsumerHome, normalizeHomeItem } from './consumerHomeAdapter.js';
 
@@ -94,6 +95,30 @@ function selectExplorerProducts(products, limit = 24) {
     .slice(0, limit);
 }
 
+function buildLocalSpecialties(county, liveItems) {
+  const spec = county !== '全部' ? COUNTY_SPECIALTIES[county] : null;
+  const cropDefs = spec ? spec.crops : FALLBACK_SPECIALTIES;
+  const tagline = spec ? spec.tagline : '全台市場精選';
+
+  const liveMap = new Map(liveItems.map((item) => [item.product_name, item]));
+
+  return cropDefs.map(({ name, description }) => {
+    const live = liveMap.get(name);
+    return {
+      name,
+      description,
+      tagline,
+      todayPrice: live?.today_price ?? null,
+      status: live?.status ?? '尚無行情',
+      transDate: live?.trans_date ?? live?.latest_trade_date ?? '—',
+      volume: live?.volume ?? null,
+      priceSourceType: 'Official API',
+      priceSourceStatus: live ? 'ready' : 'unavailable',
+      category: classifyAgricultureItem(name).key,
+    };
+  });
+}
+
 export async function loadHomeAgricultureExplorer(
   selectedCounty = '全部',
   previous = null,
@@ -108,10 +133,7 @@ export async function loadHomeAgricultureExplorer(
   const products = response.items.map(normalizeHomeItem);
   const selectedProducts = selectExplorerProducts(products);
 
-  const localSpecialties = selectedProducts.map((item) => ({
-    ...normalizeExplorerItem(item),
-    description: `${selectedCounty === '全部' ? '全部市場' : selectedCounty} · 市場行情`,
-  }));
+  const localSpecialties = buildLocalSpecialties(selectedCounty, products);
 
   const monthlyProduce = selectedProducts.map((item) => ({
     ...normalizeExplorerItem(item),

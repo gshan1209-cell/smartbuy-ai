@@ -770,15 +770,26 @@
 
 .specialty-card-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .specialty-name {
   font-size: 20px;
   font-weight: 700;
   color: var(--yz-dark-g);
+}
+
+.specialty-tagline {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--yz-g);
+  background: rgba(29, 158, 117, 0.10);
+  border: 1px solid rgba(29, 158, 117, 0.25);
+  border-radius: 20px;
+  padding: 1px 8px;
+  letter-spacing: 0.03em;
 }
 
 .specialty-desc {

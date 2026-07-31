@@ -32,6 +32,9 @@ export default function LocalSpecialtyCard({ item }) {
       <div className="produce-visual" aria-hidden="true"><span>{produceIcon}</span></div>
       <div className="specialty-card-header">
         <span className="specialty-name">{item.name}</span>
+        {item.tagline && (
+          <span className="specialty-tagline">{item.tagline}</span>
+        )}
       </div>
       <p className="specialty-desc">{item.description}</p>
       <div className="specialty-price-info">
