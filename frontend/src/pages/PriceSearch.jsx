@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Activity,
-  AlertTriangle,
   BarChart3,
   ChevronDown,
-  ChevronUp,
   Heart,
   Search,
   SlidersHorizontal,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
-import Chart from 'chart.js/auto';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Toast from '../components/Toast';
 import Drawer from '../components/shared/Drawer';
@@ -148,174 +144,6 @@ function FilterFields({ values, markets, priceRange, onChange, onPriceChange }) 
         </div>
       </fieldset>
     </div>
-  );
-}
-
-function MarketIntelChart({ data }) {
-  const canvasRef = useRef(null);
-  const chartRef = useRef(null);
-
-  useEffect(() => {
-    if (!canvasRef.current) return undefined;
-
-    const chartItems = [
-      ...[...(data.gainers || [])].reverse(),
-      ...(data.losers || []),
-    ];
-    if (!chartItems.length) return undefined;
-
-    chartRef.current?.destroy();
-    chartRef.current = new Chart(canvasRef.current, {
-      type: 'bar',
-      data: {
-        labels: chartItems.map((item) => item.crop_name),
-        datasets: [{
-          label: '近 7 日漲跌',
-          data: chartItems.map(
-            (item) => Math.round((item.price_return_7 || 0) * 1000) / 10,
-          ),
-          backgroundColor: chartItems.map((item) => (
-            item.price_return_7 >= 0
-              ? 'rgba(220, 38, 38, 0.75)'
-              : 'rgba(22, 163, 74, 0.75)'
-          )),
-          borderRadius: 4,
-          borderSkipped: false,
-        }],
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (context) => `${context.raw > 0 ? '+' : ''}${context.raw}%`,
-            },
-          },
-        },
-        scales: {
-          x: {
-            ticks: {
-              callback: (value) => `${value > 0 ? '+' : ''}${value}%`,
-            },
-          },
-        },
-      },
-    });
-
-    return () => {
-      chartRef.current?.destroy();
-      chartRef.current = null;
-    };
-  }, [data]);
-
-  return <div className="advanced-chart"><canvas ref={canvasRef} /></div>;
-}
-
-function AdvancedMarketIntel() {
-  const [open, setOpen] = useState(false);
-  const [loadState, setLoadState] = useState('idle');
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    if (!open || loadState !== 'idle') return;
-
-    setLoadState('loading');
-    get('/api/market-intel')
-      .then((response) => {
-        if (!response || Object.keys(response).length === 0) {
-          throw new Error('empty market intel');
-        }
-        setData(response);
-        setLoadState('ready');
-      })
-      .catch(() => setLoadState('error'));
-  }, [loadState, open]);
-
-  const stability = data?.market_stability;
-  const bias = data?.market_bias;
-  const alerts = data?.alerts || [];
-
-  return (
-    <section className="advanced-intel">
-      <button
-        type="button"
-        className="advanced-toggle"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-      >
-        <span><BarChart3 size={18} />進階市場資訊</span>
-        {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-      </button>
-
-      {open && (
-        <div className="advanced-content">
-          {loadState === 'loading' && (
-            <LoadingState label="正在載入全台市場資訊…" />
-          )}
-          {loadState === 'error' && (
-            <EmptyState
-              title="目前無法取得進階市場資訊"
-              description="一般菜價查詢仍可正常使用，稍後再查看市場分析。"
-              action={(
-                <button
-                  type="button"
-                  className="consumer-link"
-                  onClick={() => setLoadState('idle')}
-                >
-                  重新載入
-                </button>
-              )}
-            />
-          )}
-          {loadState === 'ready' && data && (
-            <>
-              <div className="market-intel-heading">
-                <div>
-                  <strong>全台批發市場綜合分析</strong>
-                  <p>資料日：{data.latest_trade_date || data.generated_at || '未提供'}</p>
-                </div>
-                <span className="market-intel-source">正式市場情報 API</span>
-              </div>
-
-              <div className="market-intel-summary">
-                <div className="market-intel-card">
-                  <Activity size={20} aria-hidden="true" />
-                  <span>市場風險</span>
-                  <strong>{stability?.risk_level || '資料不足'}</strong>
-                  <small>指數 {stability?.risk_index ?? '—'}</small>
-                </div>
-                <div className="market-intel-card">
-                  <TrendingUp size={20} aria-hidden="true" />
-                  <span>本週漲跌偏向</span>
-                  <strong>{bias?.bias || '資料不足'}</strong>
-                  <small>
-                    看漲 {bias?.bullish_count ?? '—'}／看跌 {bias?.bearish_count ?? '—'}
-                  </small>
-                </div>
-                <div className="market-intel-card">
-                  <AlertTriangle size={20} aria-hidden="true" />
-                  <span>異常警報</span>
-                  <strong>{alerts.length} 項</strong>
-                  <small>
-                    {alerts.length
-                      ? alerts.slice(0, 3).map((item) => item.crop_name).join('、')
-                      : '目前無異常警報'}
-                  </small>
-                </div>
-              </div>
-
-              <MarketIntelChart data={data} />
-              <p className="market-intel-note">
-                此區保留原有市場風險、漲跌偏向與異常資料，提供需要進階分析的使用者查看。
-              </p>
-            </>
-          )}
-        </div>
-      )}
-    </section>
   );
 }
 
@@ -602,7 +430,7 @@ export default function PriceSearch() {
               id="price-query"
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder="例如：高麗菜"
+              placeholder="例如：甘藍"
             />
             <button type="submit">搜尋</button>
           </div>
@@ -617,8 +445,6 @@ export default function PriceSearch() {
             onPriceChange={handleDesktopPriceChange}
           />
         </div>
-
-        <AdvancedMarketIntel />
 
         <section className="results-section">
           <div className="results-heading">
@@ -651,7 +477,7 @@ export default function PriceSearch() {
                 const detailUrl = `/product/${encodeURIComponent(item.product_name)}${detailParams ? `?${detailParams}` : ''}`;
                 return (
                   <PriceResultCard
-                    key={item.product_name}
+                    key={`${item.market_name || ''}:${item.product_name}`}
                     item={item}
                     saved={savedProducts.includes(item.product_name)}
                     onToggleSaved={() => toggleSavedProduct(item.product_name)}

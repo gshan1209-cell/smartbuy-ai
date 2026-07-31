@@ -154,105 +154,6 @@
   border-color: var(--yz-g);
 }
 
-.advanced-intel {
-  margin: 22px 0;
-  background: var(--yz-card-bg);
-  border: 1px solid var(--yz-bdr);
-  border-radius: var(--radius-md);
-}
-
-.advanced-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 52px;
-  padding: 12px 16px;
-  color: var(--yz-txt);
-  font-size: 16px;
-  font-weight: 700;
-  background: none;
-  border: 0;
-}
-
-.advanced-toggle span {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.advanced-content {
-  padding: 16px;
-  color: var(--yz-mut);
-  border-top: 1px solid var(--yz-bdr);
-}
-
-.market-intel-heading {
-  display: flex;
-  gap: 16px;
-  align-items: start;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.market-intel-heading strong {
-  color: var(--yz-txt);
-  font-size: 17px;
-}
-
-.market-intel-heading p,
-.market-intel-note {
-  margin-top: 4px;
-  color: var(--yz-mut);
-  font-size: 13px;
-}
-
-.market-intel-source {
-  padding: 5px 9px;
-  color: var(--yz-gd);
-  font-size: 12px;
-  white-space: nowrap;
-  background: var(--yz-gl);
-  border-radius: 999px;
-}
-
-.market-intel-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.market-intel-card {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px 10px;
-  align-items: center;
-  padding: 14px;
-  background: var(--yz-bg);
-  border: 1px solid var(--yz-bdr);
-  border-radius: 10px;
-}
-
-.market-intel-card > svg {
-  grid-row: 1 / span 3;
-  color: var(--yz-g);
-}
-
-.market-intel-card span,
-.market-intel-card small {
-  color: var(--yz-mut);
-}
-
-.market-intel-card strong {
-  color: var(--yz-txt);
-  font-size: 20px;
-}
-
-.advanced-chart {
-  height: 240px;
-  margin: 18px 0 12px;
-}
-
 .results-heading {
   display: flex;
   align-items: baseline;
@@ -504,31 +405,13 @@
     width: 100%;
   }
 
-  .price-result-grid,
-  .market-intel-summary {
+  .price-result-grid {
     grid-template-columns: 1fr;
   }
 
   .result-price {
     flex-direction: column;
     align-items: start;
-  }
-
-  .advanced-content {
-    padding: 12px;
-  }
-
-  .market-intel-heading {
-    display: block;
-  }
-
-  .market-intel-source {
-    display: inline-block;
-    margin-top: 8px;
-  }
-
-  .advanced-chart {
-    height: 200px;
   }
 
   .ui-drawer .filter-fields {
