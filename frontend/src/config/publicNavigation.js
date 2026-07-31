@@ -41,6 +41,7 @@ export const PUBLIC_MOBILE_LINKS = [
   { to: '/news', label: '📰 新知', description: '閱讀農產新知與資訊分享' },
   { to: '/special-offers', label: '🏷️ 特賣', description: '瀏覽限時特賣' },
   { to: '/mutual-aid', label: '🤝 互助', description: '分享互助資訊' },
+  { to: '/weather', label: '🌤 天氣', description: '台灣即時天氣地圖與一週預報' },
   POINTS_NAV_LINK,
   SETTINGS_NAV_LINK,
 ];
