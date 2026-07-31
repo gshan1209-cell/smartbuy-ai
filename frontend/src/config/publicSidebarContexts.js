@@ -51,10 +51,9 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
       heading: '查詢條件',
       links: [
         link('/news', '全部文章', '清除條件並查看全部文章'),
-        link('/news?section=information-sharing', '資訊分享', '查看產地、採購與好物分享'),
       ],
     },
-  ], '新知與資訊分享\n掌握農產市場新知，也能查看產地、採購與好物分享。'),
+  ], '農產新知\n掌握農產市場新知與文章。'),
   '/special-offers': context('好康推薦', [
     {
       heading: '查詢條件',
@@ -64,16 +63,6 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
       ],
     },
   ]),
-  '/information-sharing': context('SmartBuy AI · 內容中心', [
-    {
-      heading: '查詢條件',
-      links: [
-        link('/news?section=information-sharing&type=資訊分享', '全部資訊', '查看資訊分享內容'),
-        link('/news?section=information-sharing&share_kind=product_recommendation', '商品推薦', '查看商品推薦內容'),
-        link('/news', '農產新知', '查看農產文章與市場報導'),
-      ],
-    },
-  ], '新知與資訊分享\n掌握農產市場新知，也能查看產地、採購與好物分享。'),
   '/mutual-aid': context('🤝 互助', [
     {
       heading: '查詢條件',

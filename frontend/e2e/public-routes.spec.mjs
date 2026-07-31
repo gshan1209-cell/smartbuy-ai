@@ -144,24 +144,35 @@ test('推薦結果呈現淺色儀表板與資料狀態 @responsive', async ({ pa
   expect(viewport.bodyScrollWidth).toBeLessThanOrEqual(viewport.viewportWidth);
 });
 
-test('主標題列將農產新知與資訊分享合併為同一個內容中心', async ({ page }) => {
+test('新知頁只保留農產新知內容 @responsive', async ({ page }) => {
   await page.goto('/');
 
   await expect(page.locator('.public-header .brand')).toHaveCount(0);
 
-  const contentCenterLink = page.getByRole('link', { name: '閱讀農產新知與資訊分享' }).first();
+  const viewport = page.viewportSize();
+  if (viewport?.width <= 767) {
+    await page.getByRole('button', { name: '開啟選單' }).click();
+  }
+  const contentCenterLink = viewport?.width <= 767
+    ? page.getByRole('navigation', { name: '手機版主要選單' }).getByRole('link', { name: '閱讀農產新知與資訊分享' })
+    : page.getByRole('link', { name: '閱讀農產新知與資訊分享' }).first();
   await expect(contentCenterLink).toBeVisible();
   await contentCenterLink.click();
 
   await expect(page).toHaveURL(/\/news$/);
   await expect(page.locator('.public-sidebar-context-title')).toHaveText('SmartBuy AI · 內容中心');
-  await expect(page.locator('.public-sidebar-context-description')).toContainText('新知與資訊分享');
+  await expect(page.locator('.public-sidebar-context-description')).toContainText('農產新知');
   await expect(page.locator('.public-sidebar-context-description')).toContainText('掌握農產市場新知');
-  await expect(page.getByRole('link', { name: '📣 資訊分享' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '資訊分享', exact: true })).toHaveCount(0);
+  await expect(page.locator('.content-hub-tabs')).toHaveCount(0);
+  await expect(page.getByPlaceholder('搜尋標題或內容關鍵字...')).toBeVisible();
 
-  await page.getByRole('link', { name: '📣 資訊分享' }).click();
-  await expect(page).toHaveURL(/\/news\?section=information-sharing$/);
-  await expect(page.locator('.public-sidebar-context-title')).toHaveText('SmartBuy AI · 內容中心');
+  await page.goto('/news?section=information-sharing');
+  await expect(page.getByPlaceholder('搜尋標題或內容關鍵字...')).toBeVisible();
+  await expect(page.locator('.ma-page')).toHaveCount(0);
+
+  await page.goto('/information-sharing');
+  await expect(page.getByRole('heading', { level: 1, name: '找不到這個頁面' })).toBeVisible();
 });
 
 test('未知前台網址顯示可復原的 404', async ({ page }) => {
