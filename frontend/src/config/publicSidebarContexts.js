@@ -102,6 +102,14 @@ export const PUBLIC_SIDEBAR_CONTEXTS = {
       ],
     },
   ]),
+  '/weather': context('天氣地圖', [
+    {
+      heading: '使用說明',
+      links: [
+        link('/weather', '台灣天氣地圖', '查看台灣即時天氣與衛星雲圖'),
+      ],
+    },
+  ], '互動式天氣地圖\n縮放至縣市可查看一週預報。'),
   '/season': context('節氣指南', [
     {
       heading: '節氣頁專屬入口',

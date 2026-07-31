@@ -14,6 +14,7 @@ export const PUBLIC_ROUTES = Object.freeze({
   SETTINGS: '/settings',
   ALERTS: '/alerts',
   SEASON: '/season',
+  WEATHER: '/weather',
   LOGIN: '/login',
   REGISTER: '/register',
   FORBIDDEN: '/403',

@@ -58,6 +58,7 @@ const ProductDetail = lazyWithRetry(() => import('../pages/ProductDetail'), 'pro
 const Register = lazyWithRetry(() => import('../pages/Register'), 'register');
 const Season = lazyWithRetry(() => import('../pages/Season'), 'season');
 const Settings = lazyWithRetry(() => import('../pages/Settings'), 'settings');
+const Weather = lazyWithRetry(() => import('../pages/Weather'), 'weather');
 const SpecialOffers = lazyWithRetry(() => import('../pages/SpecialOffers'), 'special-offers');
 
 function GuardedModule({ permission, children }) {
@@ -80,6 +81,7 @@ export default function AppRoutes() {
         <Route path={PUBLIC_ROUTES.SETTINGS} element={<Settings />} />
         <Route path={PUBLIC_ROUTES.ALERTS} element={<Alerts />} />
         <Route path={PUBLIC_ROUTES.SEASON} element={<Season />} />
+        <Route path={PUBLIC_ROUTES.WEATHER} element={<Weather />} />
         <Route path={PUBLIC_ROUTES.LOGIN} element={IS_TEST_MODE ? <Navigate to="/" replace /> : <Login />} />
         <Route path={PUBLIC_ROUTES.REGISTER} element={IS_TEST_MODE ? <Navigate to="/" replace /> : <Register />} />
         <Route path={PUBLIC_ROUTES.FORBIDDEN} element={<ForbiddenPage />} />
