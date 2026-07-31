@@ -29,6 +29,7 @@ test('public route contract preserves all primary user journeys', () => {
       '/season',
       '/settings',
       '/special-offers',
+      '/weather',
     ].sort(),
   );
 });
