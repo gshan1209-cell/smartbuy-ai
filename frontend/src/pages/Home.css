@@ -182,6 +182,44 @@
   border-radius: 999px;
 }
 
+.market-filter {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.market-filter-label {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  color: var(--yz-mut);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.market-select {
+  min-height: 36px;
+  padding: 4px 10px;
+  color: var(--yz-txt);
+  font-size: 14px;
+  background: var(--yz-card-bg);
+  border: 1px solid var(--yz-bdr);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.recommendation-market {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin: 4px 0 2px;
+  color: var(--yz-mut);
+  font-size: 12px;
+}
+
 .recommendation-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

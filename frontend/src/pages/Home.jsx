@@ -3,10 +3,12 @@ import {
   ArrowRight,
   Bell,
   CloudSun,
+  MapPin,
   Newspaper,
   Search,
   Sparkles,
   ShoppingBasket,
+  Store,
   Tag,
   TrendingDown,
   TrendingUp,
@@ -98,6 +100,12 @@ function RecommendationCard({ item, onOpen }) {
         <span className="status-label">{item.status}</span>
       </div>
       <h3>{item.product_name}</h3>
+      {item.market_name && (
+        <span className="recommendation-market">
+          <MapPin size={11} aria-hidden="true" />
+          {item.market_name}
+        </span>
+      )}
       <p className="recommendation-price">
         {item.today_price == null ? '—' : `${item.today_price} 元`}
         <small>／今日均價</small>
@@ -127,6 +135,7 @@ function QuickLinkCard({ icon: Icon, title, description, actionLabel, onClick })
 export default function Home() {
   const navigate = useNavigate();
   const [markets, setMarkets] = useState([]);
+  const [selectedMarket, setSelectedMarket] = useState('');
   const [items, setItems] = useState([]);
   const [solarTerm, setSolarTerm] = useState(null);
   const [isDemo, setIsDemo] = useState(false);
@@ -136,19 +145,25 @@ export default function Home() {
   useEffect(() => {
     Promise.all([
       getCached('/api/markets').catch(() => ({ markets: [] })),
-      loadConsumerHome(getCached),
       getCached('/api/solar-term').catch(() => null),
-    ])
-      .then(([marketData, homeData, termData]) => {
+    ]).then(([marketData, termData]) => {
+      setMarkets(marketData.markets || []);
+      setSolarTerm(termData && !termData.error ? termData : null);
+    });
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(false);
+    loadConsumerHome(getCached, selectedMarket)
+      .then((homeData) => {
         const normalized = homeData.items.map(normalizeHomeItem);
-        setMarkets(marketData.markets || []);
         setItems(selectConsumerHomeItems(normalized));
-        setSolarTerm(termData && !termData.error ? termData : null);
         setIsDemo(homeData.isDemo);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedMarket]);
 
   function submitSearch({ query, market }) {
     const params = new URLSearchParams();
@@ -209,6 +224,26 @@ export default function Home() {
             {isDemo && <span className="demo-note">示範資料</span>}
           </div>
 
+          {markets.length > 0 && (
+            <div className="market-filter">
+              <label htmlFor="recommendation-market" className="market-filter-label">
+                <Store size={14} aria-hidden="true" />
+                選擇市場
+              </label>
+              <select
+                id="recommendation-market"
+                className="market-select"
+                value={selectedMarket}
+                onChange={(e) => setSelectedMarket(e.target.value)}
+              >
+                <option value="">全部市場</option>
+                {markets.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {loading && <LoadingState label="正在整理今天的菜價…" />}
           {error && (
             <EmptyState
@@ -223,8 +258,8 @@ export default function Home() {
           )}
           {!loading && !error && !items.length && (
             <EmptyState
-              title="今天還沒有推薦品項"
-              description="搜尋想買的菜，查看目前價格。"
+              title={selectedMarket ? `${selectedMarket} 目前沒有行情資料` : '今天還沒有推薦品項'}
+              description={selectedMarket ? '請選擇其他市場，或切換到全部市場查看。' : '搜尋想買的菜，查看目前價格。'}
             />
           )}
           {!loading && !error && items.length > 0 && (

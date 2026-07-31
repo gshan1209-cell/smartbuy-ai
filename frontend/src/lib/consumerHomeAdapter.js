@@ -34,18 +34,22 @@ const statusPriority = {
   資料不足: 3,
 };
 
-export async function loadConsumerHome(getApi) {
+export async function loadConsumerHome(getApi, market = '') {
+  const path = market
+    ? `/api/products?market=${encodeURIComponent(market)}`
+    : '/api/products';
   try {
-    const response = await getApi('/api/products');
+    const response = await getApi(path);
     const items = Array.isArray(response) ? response : [];
 
-    if (!items.length) {
+    if (!items.length && !market) {
       return { items: demoItems, isDemo: true };
     }
 
     return { items, isDemo: false };
   } catch {
-    return { items: demoItems, isDemo: true };
+    if (!market) return { items: demoItems, isDemo: true };
+    return { items: [], isDemo: false };
   }
 }
 
