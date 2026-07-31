@@ -703,6 +703,11 @@
   outline: none;
 }
 
+.taiwan-leaflet-map .leaflet-interactive:focus,
+.taiwan-leaflet-map path.leaflet-interactive {
+  outline: none;
+}
+
 .county-shape {
   fill: #e2e8f0;
   stroke: #ffffff;
