@@ -11,7 +11,12 @@ from src.data.price_repository import load_price_history, get_db_engine, get_lat
 from src.anomaly.price_status import get_all_price_statuses
 from src.recommendation.purchase_advisor import get_purchase_advice
 from src.ml.direction_predictor import predict_direction
-from backend.demo_catalog import demo_crop_rank, filter_demo_prices, is_demo_market_crop
+from backend.demo_catalog import (
+    DEMO_MARKETS,
+    demo_crop_rank,
+    filter_demo_prices,
+    is_demo_market_crop,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -19,17 +24,22 @@ router = APIRouter()
 
 @router.get("/api/products")
 def list_products(q: str = Query(default=""), market: str = Query(default="")):
-    if not market:
-        return []
     prices = price_cache.get("prices")
     if prices is None:
         prices = load_price_history(days=30)
-    prices = filter_demo_prices(prices, market)
-    if prices.empty:
-        return []
-    all_statuses = get_all_price_statuses(prices=prices, market_name=market)
-    rank = demo_crop_rank(market)
-    all_statuses.sort(key=lambda status: rank[status["product_name"]])
+    market_names = (market,) if market else tuple(DEMO_MARKETS.values())
+    all_statuses = []
+    for market_name in market_names:
+        market_prices = filter_demo_prices(prices, market_name)
+        if market_prices.empty:
+            continue
+        statuses = get_all_price_statuses(
+            prices=market_prices,
+            market_name=market_name,
+        )
+        rank = demo_crop_rank(market_name)
+        statuses.sort(key=lambda status: rank[status["product_name"]])
+        all_statuses.extend(statuses)
     if q.strip():
         all_statuses = [s for s in all_statuses if q.strip() in s["product_name"]]
     return all_statuses

@@ -111,5 +111,55 @@ def test_product_list_without_or_with_unknown_market_returns_no_data(monkeypatch
     monkeypatch.setitem(price_cache, "prices", _demo_prices())
     client = _client()
 
-    assert client.get("/api/products").json() == []
+    assert len(client.get("/api/products").json()) == 66
     assert client.get("/api/products", params={"market": "非指定市場"}).json() == []
+
+
+def test_all_markets_concatenates_independent_market_rows_without_aggregation(monkeypatch):
+    prices = _demo_prices()
+    target = prices["crop_code"] == "R6"
+    prices.loc[target & (prices["market_name"] == "台中市"), ["avg_price", "volume"]] = [10, 100]
+    prices.loc[target & (prices["market_name"] == "台北一"), ["avg_price", "volume"]] = [30, 200]
+    prices.loc[target & (prices["market_name"] == "高雄市"), ["avg_price", "volume"]] = [40, 700]
+    prices.loc[target & (prices["market_name"] == "非指定市場"), ["avg_price", "volume"]] = [999, 9999]
+    monkeypatch.setitem(price_cache, "prices", prices)
+    client = _client()
+
+    all_markets = client.get("/api/products").json()
+    shared_crop_rows = [
+        item for item in all_markets if item["product_name"] == "芒果-金煌"
+    ]
+    assert [
+        (item["market_name"], item["today_price"], item["volume"])
+        for item in shared_crop_rows
+    ] == [
+        ("台中市", 10.0, 100),
+        ("台北一", 30.0, 200),
+        ("高雄市", 40.0, 700),
+    ]
+    assert not any(item["volume"] == 1000 for item in shared_crop_rows)
+    assert not any(item["today_price"] == 33.0 for item in shared_crop_rows)
+
+    single_market_payloads = {
+        market_name: client.get("/api/products", params={"market": market_name}).json()
+        for market_name in DEMO_MARKETS.values()
+    }
+    assert len(all_markets) == sum(len(items) for items in single_market_payloads.values())
+    for item in shared_crop_rows:
+        single_market_item = next(
+            candidate
+            for candidate in single_market_payloads[item["market_name"]]
+            if candidate["product_name"] == item["product_name"]
+        )
+        assert item["today_price"] == single_market_item["today_price"]
+        assert item["volume"] == single_market_item["volume"]
+    assert {item["market_name"] for item in all_markets} == set(DEMO_MARKETS.values())
+
+
+def test_all_markets_keeps_product_query_filter(monkeypatch):
+    monkeypatch.setitem(price_cache, "prices", _demo_prices())
+    payload = _client().get("/api/products", params={"q": "芒果"}).json()
+
+    assert len(payload) == 6
+    assert {item["product_name"] for item in payload} == {"芒果-金煌", "芒果-愛文"}
+    assert {item["market_name"] for item in payload} == set(DEMO_MARKETS.values())
