@@ -290,11 +290,11 @@ export default function Home() {
           />
           <QuickLinkCard
             icon={CloudSun}
-            title="節氣與當季推薦"
+            title="AI推薦農產品"
             description={solarTerm
               ? `目前是${solarTerm.term_name}，查看適合採買的當季食材。`
-              : '查看現在節氣、當季食材與料理建議。'}
-            actionLabel="查看節氣"
+              : '查看現在市場、當季農產建議。'}
+            actionLabel="查看推薦"
             onClick={() => navigate('/recommendations')}
           />
           <QuickLinkCard
