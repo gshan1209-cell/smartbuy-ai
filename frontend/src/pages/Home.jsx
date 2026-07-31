@@ -53,7 +53,7 @@ function HomeSearchForm({ markets, onSearch }) {
           id="home-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="例如：高麗菜、番茄"
+          placeholder="例如：甘藍"
         />
         <select
           aria-label="選擇市場"
@@ -295,7 +295,7 @@ export default function Home() {
               ? `目前是${solarTerm.term_name}，查看適合採買的當季食材。`
               : '查看現在節氣、當季食材與料理建議。'}
             actionLabel="查看節氣"
-            onClick={() => navigate('/season')}
+            onClick={() => navigate('/recommendations')}
           />
           <QuickLinkCard
             icon={Newspaper}

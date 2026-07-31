@@ -60,7 +60,12 @@ export default function HomeAgricultureExplorer({ markets = [] }) {
     <section className="home-agri-explorer-section" aria-label="農產探索">
       <HomeSectionHeader
         eyebrow="Agricultural Produce Explorer"
-        title="農產探索"
+        title={
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span>農產探索</span>
+            <span style={{ fontSize: '18px', color: '#888', fontWeight: 'normal' }}>Demo</span>
+          </div>
+          }
         description="使用今日採買建議相同的價格行情 API，呈現此市場所能取得的品項。"
       >
         {isPriceError && (
