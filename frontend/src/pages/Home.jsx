@@ -275,7 +275,7 @@ export default function Home() {
           )}
         </section>
 
-        <HomeAgricultureExplorer />
+        <HomeAgricultureExplorer markets={markets} />
 
         <section className="home-quick-links" aria-label="其他服務">
           <QuickLinkCard

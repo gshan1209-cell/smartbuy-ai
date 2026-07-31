@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { apiRequest } from '../lib/apiClient';
+import { apiRequest } from '../lib/apiClient.js';
 
 const sharedGetCache = new Map();
 

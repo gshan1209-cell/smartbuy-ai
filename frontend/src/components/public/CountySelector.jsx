@@ -58,6 +58,13 @@ export default function CountySelector({ selectedCounty, onSelectCounty, availab
     }
   }
 
+  const displayedCounties = useMemo(() => {
+    if (selectedRegionId === 'all') {
+      return filteredRegions.flatMap((r) => r.counties);
+    }
+    return activeRegion ? activeRegion.counties : [];
+  }, [selectedRegionId, filteredRegions, activeRegion]);
+
   return (
     <div className="county-selector">
       <div className="county-selector-top">
@@ -117,7 +124,7 @@ export default function CountySelector({ selectedCounty, onSelectCounty, availab
         >
           全部
         </button>
-        {activeRegion.counties.map((county) => {
+        {displayedCounties.map((county) => {
           const isSelected = selectedCounty === county;
           return (
             <button

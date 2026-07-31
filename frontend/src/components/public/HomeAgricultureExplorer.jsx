@@ -7,15 +7,22 @@ import LocalSpecialtyCard from './LocalSpecialtyCard';
 import MonthlyProduceCard from './MonthlyProduceCard';
 import ProduceOriginPanel from './ProduceOriginPanel';
 import TaiwanCountyMap from './TaiwanCountyMap';
-import { loadHomeAgricultureExplorer } from '../../lib/homeAgricultureExplorerAdapter';
+import { loadHomeAgricultureExplorer, mapMarketsToCounties } from '../../lib/homeAgricultureExplorerAdapter';
 
-export default function HomeAgricultureExplorer() {
+export default function HomeAgricultureExplorer({ markets = [] }) {
   const [activeTab, setActiveTab] = useState('local');
+  const availableCounties = useMemo(() => mapMarketsToCounties(markets), [markets]);
   const [selectedCounty, setSelectedCounty] = useState('臺中市');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (availableCounties.length > 0 && selectedCounty !== '全部' && !availableCounties.includes(selectedCounty)) {
+      setSelectedCounty(availableCounties[1] || '全部');
+    }
+  }, [availableCounties, selectedCounty]);
 
   const loadData = useCallback(async (county, isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -97,6 +104,7 @@ export default function HomeAgricultureExplorer() {
             <CountySelector
               selectedCounty={selectedCounty}
               onSelectCounty={setSelectedCounty}
+              availableCounties={availableCounties}
             />
 
             <div className="local-explorer-grid">
@@ -104,6 +112,7 @@ export default function HomeAgricultureExplorer() {
                 <TaiwanCountyMap
                   selectedCounty={selectedCounty}
                   onSelectCounty={setSelectedCounty}
+                  availableCounties={availableCounties}
                 />
               </div>
 

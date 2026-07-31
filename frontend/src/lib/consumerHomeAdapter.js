@@ -1,4 +1,4 @@
-import { getPriceStatus } from './consumerAdvice';
+import { getPriceStatus } from './consumerAdvice.js';
 
 const demoItems = [
   {

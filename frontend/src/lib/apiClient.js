@@ -1,7 +1,8 @@
 const PRODUCTION_API_BASE_URL = 'https://smartbuyai-react.onrender.com';
-const configuredApiBaseUrl = import.meta.env.VITE_API_URL?.trim();
+const env = typeof import.meta !== 'undefined' ? import.meta.env : undefined;
+const configuredApiBaseUrl = env?.VITE_API_URL?.trim();
 const RAW_API_BASE_URL = configuredApiBaseUrl
-  || (import.meta.env.PROD ? PRODUCTION_API_BASE_URL : '');
+  || (env?.PROD ? PRODUCTION_API_BASE_URL : '');
 
 export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/$/, '');
 
