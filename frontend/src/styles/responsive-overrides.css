@@ -27,23 +27,34 @@
  * 否則在手機視窗切到桌機時，早先的 @media 規則仍會把側欄隱藏、
  * header/app-main 的左邊距歸零，最後變成桌機導覽 + 手機內容的混合版型。
  */
-html[data-layout-mode="desktop"] .public-layout,
+html[data-layout-mode="desktop"] .public-layout {
+  --public-sidebar-width: 0px;
+}
+
 html[data-layout-mode="tablet"] .public-layout {
   --public-sidebar-width: 248px;
 }
 
-html[data-layout-mode="desktop"] .public-layout.sidebar-collapsed,
 html[data-layout-mode="tablet"] .public-layout.sidebar-collapsed {
   --public-sidebar-width: 76px;
 }
 
-html[data-layout-mode="desktop"] .public-sidebar,
+html[data-layout-mode="desktop"] .public-sidebar {
+  display: none;
+}
+
 html[data-layout-mode="tablet"] .public-sidebar {
   display: flex;
 }
 
 html[data-layout-mode="desktop"] .public-header,
-html[data-layout-mode="desktop"] .app-main,
+html[data-layout-mode="desktop"] .app-main {
+  margin-left: 0;
+  width: 100%;
+  max-width: 100%;
+  padding-bottom: 0;
+}
+
 html[data-layout-mode="tablet"] .public-header,
 html[data-layout-mode="tablet"] .app-main {
   margin-left: var(--public-sidebar-width);

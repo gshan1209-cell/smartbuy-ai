@@ -373,6 +373,16 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
   padding-inline: 0;
 }
 
+@media (min-width: 1200px) {
+  .public-layout {
+    --public-sidebar-width: 0px;
+  }
+
+  .public-sidebar {
+    display: none;
+  }
+}
+
 @media (max-width: 1199px) and (min-width: 768px) {
   .public-layout {
     --public-sidebar-width: 76px;
