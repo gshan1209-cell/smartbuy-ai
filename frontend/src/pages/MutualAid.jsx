@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getMutualAidTypeLabel } from '../config/mutualAidLabels';
-import DemoOfferCards from '../components/public/DemoOfferCards';
-import { DEMO_GOOD_RECOMMENDATIONS } from '../config/demoOfferCards';
 import {
   fetchPosts,
   fetchPost,
@@ -687,7 +685,7 @@ function DiscussionBoard({ allowedTypes = POST_TYPES }) {
 
       <button type="button" className="card ma-post-trigger" onClick={() => setComposeOpen(true)}>
         <span className="ma-post-trigger-avatar">{myName[0]}</span>
-        <span className="ma-post-trigger-text">有產地好康想分享，或想交流採買資訊嗎？點這裡發布...</span>
+        <span className="ma-post-trigger-text">有互助資訊想分享，或想交流採買心得嗎？點這裡發布...</span>
       </button>
 
       {loading && posts.length === 0 && (
@@ -919,18 +917,9 @@ function DiscussionBoard({ allowedTypes = POST_TYPES }) {
 }
 
 export default function MutualAid({ allowedTypes = POST_TYPES }) {
-  const isInfoOnly = allowedTypes.length === 1 && allowedTypes[0] === INFO_SHARE_TYPE;
   return (
     <div className="container ma-page">
       <DiscussionBoard allowedTypes={allowedTypes} />
-
-      {!isInfoOnly && (
-        <DemoOfferCards
-          title="好物推薦卡片"
-          description="發現 CP 值高、值得分享的商品，直接查看商家介紹。"
-          cards={DEMO_GOOD_RECOMMENDATIONS}
-        />
-      )}
     </div>
   );
 }

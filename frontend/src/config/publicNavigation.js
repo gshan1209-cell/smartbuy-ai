@@ -24,7 +24,7 @@ export const PUBLIC_NAV_LINKS = [
   POINTS_NAV_LINK,
   { to: '/news', label: '📰 新知', description: '閱讀農產新知與資訊分享' },
   { to: '/special-offers', label: '🏷️ 特賣', description: '瀏覽限時特賣' },
-  { to: '/mutual-aid', label: '🎁 好康', description: '分享與發現好康' },
+  { to: '/mutual-aid', label: '🤝 互助', description: '分享互助資訊' },
 ];
 
 // 測試模式用單一主標題列檢視所有前台畫面；正式模式仍使用精簡導覽。
@@ -39,7 +39,7 @@ export const PUBLIC_MOBILE_LINKS = [
   { to: '/recommendations', label: '✨ 推薦', description: '免登入取得 AI 採買推薦' },
   { to: '/news', label: '📰 新知', description: '閱讀農產新知與資訊分享' },
   { to: '/special-offers', label: '🏷️ 特賣', description: '瀏覽限時特賣' },
-  { to: '/mutual-aid', label: '🎁 好康', description: '分享與發現好康' },
+  { to: '/mutual-aid', label: '🤝 互助', description: '分享互助資訊' },
   POINTS_NAV_LINK,
   SETTINGS_NAV_LINK,
 ];

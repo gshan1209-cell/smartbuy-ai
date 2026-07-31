@@ -26,32 +26,3 @@ export const DEMO_SPECIAL_OFFERS = [
     websiteUrl: 'https://example.com/leafy-vegetables',
   },
 ];
-
-export const DEMO_GOOD_RECOMMENDATIONS = [
-  {
-    id: 'demo-sesame-oil',
-    badge: '高 CP 好物',
-    merchantIcon: '🫙',
-    merchantName: '禾香手作油坊',
-    title: '冷壓芝麻香油',
-    description: '香氣濃郁、用途百搭，少量就能提升家常菜風味。',
-    price: 'NT$ 260',
-    originalPrice: '同級約 NT$ 360',
-    offerNote: '推薦理由：用量省、料理適用度高',
-    image: '/demo/recommendation-sesame-oil.png',
-    websiteUrl: 'https://example.com/sesame-oil',
-  },
-  {
-    id: 'demo-mushrooms',
-    badge: '好物推薦',
-    merchantIcon: '🍄',
-    merchantName: '山里菇菇農場',
-    title: '鮮採綜合菇菇籃',
-    description: '香菇與蠔菇一次搭配，煮湯、快炒都很方便。',
-    price: 'NT$ 220',
-    originalPrice: '同級約 NT$ 300',
-    offerNote: '推薦理由：份量實在、料理變化多',
-    image: '/demo/recommendation-mushrooms.png',
-    websiteUrl: 'https://example.com/mushrooms',
-  },
-];
