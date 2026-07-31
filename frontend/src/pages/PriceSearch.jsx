@@ -473,8 +473,9 @@ export default function PriceSearch() {
           {!loading && !error && visibleItems.length > 0 && (
             <div className="price-result-grid">
               {pagedItems.map((item) => {
-                const detailParams = params.toString();
-                const detailUrl = `/product/${encodeURIComponent(item.product_name)}${detailParams ? `?${detailParams}` : ''}`;
+                const detailParams = new URLSearchParams(params);
+                detailParams.set('market', item.market_name);
+                const detailUrl = `/product/${encodeURIComponent(item.product_name)}?${detailParams.toString()}`;
                 return (
                   <PriceResultCard
                     key={`${item.market_name || ''}:${item.product_name}`}

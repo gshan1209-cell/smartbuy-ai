@@ -26,6 +26,26 @@ async function mockPriceSearch(page) {
       body: JSON.stringify(payload),
     });
   });
+  await page.route('**/api/products/*', (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/history')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ history: [] }),
+      });
+    }
+    const market = url.searchParams.get('market');
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        today_price: 50,
+        price_status: '正常',
+        price_detail: { market_name: market },
+      }),
+    });
+  });
 }
 
 async function cardSummary(page) {
@@ -79,4 +99,53 @@ test('@responsive 查價欄位及版型維持可用，進階市場資訊已移�
   expect(Math.max(metrics.bodyScrollWidth, metrics.documentScrollWidth)).toBeLessThanOrEqual(
     metrics.viewportWidth + 1,
   );
+});
+
+test('全部市場的同品項卡片分別帶入自身市場，詳情重新整理及回列表正常', async ({ page }) => {
+  await mockPriceSearch(page);
+  await page.goto('/search');
+
+  const card = page.locator('.price-result-card').filter({ hasText: '甘藍台中市' });
+  const detailRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return decodeURIComponent(url.pathname).endsWith('/api/products/甘藍')
+      && url.searchParams.get('market') === '台中市';
+  });
+  await card.getByRole('button', { name: '查看詳情' }).click();
+  await detailRequest;
+
+  await expect(page).toHaveURL(/\/product\/%E7%94%98%E8%97%8D\?market=%E5%8F%B0%E4%B8%AD%E5%B8%82$/);
+  await expect(page.getByText('台中市 ·', { exact: false })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('無法取得詳細資料')).toHaveCount(0);
+  await page.getByRole('button', { name: '回到列表' }).click();
+  await expect(page).toHaveURL(/\/search\?market=%E5%8F%B0%E4%B8%AD%E5%B8%82$/);
+
+  await page.goto('/search');
+  const otherMarketRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return decodeURIComponent(url.pathname).endsWith('/api/products/甘藍')
+      && url.searchParams.get('market') === '台北一';
+  });
+  await page.locator('.price-result-card').filter({ hasText: '甘藍台北一' })
+    .getByRole('button', { name: '查看詳情' }).click();
+  await otherMarketRequest;
+  await expect(page.getByText('台北一 ·', { exact: false })).toBeVisible();
+});
+
+test('個別市場卡片維持帶入原市場', async ({ page }) => {
+  await mockPriceSearch(page);
+  await page.goto('/search?market=台北一');
+
+  const detailRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return decodeURIComponent(url.pathname).endsWith('/api/products/番茄')
+      && url.searchParams.get('market') === '台北一';
+  });
+  await page.locator('.price-result-card').filter({ hasText: '番茄台北一' })
+    .getByRole('button', { name: '查看詳情' }).click();
+  await detailRequest;
+
+  await expect(page).toHaveURL(/\/product\/%E7%95%AA%E8%8C%84\?market=%E5%8F%B0%E5%8C%97%E4%B8%80$/);
+  await expect(page.getByText('台北一 ·', { exact: false })).toBeVisible();
 });
