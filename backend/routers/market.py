@@ -7,6 +7,7 @@ from src.recommendation.category_catalog import (
     market_matches_region,
 )
 from src.data.price_repository import load_price_history
+from backend.demo_catalog import demo_market_names
 
 router = APIRouter()
 
@@ -16,6 +17,9 @@ def list_markets(
     category: str | None = Query(default=None, max_length=64),
     region: str | None = Query(default=None, max_length=32),
 ):
+    if not category and not region:
+        return {"markets": demo_market_names()}
+
     prices = price_cache.get("prices")
     if prices is None:
         prices = load_price_history(days=30)
@@ -36,7 +40,8 @@ def list_markets(
             )]
         except ValueError as exc:
             raise HTTPException(status_code=422, detail="不支援的推薦區域。") from exc
-    markets = sorted(prices["market_name"].dropna().unique().tolist())
+    available = set(prices["market_name"].dropna().unique().tolist())
+    markets = [name for name in demo_market_names() if name in available]
     return {"markets": markets}
 
 

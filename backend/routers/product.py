@@ -11,6 +11,7 @@ from src.data.price_repository import load_price_history, get_db_engine, get_lat
 from src.anomaly.price_status import get_all_price_statuses
 from src.recommendation.purchase_advisor import get_purchase_advice
 from src.ml.direction_predictor import predict_direction
+from backend.demo_catalog import demo_crop_rank, filter_demo_prices, is_demo_market_crop
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -18,10 +19,17 @@ router = APIRouter()
 
 @router.get("/api/products")
 def list_products(q: str = Query(default=""), market: str = Query(default="")):
-    if market:
-        all_statuses = get_all_price_statuses(prices=price_cache.get("prices"), market_name=market)
-    else:
-        all_statuses = price_cache.get("all_statuses") or get_all_price_statuses()
+    if not market:
+        return []
+    prices = price_cache.get("prices")
+    if prices is None:
+        prices = load_price_history(days=30)
+    prices = filter_demo_prices(prices, market)
+    if prices.empty:
+        return []
+    all_statuses = get_all_price_statuses(prices=prices, market_name=market)
+    rank = demo_crop_rank(market)
+    all_statuses.sort(key=lambda status: rank[status["product_name"]])
     if q.strip():
         all_statuses = [s for s in all_statuses if q.strip() in s["product_name"]]
     return all_statuses
@@ -38,6 +46,8 @@ def get_product_direction(name: str, market: str = Query(default="")):
 
 @router.get("/api/products/{name}/history")
 def get_product_history(name: str, days: int = Query(default=30), market: str = Query(default="")):
+    if not market or not is_demo_market_crop(market, name):
+        return {"history": []}
     df = load_price_history(crop_name=name, market_name=market or None, days=days)
     if df.empty:
         return {"history": []}
@@ -118,6 +128,8 @@ def get_product_history(name: str, days: int = Query(default=30), market: str = 
 
 @router.get("/api/products/{name}")
 def get_product_detail(name: str, market: str = Query(default="")):
+    if not market or not is_demo_market_crop(market, name):
+        raise HTTPException(status_code=404, detail="查無此品項資料")
     result = get_purchase_advice(name, prices=price_cache.get("prices"), market_name=market or None)
     if result["price_detail"]["status"] == "資料不足" and not result["today_price"]:
         raise HTTPException(status_code=404, detail="查無此品項資料")
