@@ -6,7 +6,7 @@ import SourceBadge from './SourceBadge';
 
 const QUICK_PRODUCE = ['高麗菜', '番茄', '青蔥', '竹筍'];
 
-export default function ProduceOriginPanel({ publicationUrl, openDataUrl }) {
+export default function ProduceOriginPanel() {
   const navigate = useNavigate();
   const [selectedProduce, setSelectedProduce] = useState('高麗菜');
   const [customSearch, setCustomSearch] = useState('');
@@ -20,12 +20,8 @@ export default function ProduceOriginPanel({ publicationUrl, openDataUrl }) {
     <Card className="produce-origin-panel">
       <div className="panel-header">
         <div>
-          <h3>農產在哪 — 產地資料查詢</h3>
-          <p>選擇農產品，查看目前資料狀態與市場行情入口。</p>
-        </div>
-        <div className="explorer-source-group">
-          <SourceBadge type="Official Publication" label="官方來源已確認" />
-          <SourceBadge type="Unavailable" label="產地資料介接中" />
+          <h3>農產在哪 — 市場行情搜尋</h3>
+          <p>本區只使用今日價格行情 API，搜尋蔬果即可查看同一資料源的菜價結果。</p>
         </div>
       </div>
 
@@ -59,24 +55,11 @@ export default function ProduceOriginPanel({ publicationUrl, openDataUrl }) {
 
       <div className="origin-result-box">
         <div className="origin-unavailable-notice">
-          <Info size={18} className="shrink-0 text-amber-700" aria-hidden="true" />
+          <Info size={18} className="shrink-0 text-emerald-700" aria-hidden="true" />
           <span>
-            <strong>{selectedProduce} 的正式產地統計尚未介接。</strong>
-            目前不顯示推測縣市、虛構產量或排名；完成農業部資料 ETL 後，才會呈現主要產區、種植面積、收穫量與年度。
+            <strong>{selectedProduce} 的產地統計未列入本區呈現。</strong>
+            這裡僅顯示與今日採買建議相同的市場價行情來源。
           </span>
-        </div>
-
-        <div className="official-source-links">
-          {publicationUrl && (
-            <a href={publicationUrl} target="_blank" rel="noreferrer">
-              查看農業統計書刊 <ExternalLink size={14} aria-hidden="true" />
-            </a>
-          )}
-          {openDataUrl && (
-            <a href={openDataUrl} target="_blank" rel="noreferrer">
-              查看農情調查開放資料 <ExternalLink size={14} aria-hidden="true" />
-            </a>
-          )}
         </div>
 
         <div className="origin-action-row">

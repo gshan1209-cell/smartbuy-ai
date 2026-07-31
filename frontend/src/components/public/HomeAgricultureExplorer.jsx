@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Calendar, ExternalLink, Info, MapPin, RefreshCw, Sparkles } from 'lucide-react';
+import { Calendar, Info, MapPin, RefreshCw, Sparkles } from 'lucide-react';
 import AgricultureExplorerTabs from './AgricultureExplorerTabs';
 import CountySelector from './CountySelector';
 import HomeSectionHeader from './HomeSectionHeader';
 import LocalSpecialtyCard from './LocalSpecialtyCard';
 import MonthlyProduceCard from './MonthlyProduceCard';
 import ProduceOriginPanel from './ProduceOriginPanel';
-import SourceBadge from './SourceBadge';
 import TaiwanCountyMap from './TaiwanCountyMap';
 import { loadHomeAgricultureExplorer } from '../../lib/homeAgricultureExplorerAdapter';
 
 export default function HomeAgricultureExplorer() {
   const [activeTab, setActiveTab] = useState('local');
-  const [selectedCounty, setSelectedCounty] = useState('全部');
+  const [selectedCounty, setSelectedCounty] = useState('臺中市');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,10 +39,7 @@ export default function HomeAgricultureExplorer() {
   }, [selectedCounty]);
 
   const pricesStatus = data?.sources?.prices?.status;
-  const countySource = data?.sources?.countyProduce;
-  const isPartialError = pricesStatus === 'error' || pricesStatus === 'stale';
-  const publicationUrl = data?.officialCountySources?.publication?.url;
-  const openDataUrl = data?.officialCountySources?.openData?.url;
+  const isPriceError = pricesStatus === 'error';
   const visibleProduce = useMemo(() => {
     const source = activeTab === 'monthly' ? data?.monthlyProduce : data?.localSpecialties;
     return [...(source || [])].sort((left, right) => {
@@ -58,10 +54,10 @@ export default function HomeAgricultureExplorer() {
       <HomeSectionHeader
         eyebrow="Agricultural Produce Explorer"
         title="農產探索"
-        description="發現臺灣在地農特產品、本月當季推薦與農產來源。"
+        description="使用今日採買建議相同的價格行情 API，呈現此市場所能取得的品項。"
       >
-        {isPartialError && (
-          <span className="dashboard-partial-badge">行情 API 部分異常</span>
+        {isPriceError && (
+          <span className="dashboard-partial-badge">行情 API 異常</span>
         )}
         <button
           type="button"
@@ -94,18 +90,10 @@ export default function HomeAgricultureExplorer() {
                 <MapPin className="text-emerald-700" size={22} />
                 <h3>{selectedCounty} · 在地特色農產</h3>
               </div>
-              <div className="explorer-source-group">
-                <SourceBadge
-                  type="Official Publication"
-                  label="官方來源已確認"
-                />
-                <SourceBadge
-                  type={countySource?.type || 'Unavailable'}
-                  label={countySource?.status === 'demo' ? '目前內容：示範' : '資料介接中'}
-                />
+              <div className="local-explorer-heading-note">
+                <p>本區僅使用與「今日採買建議」相同的價格行情 API，不包含其他官方農產統計來源。</p>
               </div>
             </div>
-
             <CountySelector
               selectedCounty={selectedCounty}
               onSelectCounty={setSelectedCounty}
@@ -133,8 +121,8 @@ export default function HomeAgricultureExplorer() {
                   <div className="explorer-unavailable-card">
                     <Info size={22} aria-hidden="true" />
                     <div>
-                      <strong>{selectedCounty} 正式農產資料介接中</strong>
-                      <p>官方統計來源已確認；待完成資料清理與 ETL 後，才會顯示縣市代表品項、面積、產量與排名。</p>
+                      <strong>{selectedCounty} 目前未取得今日價格行情資料</strong>
+                      <p>請切換其他縣市或前往查價頁面查看最新菜價。</p>
                     </div>
                   </div>
                 )}
@@ -151,20 +139,8 @@ export default function HomeAgricultureExplorer() {
             <div className="official-agri-source-note">
               <Info size={17} aria-hidden="true" />
               <div>
-                <strong>官方資料來源</strong>
-                <p>縣市農產、生產面積、產量與排名將以農業部農業統計書刊及農情調查開放資料為準。</p>
-                <div className="official-source-links">
-                  {publicationUrl && (
-                    <a href={publicationUrl} target="_blank" rel="noreferrer">
-                      農業統計書刊 <ExternalLink size={14} aria-hidden="true" />
-                    </a>
-                  )}
-                  {openDataUrl && (
-                    <a href={openDataUrl} target="_blank" rel="noreferrer">
-                      農情調查開放資料 <ExternalLink size={14} aria-hidden="true" />
-                    </a>
-                  )}
-                </div>
+                <strong>資料來源說明</strong>
+                <p>本區資料直接來自「今日採買建議」使用的價格行情 API，不包含其他官方農產統計來源。</p>
               </div>
             </div>
           </div>
@@ -182,21 +158,14 @@ export default function HomeAgricultureExplorer() {
                 <Calendar className="text-emerald-700" size={22} />
                 <h3>{data?.selectedMonth || '本月'}尚青 · 當季推薦品項</h3>
               </div>
-              {data?.currentSolarTerm?.term_name && (
-                <span className="monthly-term-tag">
-                  目前節氣：<strong>{data.currentSolarTerm.term_name}</strong>
-                </span>
-              )}
             </div>
 
             <div className="monthly-produce-grid">
               {visibleProduce.map((produce) => {
-                const originalIndex = data?.monthlyProduce?.findIndex((item) => item.name === produce.name) ?? -1;
                 return (
                   <MonthlyProduceCard
                     key={produce.name}
                     produceItem={produce}
-                    cookingSuggestion={data?.cookingSuggestions?.[originalIndex] || data?.cookingSuggestions?.[0]}
                   />
                 );
               })}
@@ -211,10 +180,7 @@ export default function HomeAgricultureExplorer() {
             aria-labelledby="agri-tab-origin"
             className="agri-tabpanel"
           >
-            <ProduceOriginPanel
-              publicationUrl={publicationUrl}
-              openDataUrl={openDataUrl}
-            />
+            <ProduceOriginPanel />
           </div>
         )}
       </div>
