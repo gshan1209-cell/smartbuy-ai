@@ -268,7 +268,10 @@ export default function Home() {
                 <RecommendationCard
                   key={item.product_name}
                   item={item}
-                  onOpen={() => navigate(`/product/${encodeURIComponent(item.product_name)}`)}
+                  onOpen={() => {
+                    const qs = item.market_name ? `?market=${encodeURIComponent(item.market_name)}` : '';
+                    navigate(`/product/${encodeURIComponent(item.product_name)}${qs}`);
+                  }}
                 />
               ))}
             </div>
