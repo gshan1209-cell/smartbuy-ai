@@ -1,13 +1,6 @@
+import { ArrowRight, Search, ShoppingBasket, TrendingDown, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ArrowRight,
-  Search,
-  ShoppingBasket,
-  TrendingDown,
-  TrendingUp,
-} from 'lucide-react';
 import Card from '../shared/Card';
-import SourceBadge from './SourceBadge';
 
 const statusIcons = {
   便宜: TrendingDown,
@@ -33,35 +26,14 @@ export default function LocalSpecialtyCard({ item }) {
     正常: 'specialty-status--normal',
     偏貴: 'specialty-status--expensive',
   }[item.status] || 'specialty-status--unknown';
-  const priceSourceLabel = item.isHistoricalPrice
-    ? '行情：歷史資料'
-    : item.priceSourceStatus === 'stale'
-    ? '行情：上次資料'
-    : item.priceSourceType === 'Official API'
-      ? '行情：正式 API'
-      : '行情：尚無資料';
 
   return (
     <Card className={`local-specialty-card ${statusClass}`}>
       <div className="produce-visual" aria-hidden="true"><span>{produceIcon}</span></div>
       <div className="specialty-card-header">
         <span className="specialty-name">{item.name}</span>
-        <div className="specialty-source-badges">
-          <SourceBadge
-            type={item.metadataSourceType || 'Unavailable'}
-            label={item.metadataSourceType === 'Demo' ? '特色：示範' : '特色：尚未接入'}
-          />
-          <SourceBadge
-            type={item.priceSourceType || 'Unavailable'}
-            label={priceSourceLabel}
-          />
-        </div>
       </div>
-
-      <p className="specialty-desc">
-        {item.description || '正式縣市農產資料尚未接入。'}
-      </p>
-
+      <p className="specialty-desc">{item.description}</p>
       <div className="specialty-price-info">
         <div className="price-tag">
           <Icon size={16} aria-hidden="true" />
@@ -72,7 +44,6 @@ export default function LocalSpecialtyCard({ item }) {
           <small>／均價</small>
         </strong>
       </div>
-
       <div className="specialty-card-footer">
         <span className="updated-text">交易日：{item.transDate || '—'}</span>
         <button

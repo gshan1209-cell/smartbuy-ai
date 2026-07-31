@@ -191,16 +191,18 @@ export async function loadHomeAgricultureExplorer(
     || { recommendedProducts: [], cookingSuggestions: [] };
 
   const officialCrops = countyCropsSource.value?.items || [];
-  const localSpecialties = officialCrops.map((specialty) => {
-    const matched = findProduct(products, specialty.name);
-    return {
-      name: specialty.name,
-      category: classifyAgricultureItem(specialty.name).key,
-      description: `${specialty.township || selectedCounty} · ${specialty.year || '年度資料'}，種植面積 ${specialty.plantingArea ?? '—'} 公頃。`,
-      metadataSourceType: 'Official API',
-      ...normalizePriceFields(matched, productsSource),
-    };
-  });
+  const localSpecialties = officialCrops
+    .map((specialty) => {
+      const matched = findProduct(products, specialty.name);
+      return {
+        name: specialty.name,
+        category: classifyAgricultureItem(specialty.name).key,
+        description: `${specialty.township || selectedCounty} · ${specialty.year || '年度資料'}，種植面積 ${specialty.plantingArea ?? '—'} 公頃。`,
+        metadataSourceType: 'Official API',
+        ...normalizePriceFields(matched, productsSource),
+      };
+    })
+    .filter((item) => item.priceSourceType === 'Official API');
 
   const monthlyProduce = (seed.recommendedProducts || []).map((productName) => {
     const matched = findProduct(products, productName);

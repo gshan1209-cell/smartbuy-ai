@@ -32,5 +32,5 @@ export default function TaiwanCountyMap({ selectedCounty, onSelectCounty }) {
     layer.on({ click: () => onSelectCounty(id) });
   }
 
-  return <div className="taiwan-county-map-wrapper"><div className="map-caption"><strong>臺灣地圖選取</strong><span>正式行政區 GeoJSON · 點擊縣市切換</span></div>{error && <p className="map-load-error">地圖資料暫時無法載入，請使用上方縣市選單。</p>}<MapContainer className="taiwan-leaflet-map" bounds={bounds} maxBounds={bounds} minZoom={7} maxZoom={10} zoom={7} scrollWheelZoom={false} zoomControl={false} attributionControl><GeoJSON key={selectedCounty} data={geojson || { type: 'FeatureCollection', features: [] }} style={style} onEachFeature={onEachFeature} /></MapContainer><small className="map-attribution">行政區資料：g0v/twgeojson（CC0）</small></div>;
+  return <div className="taiwan-county-map-wrapper"><div className="map-caption"><strong>臺灣地圖選取</strong><span>正式行政區 GeoJSON · 點擊縣市切換</span></div>{error && <p className="map-load-error">地圖資料暫時無法載入，請使用上方縣市選單。</p>}<MapContainer className="taiwan-leaflet-map" bounds={bounds} maxBounds={bounds} minZoom={7} maxZoom={10} zoom={7} scrollWheelZoom={false} zoomControl={false} attributionControl>{geojson && <GeoJSON key={selectedCounty} data={geojson} style={style} onEachFeature={onEachFeature} />}</MapContainer><small className="map-attribution">行政區資料：g0v/twgeojson（CC0）</small></div>;
 }
