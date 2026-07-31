@@ -2,88 +2,8 @@
   padding: 28px 0 60px;
 }
 
-.content-hub-tabs {
-  display: flex;
-  width: min(1000px, calc(100% - 32px));
-  margin: 0 auto 20px;
-  gap: 8px;
-  border-bottom: 1px solid var(--yz-bdr);
-}
-
-.content-hub-tabs a {
-  min-height: 44px;
-  padding: 10px 16px;
-  border-bottom: 3px solid transparent;
-  color: var(--yz-mut);
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.content-hub-tabs a:hover,
-.content-hub-tabs a:focus-visible,
-.content-hub-tabs a.is-active {
-  border-bottom-color: var(--yz-g);
-  color: var(--yz-gd);
-}
-
-.content-hub-page > .container {
-  margin-top: 0;
-}
-
 @media (max-width: 767px) {
   .content-hub-page {
     padding-top: 20px;
-  }
-
-  .content-hub-tabs {
-    overflow-x: auto;
-  }
-
-  .content-hub-tabs a {
-    flex: 0 0 auto;
-    padding-inline: 12px;
-  }
-}
-
-.agri-news-info-callout {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-top: 28px;
-  padding: 16px 18px;
-  border: 1px solid var(--yz-bdr);
-  border-radius: 12px;
-  background: var(--yz-card-bg);
-}
-
-.agri-news-info-callout div {
-  display: grid;
-  gap: 4px;
-}
-
-.agri-news-info-callout strong {
-  color: var(--yz-gd);
-  font-size: 16px;
-}
-
-.agri-news-info-callout span {
-  color: var(--yz-mut);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.agri-news-info-link {
-  flex: 0 0 auto;
-  color: var(--yz-g);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-@media (max-width: 767px) {
-  .agri-news-info-callout {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 10px;
   }
 }

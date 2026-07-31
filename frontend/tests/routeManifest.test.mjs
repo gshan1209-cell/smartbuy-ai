@@ -18,7 +18,6 @@ test('public route contract preserves all primary user journeys', () => {
       '/403',
       '/alerts',
       '/basket',
-      '/information-sharing',
       '/login',
       '/mutual-aid',
       '/news',

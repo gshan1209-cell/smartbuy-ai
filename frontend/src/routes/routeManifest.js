@@ -9,7 +9,6 @@ export const PUBLIC_ROUTES = Object.freeze({
   BASKET: '/basket',
   NEWS: '/news',
   SPECIAL_OFFERS: '/special-offers',
-  INFORMATION_SHARING: '/information-sharing',
   POINTS: '/points',
   MUTUAL_AID: '/mutual-aid',
   SETTINGS: '/settings',

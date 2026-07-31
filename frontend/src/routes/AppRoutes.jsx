@@ -75,7 +75,6 @@ export default function AppRoutes() {
         <Route path={PUBLIC_ROUTES.BASKET} element={<MyBasket />} />
         <Route path={PUBLIC_ROUTES.NEWS} element={<AgriNews />} />
         <Route path={PUBLIC_ROUTES.SPECIAL_OFFERS} element={<SpecialOffers />} />
-        <Route path={PUBLIC_ROUTES.INFORMATION_SHARING} element={<MutualAid allowedTypes={['資訊分享']} />} />
         <Route path={PUBLIC_ROUTES.POINTS} element={<PointsCenter />} />
         <Route path={PUBLIC_ROUTES.MUTUAL_AID} element={<MutualAid />} />
         <Route path={PUBLIC_ROUTES.SETTINGS} element={<Settings />} />
