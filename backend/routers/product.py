@@ -6,7 +6,7 @@ import pandas as pd
 from fastapi import APIRouter, Query, HTTPException
 from sqlalchemy import text
 
-from backend.cache import price_cache
+from backend.cache import get_current_prices
 from src.data.price_repository import load_price_history, get_db_engine, get_latest_crop_features
 from src.anomaly.price_status import get_all_price_statuses
 from src.recommendation.purchase_advisor import get_purchase_advice
@@ -24,9 +24,7 @@ router = APIRouter()
 
 @router.get("/api/products")
 def list_products(q: str = Query(default=""), market: str = Query(default="")):
-    prices = price_cache.get("prices")
-    if prices is None:
-        prices = load_price_history(days=30)
+    prices = get_current_prices()
     market_names = (market,) if market else tuple(DEMO_MARKETS.values())
     all_statuses = []
     for market_name in market_names:
@@ -140,7 +138,7 @@ def get_product_history(name: str, days: int = Query(default=30), market: str = 
 def get_product_detail(name: str, market: str = Query(default="")):
     if not market or not is_demo_market_crop(market, name):
         raise HTTPException(status_code=404, detail="查無此品項資料")
-    result = get_purchase_advice(name, prices=price_cache.get("prices"), market_name=market or None)
+    result = get_purchase_advice(name, prices=get_current_prices(), market_name=market or None)
     if result["price_detail"]["status"] == "資料不足" and not result["today_price"]:
         raise HTTPException(status_code=404, detail="查無此品項資料")
 

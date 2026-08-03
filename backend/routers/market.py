@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.cache import price_cache, compute_market_intel
+from backend.cache import compute_market_intel, get_current_prices, price_cache
 from src.recommendation.category_catalog import (
     UnknownRecommendationCategory,
     get_category,
     market_matches_region,
 )
-from src.data.price_repository import load_price_history
 from backend.demo_catalog import demo_market_names
 
 router = APIRouter()
@@ -20,14 +19,18 @@ def list_markets(
     if not category and not region:
         return {"markets": demo_market_names()}
 
-    prices = price_cache.get("prices")
-    if prices is None:
-        prices = load_price_history(days=30)
+    category_definition = None
     if category:
         try:
             category_definition = get_category(category)
         except UnknownRecommendationCategory as exc:
+            # Reject invalid filters before touching the live data source.
             raise HTTPException(status_code=422, detail="不支援的推薦分類。") from exc
+
+    # Keep the fixed demo market scope, but always let the underlying rows
+    # follow the latest database trading day for data-dependent filters.
+    prices = get_current_prices()
+    if category_definition:
         product_column = "product_name" if "product_name" in prices.columns else "crop_name"
         if product_column not in prices.columns:
             prices = prices.iloc[0:0]
@@ -47,6 +50,7 @@ def list_markets(
 
 @router.get("/api/market-intel")
 def market_intel():
+    get_current_prices()
     data = price_cache.get("market_intel")
     if data is None:
         data = compute_market_intel()

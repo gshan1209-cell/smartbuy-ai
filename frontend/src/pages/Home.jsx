@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../components/shared/Card';
 import EmptyState from '../components/shared/EmptyState';
 import LoadingState from '../components/shared/LoadingState';
-import { getCached } from '../hooks/useApi';
+import { get, getCached } from '../hooks/useApi';
 import { getConsumerAdvice } from '../lib/consumerAdvice';
 import {
   loadConsumerHome,
@@ -34,6 +34,8 @@ const statusIcons = {
   偏貴: TrendingUp,
   資料不足: Search,
 };
+
+const LIVE_DATA_REFRESH_MS = 15 * 60 * 1000;
 
 function HomeSearchForm({ markets, onSearch }) {
   const [query, setQuery] = useState('');
@@ -138,31 +140,67 @@ export default function Home() {
   const [selectedMarket, setSelectedMarket] = useState('');
   const [items, setItems] = useState([]);
   const [solarTerm, setSolarTerm] = useState(null);
-  const [isDemo, setIsDemo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      getCached('/api/markets').catch(() => ({ markets: [] })),
-      getCached('/api/solar-term').catch(() => null),
-    ]).then(([marketData, termData]) => {
-      setMarkets(marketData.markets || []);
+    let active = true;
+    const refreshMarkets = () => get('/api/markets')
+      .then((marketData) => {
+        if (active) setMarkets(marketData.markets || []);
+      })
+      .catch(() => {
+        if (active) setMarkets([]);
+      });
+
+    refreshMarkets();
+    const intervalId = window.setInterval(refreshMarkets, LIVE_DATA_REFRESH_MS);
+    window.addEventListener('focus', refreshMarkets);
+
+    getCached('/api/solar-term').catch(() => null).then((termData) => {
+      if (!active) return;
       setSolarTerm(termData && !termData.error ? termData : null);
     });
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshMarkets);
+    };
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    setError(false);
-    loadConsumerHome(getCached, selectedMarket)
-      .then((homeData) => {
-        const normalized = homeData.items.map(normalizeHomeItem);
-        setItems(selectConsumerHomeItems(normalized));
-        setIsDemo(homeData.isDemo);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
+    let active = true;
+    let inFlight = false;
+    const refreshItems = () => {
+      if (inFlight) return;
+      inFlight = true;
+      setLoading(true);
+      setError(false);
+      loadConsumerHome(get, selectedMarket)
+        .then((homeData) => {
+          if (!active) return;
+          const normalized = homeData.items.map(normalizeHomeItem);
+          setItems(selectConsumerHomeItems(normalized));
+        })
+        .catch(() => {
+          if (active) setError(true);
+        })
+        .finally(() => {
+          inFlight = false;
+          if (active) setLoading(false);
+        });
+    };
+
+    refreshItems();
+    const intervalId = window.setInterval(refreshItems, LIVE_DATA_REFRESH_MS);
+    window.addEventListener('focus', refreshItems);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshItems);
+    };
   }, [selectedMarket]);
 
   function submitSearch({ query, market }) {
@@ -221,7 +259,6 @@ export default function Home() {
               <p className="eyebrow">Today&apos;s picks</p>
               <h2>今日採買建議</h2>
             </div>
-            {isDemo && <span className="demo-note">示範資料</span>}
           </div>
 
           {markets.length > 0 && (

@@ -32,6 +32,8 @@ const STATUS_OPTIONS = [
   { value: '資料不足', label: '資料不足' },
 ];
 
+const LIVE_DATA_REFRESH_MS = 15 * 60 * 1000;
+
 function latestDate(rows) {
   return rows
     .map((row) => row.trans_date)
@@ -98,6 +100,16 @@ export default function DashboardPrices() {
     // Initial load only. Manual refresh keeps the previous successful data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const refresh = () => load(true);
+    const intervalId = window.setInterval(refresh, LIVE_DATA_REFRESH_MS);
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [load]);
 
   useEffect(() => {
     setPage(1);

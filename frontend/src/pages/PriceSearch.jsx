@@ -21,6 +21,7 @@ import './PriceSearch.css';
 const DEFAULT_SORT = 'volume:desc';
 const DEFAULT_PRICE_RANGE = [0, 1000];
 const RECOMMENDATION_PAGE_SIZE = 9;
+const LIVE_DATA_REFRESH_MS = 15 * 60 * 1000;
 const STATUS_OPTIONS = ['', '便宜', '正常', '偏貴'];
 const STATUS_ICONS = {
   便宜: TrendingDown,
@@ -255,18 +256,49 @@ export default function PriceSearch() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    let inFlight = false;
+    let controller = null;
     setLoading(true);
     setError(false);
     const productParams = new URLSearchParams();
     if (market) productParams.set('market', market);
+    const path = `/api/products${productParams.toString() ? `?${productParams}` : ''}`;
 
-    get(`/api/products${productParams.toString() ? `?${productParams}` : ''}`)
-      .then((data) => setItems(Array.isArray(data) ? data : []))
-      .catch(() => {
-        setItems([]);
-        setError(true);
+    const refreshProducts = () => {
+      if (inFlight) return;
+      inFlight = true;
+      setLoading(true);
+      setError(false);
+      controller = new AbortController();
+
+      get(path, { signal: controller.signal })
+      .then((data) => {
+        if (active) setItems(Array.isArray(data) ? data : []);
       })
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (active) {
+          setItems([]);
+          setError(true);
+        }
+      })
+      .finally(() => {
+        inFlight = false;
+        if (active) setLoading(false);
+      });
+
+    };
+
+    refreshProducts();
+    const intervalId = window.setInterval(refreshProducts, LIVE_DATA_REFRESH_MS);
+    window.addEventListener('focus', refreshProducts);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshProducts);
+      controller?.abort();
+    };
   }, [market]);
 
   function showToast(message) {

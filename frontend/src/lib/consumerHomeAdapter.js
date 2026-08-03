@@ -1,32 +1,5 @@
 import { getPriceStatus } from './consumerAdvice.js';
 
-const demoItems = [
-  {
-    product_name: '高麗菜',
-    today_price: 32,
-    status: '便宜',
-    market_name: '示範市場',
-    trans_date: '示範資料',
-    volume: 1200,
-  },
-  {
-    product_name: '番茄',
-    today_price: 58,
-    status: '正常',
-    market_name: '示範市場',
-    trans_date: '示範資料',
-    volume: 900,
-  },
-  {
-    product_name: '青蔥',
-    today_price: 96,
-    status: '偏貴',
-    market_name: '示範市場',
-    trans_date: '示範資料',
-    volume: 700,
-  },
-];
-
 const statusPriority = {
   便宜: 0,
   正常: 1,
@@ -42,14 +15,9 @@ export async function loadConsumerHome(getApi, market = '') {
     const response = await getApi(path);
     const items = Array.isArray(response) ? response : [];
 
-    if (!items.length && !market) {
-      return { items: demoItems, isDemo: true };
-    }
-
     return { items, isDemo: false };
   } catch {
-    if (!market) return { items: demoItems, isDemo: true };
-    return { items: [], isDemo: false };
+    throw new Error('目前無法取得即時行情資料。');
   }
 }
 

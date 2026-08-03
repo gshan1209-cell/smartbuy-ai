@@ -51,7 +51,10 @@ export function remove(path) {
 }
 
 export function get(path, { timeoutMs = 8000, signal } = {}) {
-  return apiRequest(path, { timeoutMs, signal });
+  // Live agriculture endpoints must not be served from the browser's HTTP
+  // cache.  getCached() still provides an explicit, short-lived app cache for
+  // content that opts into it; normal price reads always reach the API.
+  return apiRequest(path, { timeoutMs, signal, cache: 'no-store' });
 }
 
 export function clearCachedGet(paths = null) {

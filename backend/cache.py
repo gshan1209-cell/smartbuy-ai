@@ -2,13 +2,115 @@ from __future__ import annotations
 import datetime
 import logging
 import statistics
+import threading
+import time
 
 from sqlalchemy import text
-from src.data.price_repository import get_db_engine
+from src.anomaly.price_status import get_all_price_statuses
+from src.data.price_repository import get_db_engine, get_latest_trans_date, load_price_history
 
 logger = logging.getLogger(__name__)
 
 price_cache: dict = {}
+
+# The demo catalog is intentionally small, but its rows must remain live.  The
+# process can stay alive across the daily database job, so a startup-only cache
+# would keep yesterday's prices forever.  Check the source date periodically
+# and reload when a new trading day is available; also reload periodically in
+# case the current day's upsert was corrected without changing MAX(trans_date).
+PRICE_CACHE_SOURCE_CHECK_SECONDS = 60
+PRICE_CACHE_REFRESH_SECONDS = 5 * 60
+_price_cache_lock = threading.Lock()
+
+
+def _frame_latest_date(prices) -> str | None:
+    """Return the latest date represented by a price frame, if available."""
+    if prices is None or getattr(prices, "empty", True):
+        return None
+    reference_date = getattr(prices, "attrs", {}).get("reference_date")
+    if reference_date:
+        return str(reference_date)[:10]
+    if "trans_date" not in prices.columns:
+        return None
+    latest = prices["trans_date"].max()
+    if latest is None:
+        return None
+    return latest.strftime("%Y-%m-%d") if hasattr(latest, "strftime") else str(latest)[:10]
+
+
+def _store_price_cache(prices) -> None:
+    """Store live prices and the metadata required for refresh decisions."""
+    price_cache["prices"] = prices
+    price_cache["prices_latest_date"] = _frame_latest_date(prices)
+    price_cache["prices_source"] = getattr(prices, "attrs", {}).get("source")
+    price_cache["prices_loaded_at"] = time.monotonic()
+    price_cache["prices_source_checked_at"] = price_cache["prices_loaded_at"]
+
+
+def _reload_price_cache(*, force: bool = False):
+    """Load live prices and derived summaries as one cache update."""
+    with _price_cache_lock:
+        prices = load_price_history(days=30)
+        _store_price_cache(prices)
+        price_cache["all_statuses"] = get_all_price_statuses(prices=prices)
+        price_cache["market_intel"] = compute_market_intel()
+        if force:
+            price_cache["prices_forced_refresh"] = True
+        else:
+            price_cache.pop("prices_forced_refresh", None)
+        return prices
+
+
+def get_current_prices(*, force: bool = False):
+    """Return the demo-filterable price set, refreshing it after DB updates.
+
+    The market/product whitelist is applied by the routers after this function
+    returns.  It therefore limits the visible scope without freezing the
+    underlying prices to the snapshot loaded when the API process started.
+    """
+    prices = price_cache.get("prices")
+    loaded_at = price_cache.get("prices_loaded_at")
+    if prices is None:
+        return _reload_price_cache(force=force)
+
+    # Tests and controlled callers may inject an explicit frame.  Such a frame
+    # has no live-cache metadata and must not unexpectedly trigger a database
+    # connection or overwrite the injected data.
+    if loaded_at is None:
+        return prices
+
+    now = time.monotonic()
+    last_checked = price_cache.get("prices_source_checked_at", loaded_at)
+    if not force and now - last_checked < PRICE_CACHE_SOURCE_CHECK_SECONDS:
+        if now - loaded_at < PRICE_CACHE_REFRESH_SECONDS:
+            return prices
+
+    price_cache["prices_source_checked_at"] = now
+    source_probe = get_latest_trans_date()
+    if source_probe is None:
+        return prices
+    latest_source_date, source_name = source_probe
+    cached_date = price_cache.get("prices_latest_date") or _frame_latest_date(prices)
+    cached_source = price_cache.get("prices_source")
+    # A temporary database probe failure can fall back to the local CSV.  Do
+    # not replace a good live cache with that fallback just because the probe
+    # was unavailable; retry on the next source-check window instead.
+    source_is_temporary_fallback = (
+        cached_source == "Supabase"
+        and source_name == "本機 CSV"
+    )
+    should_reload = force or (
+        not source_is_temporary_fallback
+        and (latest_source_date != cached_date or source_name != cached_source)
+    )
+    if not should_reload and now - loaded_at >= PRICE_CACHE_REFRESH_SECONDS:
+        should_reload = True
+    return _reload_price_cache(force=force) if should_reload else prices
+
+
+def preload_market_cache():
+    """Initialise the same refreshable cache used by request handlers."""
+    return _reload_price_cache(force=True)
 
 
 def compute_market_intel() -> dict:

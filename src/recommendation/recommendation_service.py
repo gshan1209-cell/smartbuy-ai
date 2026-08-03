@@ -12,7 +12,7 @@ from collections.abc import Callable
 
 import pandas as pd
 
-from backend.cache import price_cache
+from backend.cache import get_current_prices, price_cache
 from src.anomaly.price_status import get_all_price_statuses
 from src.data.price_repository import load_price_history
 
@@ -271,6 +271,12 @@ class RecommendationService:
             prices = price_cache.get("prices")
             if prices is None:
                 prices = self.price_loader()
+            else:
+                # The API process may outlive the daily price ingestion job.
+                # Re-check the live cache before building recommendation
+                # candidates, while preserving explicitly injected frames in
+                # tests and offline callers.
+                prices = get_current_prices()
         except Exception as exc:
             raise RecommendationSourceUnavailable("行情資料來源無法讀取") from exc
 
