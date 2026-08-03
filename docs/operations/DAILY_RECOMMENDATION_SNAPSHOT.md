@@ -2,7 +2,27 @@
 
 目前為人工觸發 ChatGPT 的每日批次推薦流程，未直接串接 LLM API；程式會先整理完整的價格、交易量、預測、新知與來源比較，再交給 ChatGPT 產生角色化決策 JSON。現行輸出 Schema 為 v2，舊版 v1 已發布快照仍可由前端讀取。
 
-## 每日上午 8 點流程
+## 每日流程
+
+GitHub Actions 會在台灣時間上午 9 點左右執行 `Daily Recommendation Input Prepare`，等待早晨行情／預測／新知資料更新後，執行：
+
+```powershell
+python scripts/prepare_daily_recommendations.py --date YYYY-MM-DD
+```
+
+Workflow 會把以下整個目錄上傳為保留 7 天的 Artifact：
+
+```text
+recommendation_inputs/YYYY-MM-DD/
+  ├─ chatgpt-prompt.md
+  ├─ taipei-1-input.json
+  ├─ taichung-city-input.json
+  └─ kaohsiung-city-input.json
+```
+
+使用者只需要下載 Artifact，將 `chatgpt-prompt.md` 的完整內容交給 ChatGPT；三個 input JSON 是稽核與除錯用的原始整理資料，不需要另外貼給 ChatGPT。Workflow 不會呼叫 ChatGPT，也不會自動發布網站。
+
+若資料更新後需要立即重跑，可在 GitHub Actions 手動執行同一 workflow，填入 `recommendation_date`；留白時使用 Asia/Taipei 當日日期。
 
 1. 以 Asia/Taipei 當日日期整理三個市場資料：
 

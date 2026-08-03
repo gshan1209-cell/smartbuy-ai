@@ -1,0 +1,110 @@
+name: Daily Recommendation Input Prepare
+
+run-name: Daily Recommendation Input Prepare
+
+on:
+  schedule:
+    # 早晨行情與新知排程完成後整理；GitHub Actions 實際觸發可能延遲。
+    - cron: "0 9 * * *"
+      timezone: "Asia/Taipei"
+  workflow_dispatch:
+    inputs:
+      recommendation_date:
+        description: "推薦適用日期（YYYY-MM-DD）；留白則使用台北今日"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-recommendation-input-prepare
+  cancel-in-progress: false
+
+jobs:
+  prepare-input:
+    name: Prepare ChatGPT prompt input
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify required database secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL GitHub Secret 未設定，停止產生推薦輸入。"
+            exit 1
+          fi
+          echo "DATABASE_URL 已設定；不輸出密鑰內容。"
+
+      - name: Resolve Taiwan recommendation date
+        id: date
+        env:
+          REQUESTED_DATE: ${{ inputs.recommendation_date }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${REQUESTED_DATE:-}" ]; then
+            recommendation_date="$REQUESTED_DATE"
+          else
+            recommendation_date="$(TZ=Asia/Taipei date +%F)"
+          fi
+
+          case "$recommendation_date" in
+            ????-??-??) ;;
+            *)
+              echo "日期格式必須是 YYYY-MM-DD。"
+              exit 1
+              ;;
+          esac
+
+          echo "value=$recommendation_date" >> "$GITHUB_OUTPUT"
+          echo "推薦適用日期：$recommendation_date"
+
+      - name: Prepare three-market recommendation inputs
+        env:
+          RECOMMENDATION_DATE: ${{ steps.date.outputs.value }}
+        run: |
+          python scripts/prepare_daily_recommendations.py --date "$RECOMMENDATION_DATE"
+
+      - name: Upload daily recommendation input artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartbuy-daily-recommendation-inputs-${{ steps.date.outputs.value }}
+          path: recommendation_inputs/${{ steps.date.outputs.value }}/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Write manual ChatGPT handoff instructions
+        env:
+          RECOMMENDATION_DATE: ${{ steps.date.outputs.value }}
+        shell: bash
+        run: |
+          {
+            echo "## 每日推薦輸入已產生"
+            echo
+            echo "日期：$RECOMMENDATION_DATE"
+            echo
+            echo "請下載本次 Artifact，只將 recommendation_inputs/$RECOMMENDATION_DATE/chatgpt-prompt.md 的完整內容交給 ChatGPT。"
+            echo "ChatGPT 回傳的單一 JSON 請存為 recommendation_outputs/$RECOMMENDATION_DATE.json。"
+            echo "此 workflow 不會呼叫 ChatGPT，也不會自動發布網站。"
+          } >> "$GITHUB_STEP_SUMMARY"
