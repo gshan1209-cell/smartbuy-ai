@@ -36,7 +36,6 @@ export default function PublicHeader({ onMenu }) {
         ))}
       </nav>
       <div className="header-actions">
-        {IS_TEST_MODE && <span className="test-mode-badge">測試模式</span>}
         <div className="layout-mode-switch" role="group" aria-label="版面模式">
           {LAYOUT_MODE_OPTIONS.map(option => (
             <button
