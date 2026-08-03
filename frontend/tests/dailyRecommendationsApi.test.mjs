@@ -89,10 +89,16 @@ test('loader follows latest pointer instead of hard-coding a date', async () => 
   ]);
 });
 
-test('published pointer uses the versioned ChatGPT release without changing the old date folder', async () => {
+test('published pointer uses a versioned release without changing the old date folder', async () => {
   const latest = JSON.parse(await readFile(new URL('../public/recommendations-daily/latest.json', import.meta.url), 'utf8'));
-  assert.equal(latest.release_dir, '2026-07-31-chatgpt-2026-08-03-role-decision-v2');
-  assert.match(latest.markets['taipei-1'], /^2026-07-31-chatgpt-2026-08-03-role-decision-v2\/taipei-1\.json$/);
+  assert.match(latest.release_dir, /^\d{4}-\d{2}-\d{2}-.+/);
+  for (const marketKey of ['taipei-1', 'taichung-city', 'kaohsiung-city']) {
+    assert.match(
+      latest.markets[marketKey],
+      new RegExp(`^${latest.release_dir}/${marketKey}\\.json$`),
+    );
+  }
+  await readFile(new URL('../public/recommendations-daily/2026-07-31/taipei-1.json', import.meta.url), 'utf8');
 });
 
 test('recommendation page removes legacy category and dashboard controls', async () => {
