@@ -1,0 +1,163 @@
+name: Publish Daily Recommendation Upload
+
+run-name: Publish Daily Recommendation Upload
+
+on:
+  push:
+    paths:
+      - "recommendation_outputs/*.json"
+  workflow_dispatch:
+    inputs:
+      input_path:
+        description: "已存在於 repository 的 JSON 路徑，例如 recommendation_outputs/2026-08-03.json"
+        required: true
+        type: string
+      recommendation_date:
+        description: "推薦適用日期；留白則使用檔名日期"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-recommendation-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Validate and publish recommendation JSON
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve uploaded JSON
+        id: input
+        env:
+          MANUAL_INPUT_PATH: ${{ inputs.input_path }}
+          MANUAL_DATE: ${{ inputs.recommendation_date }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "${MANUAL_INPUT_PATH:-}" ]; then
+            input_path="$MANUAL_INPUT_PATH"
+          else
+            mapfile -t changed_paths < <(git diff-tree --root --no-commit-id --name-only -r "$GITHUB_SHA" -- 'recommendation_outputs/*.json')
+            if [ "${#changed_paths[@]}" -ne 1 ]; then
+              echo "每次上傳只能包含一個 recommendation_outputs/*.json。"
+              printf '%s\n' "${changed_paths[@]:-（沒有找到 JSON）}"
+              exit 1
+            fi
+            input_path="${changed_paths[0]}"
+          fi
+
+          case "$input_path" in
+            recommendation_outputs/*.json) ;;
+            *)
+              echo "JSON 必須位於 recommendation_outputs/ 根目錄。"
+              exit 1
+              ;;
+          esac
+
+          if [ ! -f "$input_path" ]; then
+            echo "找不到上傳的 JSON：$input_path"
+            exit 1
+          fi
+
+          filename="${input_path##*/}"
+          if [[ ! "$filename" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\.json$ ]]; then
+            echo "檔名必須是 YYYY-MM-DD.json，例如 2026-08-03.json。"
+            exit 1
+          fi
+
+          filename_date="${filename%.json}"
+          recommendation_date="${MANUAL_DATE:-$filename_date}"
+          if [ "$recommendation_date" != "$filename_date" ]; then
+            echo "手動指定日期必須與檔名日期一致。"
+            exit 1
+          fi
+
+          echo "path=$input_path" >> "$GITHUB_OUTPUT"
+          echo "date=$recommendation_date" >> "$GITHUB_OUTPUT"
+          echo "已找到推薦 JSON：$filename"
+          echo "推薦適用日期：$recommendation_date"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate and publish static recommendation snapshot
+        env:
+          INPUT_PATH: ${{ steps.input.outputs.path }}
+          RECOMMENDATION_DATE: ${{ steps.input.outputs.date }}
+          RELEASE_DIR: ${{ steps.input.outputs.date }}-github-upload-${{ github.run_id }}
+        run: |
+          python -m pytest tests/test_daily_recommendation_snapshot.py -q
+          python scripts/publish_daily_recommendations.py \
+            --date "$RECOMMENDATION_DATE" \
+            --input "$INPUT_PATH" \
+            --release-dir "$RELEASE_DIR"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend regression tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build frontend and enforce bundle budget
+        working-directory: frontend
+        run: npm run build:check
+
+      - name: Commit and push published snapshot
+        env:
+          RECOMMENDATION_DATE: ${{ steps.input.outputs.date }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/public/recommendations-daily
+          if git diff --cached --quiet; then
+            echo "沒有新的發布檔案，停止，避免空 commit。"
+            exit 1
+          fi
+          git commit -m "Publish daily recommendation $RECOMMENDATION_DATE"
+          git push origin HEAD:main
+
+      - name: Write deployment handoff summary
+        env:
+          RECOMMENDATION_DATE: ${{ steps.input.outputs.date }}
+        shell: bash
+        run: |
+          {
+            echo "## 每日推薦已驗證並發布"
+            echo
+            echo "推薦適用日期：$RECOMMENDATION_DATE"
+            echo "已更新 frontend/public/recommendations-daily/latest.json。"
+            echo "GitHub push 後由既有 Vercel 部署流程更新 App。"
+            echo "原始上傳 JSON 保留於 recommendation_outputs/ 作為發布輸入紀錄。"
+          } >> "$GITHUB_STEP_SUMMARY"

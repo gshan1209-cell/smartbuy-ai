@@ -24,6 +24,18 @@ recommendation_inputs/YYYY-MM-DD/
 
 若資料更新後需要立即重跑，可在 GitHub Actions 手動執行同一 workflow，填入 `recommendation_date`；留白時使用 Asia/Taipei 當日日期。
 
+## GitHub 網頁一鍵上傳發布
+
+ChatGPT 回傳 JSON 後，不需要在本機執行 PowerShell 或手動 push 發布檔案。請在 GitHub repository 的 `recommendation_outputs` 資料夾使用 **Add file → Upload files**，上傳並直接 commit：
+
+```text
+recommendation_outputs/YYYY-MM-DD.json
+```
+
+`Publish Daily Recommendation Upload` 會自動驗證 JSON、執行 focused tests、更新 `frontend/public/recommendations-daily/`、執行前端測試與 build check，再將發布快照 push 回 `main`，由既有 Vercel 流程更新 App。驗證或建置失敗時，該次工作樹不會 push，`latest.json` 與網站維持原版本。
+
+每次上傳只能包含一個日期 JSON，檔名必須符合 `YYYY-MM-DD.json`。原始上傳檔案會保留在 `recommendation_outputs/` 作為發布輸入紀錄。
+
 1. 以 Asia/Taipei 當日日期整理三個市場資料：
 
    ```powershell
