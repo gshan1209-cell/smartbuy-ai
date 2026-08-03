@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loadNotificationPage, fetchUnreadCount, markNotificationRead, markAllNotificationsRead } from '../lib/notificationsAdapter';
+import { IS_TEST_MODE } from '../config/testMode';
 
 const NOTIF_POLL_MS = 45000; // 未讀通知輪詢間隔：介於已確認的 30~60 秒範圍內
 const NOTIF_PAGE_SIZE = 10;
@@ -37,6 +38,7 @@ export function NotificationBell() {
   const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
+    if (IS_TEST_MODE) return;
     let cancelled = false;
     const poll = () => {
       fetchUnreadCount()
@@ -57,6 +59,7 @@ export function NotificationBell() {
   }, []);
 
   function loadNotifications(offset) {
+    if (IS_TEST_MODE) { setLoading(false); return; }
     setLoading(true);
     setLoadError('');
     loadNotificationPage({ limit: NOTIF_PAGE_SIZE, offset })
