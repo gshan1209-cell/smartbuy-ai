@@ -7,6 +7,7 @@ import { fetchFavorites, addFavorite, removeFavorite } from '../lib/favoritesSer
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 import { getConsumerAdvice } from '../lib/consumerAdvice';
+import { loadProductHistory } from '../lib/productHistory';
 import './ProductDetail.css';
 
 // ── 常數 ───────────────────────────────────────────────────────────────────────
@@ -396,6 +397,8 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [history, setHistory] = useState(null);
+  const [historyError, setHistoryError] = useState(null);
+  const [historyRetry, setHistoryRetry] = useState(0);
   const [chartMode, setChartMode] = useState('line');
   // MA toggle: { ma7, ma14, ma30 }
   const [maVisible, setMaVisible] = useState({
@@ -433,21 +436,25 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
   // 載入走勢圖資料（固定拉 180 天，前端依 period 過濾）
   useEffect(() => {
     if (period === 'custom' && (!customFrom || !customTo)) return;
+    let active = true;
+    const controller = new AbortController();
     setHistory(null);
-    const params = new URLSearchParams({ days: '180' });
-    if (market) params.set('market', market);
-    get(`/api/products/${encodeURIComponent(productName)}/history?${params.toString()}`)
-      .then(d => {
-        let h = d.history || [];
-        if (period === 'custom' && customFrom && customTo) {
-          h = h.filter(r => r.date >= customFrom && r.date <= customTo);
-        } else {
-          h = h.slice(-Number(period));
-        }
-        setHistory(h);
+    setHistoryError(null);
+    loadProductHistory(productName, market, period, customFrom, customTo, { signal: controller.signal })
+      .then((rows) => {
+        if (active) setHistory(rows);
       })
-      .catch(() => setHistory([]));
-  }, [productName, market, period, customFrom, customTo]); // eslint-disable-line
+      .catch((error) => {
+        if (active) {
+          setHistory([]);
+          setHistoryError(error?.message || '歷史行情載入失敗。');
+        }
+      });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [productName, market, period, customFrom, customTo, historyRetry]); // eslint-disable-line
 
   // 建立 Chart.js 圖表
   useEffect(() => {
@@ -1115,10 +1122,16 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
         {history === null && (
           <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--yz-dim)', fontSize: 12 }}>載入中…</div>
         )}
-        {history !== null && history.length < 2 && (
+        {history !== null && historyError && (
+          <div role="alert" style={{ minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#92400E', fontSize: 12, flexWrap: 'wrap' }}>
+            <span>歷史行情載入失敗，尚未判定為資料不足。（{historyError}）</span>
+            <button type="button" onClick={() => setHistoryRetry(value => value + 1)} style={{ border: '1px solid currentColor', borderRadius: 6, padding: '5px 10px', background: 'transparent', color: 'inherit', fontWeight: 700 }}>重試</button>
+          </div>
+        )}
+        {history !== null && !historyError && history.length < 2 && (
           <div style={{ height: 80, display: 'flex', alignItems: 'center', color: 'var(--yz-dim)', fontSize: 12 }}>歷史資料不足</div>
         )}
-        {history !== null && history.length >= 2 && (
+        {history !== null && !historyError && history.length >= 2 && (
           <div style={{ height: 260 }}>
             <canvas ref={priceChartRef} />
           </div>
