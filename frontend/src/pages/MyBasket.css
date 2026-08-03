@@ -57,6 +57,22 @@
 .basket-advice { color: var(--text-muted); line-height: 1.6; min-height: 46px; }
 .basket-advice strong { color: var(--green-dark); }
 .basket-updated { display: block; margin-top: 10px; }
+.basket-badge-unavailable { background: #fff4d6; color: #92400e; }
+.basket-unavailable {
+  color: #92400e;
+  line-height: 1.6;
+}
+.basket-unavailable p { margin: 0 0 10px; }
+.basket-unavailable button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: #fffaf0;
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
 .mb-chip-remove { min-width: 44px; min-height: 44px; }
 @media (min-width: 768px) and (max-width: 1199px) { .mb-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1200px) { .mb-grid { grid-template-columns: repeat(3, 1fr); } }

@@ -273,7 +273,7 @@ test('@responsive 菜籃收藏品項會帶入市場並可開啟商品詳情', as
   });
   await page.route('**/api/products*', (route) => {
     const url = new URL(route.request().url());
-    if (url.searchParams.has('q')) {
+    if (url.pathname.endsWith('/api/products')) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -311,4 +311,44 @@ test('@responsive 菜籃收藏品項會帶入市場並可開啟商品詳情', as
   await expect(detailLink).toBeVisible();
   await detailLink.click();
   await expect(page).toHaveURL(/\/product\/.*market=%E5%8F%B0%E4%B8%AD%E5%B8%82/);
+});
+
+test('@responsive 菜籃行情失敗不誤標資料不足且可重新載入', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('smartbuy_saved_products', JSON.stringify(['西瓜-大西瓜']));
+  });
+  let productRequests = 0;
+  await page.route('**/api/products', (route) => {
+    productRequests += 1;
+    if (productRequests === 1) {
+      return route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: '行情服務暫時無法使用' }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([{
+        product_name: '西瓜-大西瓜',
+        market_name: '台中市',
+        today_price: 17.5,
+        status: '正常',
+        trans_date: '2026-08-02',
+      }]),
+    });
+  });
+
+  await page.goto('/basket');
+  const productCard = page.locator('.basket-product-card');
+  await expect(productCard).toContainText('行情暫時無法載入');
+  await expect(productCard).toContainText('這不代表品項沒有資料');
+  await expect(productCard.getByText('資料不足', { exact: true })).toHaveCount(0);
+
+  await productCard.getByRole('button', { name: '重新載入行情' }).click();
+  await expect(productCard).toContainText('17.5 元');
+  await expect(productCard).toContainText('台中市');
+  await expect(productCard.getByText('行情暫時無法載入', { exact: true })).toHaveCount(0);
+  expect(productRequests).toBe(2);
 });
