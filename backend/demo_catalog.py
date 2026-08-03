@@ -98,7 +98,11 @@ def filter_demo_prices(prices, market_name: str):
 
     crop_ids = DEMO_MARKET_CROPS[market_code]
     filtered = prices[prices["market_name"].fillna("").astype(str) == DEMO_MARKETS[market_code]]
-    if "crop_code" in filtered.columns:
+    has_crop_codes = (
+        "crop_code" in filtered.columns
+        and filtered["crop_code"].fillna("").astype(str).str.strip().ne("").any()
+    )
+    if has_crop_codes:
         filtered = filtered[filtered["crop_code"].fillna("").astype(str).isin(crop_ids)]
     else:
         filtered = filtered[

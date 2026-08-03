@@ -1,10 +1,12 @@
 import { classifyAgricultureItem } from '../config/agricultureCategories.js';
 import { COUNTY_SPECIALTIES, FALLBACK_SPECIALTIES } from '../config/countySpecialties.js';
+import { seasonalRecommendations } from '../data/seasonalRecommendations.js';
 import { clearCachedGet, getCached } from '../hooks/useApi.js';
-import { loadConsumerHome, normalizeHomeItem } from './consumerHomeAdapter.js';
+import { getPriceStatus } from './consumerAdvice.js';
 
 const SHARED_CACHE_TTL_MS = 5 * 60 * 1000;
-const SHARED_REQUEST_TIMEOUT_MS = 4000;
+const SOLAR_TERM_CACHE_TTL_MS = 60 * 60 * 1000;
+
 export function clearHomeAgricultureExplorerCache() {
   clearCachedGet();
 }
@@ -62,6 +64,13 @@ function mapCountyToMarketName(county) {
   return COUNTY_TO_MARKET[key] ?? String(county).replace(/臺/g, '台').trim();
 }
 
+function normalizeRawItem(item) {
+  return {
+    ...item,
+    status: item.status || getPriceStatus(item),
+  };
+}
+
 function normalizeExplorerItem(item) {
   return {
     name: item.product_name,
@@ -75,24 +84,21 @@ function normalizeExplorerItem(item) {
   };
 }
 
-function selectExplorerProducts(products, limit = 24) {
-  const statusPriority = {
-    便宜: 0,
-    正常: 1,
-    偏貴: 2,
-    資料不足: 3,
-    尚無行情: 4,
-    載入失敗: 5,
-  };
-
-  return [...products]
-    .sort((a, b) => {
-      const statusA = statusPriority[a.status] ?? statusPriority[a.price_status] ?? 99;
-      const statusB = statusPriority[b.status] ?? statusPriority[b.price_status] ?? 99;
-      if (statusA !== statusB) return statusA - statusB;
-      return (b.volume ?? 0) - (a.volume ?? 0);
-    })
-    .slice(0, limit);
+// Match a recommended name against raw API items.
+// Uses startsWith to avoid partial-word false positives (e.g. '番茄' must not match '小番茄').
+function findSeasonalMatch(rawItems, recommendedName) {
+  const prefix = recommendedName + '-';
+  const candidates = rawItems.filter(
+    (item) =>
+      item.product_name === recommendedName ||
+      item.product_name?.startsWith(prefix),
+  );
+  if (!candidates.length) return null;
+  // Prefer highest volume; fall back to first candidate
+  return candidates.reduce(
+    (best, item) => ((item.volume ?? 0) > (best.volume ?? 0) ? item : best),
+    candidates[0],
+  );
 }
 
 function buildLocalSpecialties(county, liveItems) {
@@ -127,18 +133,38 @@ export async function loadHomeAgricultureExplorer(
   const market = selectedCounty && selectedCounty !== '全部'
     ? mapCountyToMarketName(selectedCounty)
     : '';
-  const normalizedMarket = market ? `${market}` : '';
+  const productsPath = market
+    ? `/api/products?market=${encodeURIComponent(market)}`
+    : '/api/products';
 
-  const response = await loadConsumerHome(getCached, normalizedMarket);
-  const products = response.items.map(normalizeHomeItem);
-  const selectedProducts = selectExplorerProducts(products);
+  // Both local specialties and monthly produce use the same county-filtered request.
+  const [solarTermResult, productsResult] = await Promise.allSettled([
+    getCached('/api/solar-term', { ttlMs: SOLAR_TERM_CACHE_TTL_MS, forceRefresh }),
+    getCached(productsPath, { ttlMs: SHARED_CACHE_TTL_MS, forceRefresh }),
+  ]);
 
-  const localSpecialties = buildLocalSpecialties(selectedCounty, products);
+  const solarTermData = solarTermResult.status === 'fulfilled' ? solarTermResult.value : null;
+  const termName = solarTermData?.term_name ?? null;
+  const seed = (termName && seasonalRecommendations[termName]) || seasonalRecommendations.default;
 
-  const monthlyProduce = selectedProducts.map((item) => ({
-    ...normalizeExplorerItem(item),
-    recommendationSourceType: '價格行情 API',
-  }));
+  const rawItems = productsResult.status === 'fulfilled' && Array.isArray(productsResult.value)
+    ? productsResult.value.map(normalizeRawItem)
+    : [];
+
+  const localSpecialties = buildLocalSpecialties(selectedCounty, rawItems);
+
+  // Pick up to 3 items with today's prices from the selected county, sorted by volume.
+  const monthlyProduce = (() => {
+    const withPrice = rawItems.filter((item) => item.today_price != null);
+    if (!withPrice.length) return [];
+    return withPrice
+      .sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0))
+      .slice(0, 3)
+      .map((item) => ({
+        ...normalizeExplorerItem(item),
+        recommendationSourceType: '今日精選',
+      }));
+  })();
 
   const currentMonth = new Date().getMonth() + 1;
   const checkedAt = new Date().toISOString();
@@ -146,15 +172,21 @@ export async function loadHomeAgricultureExplorer(
   return {
     selectedCounty,
     selectedMonth: `${currentMonth} 月`,
+    solarTerm: termName,
+    cookingSuggestion: seed.cookingSuggestions?.[0] ?? null,
     localSpecialties,
     monthlyProduce,
     sources: {
       prices: {
-        status: response.items.length ? 'ready' : 'empty',
+        status: rawItems.length ? 'ready' : 'empty',
         type: 'Official API',
         updatedAt: checkedAt,
-        error: null,
-        value: response.items,
+        error: productsResult.status === 'rejected' ? productsResult.reason?.message : null,
+        value: rawItems,
+      },
+      solarTerm: {
+        status: solarTermResult.status === 'fulfilled' ? 'ready' : 'error',
+        value: solarTermData,
       },
     },
     fetchedAt: checkedAt,

@@ -756,17 +756,47 @@
 
 .produce-visual {
   display: grid;
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   margin-bottom: 4px;
   place-items: center;
   background: linear-gradient(145deg, #e9f7e8, #ccebd2);
   border: 1px solid #b5dcbc;
-  border-radius: 18px;
+  border-radius: 20px;
   box-shadow: inset 0 -5px 0 rgba(22, 101, 52, 0.08);
+  transition: transform 0.15s ease;
 }
 
-.produce-visual span { font-size: 40px; line-height: 1; }
+.produce-visual:hover { transform: scale(1.04); }
+
+/* Category-specific backgrounds */
+.produce-visual[data-category="fruits"] {
+  background: linear-gradient(145deg, #fff7ed, #fed7aa);
+  border-color: #fdba74;
+  box-shadow: inset 0 -5px 0 rgba(194, 65, 12, 0.08);
+}
+.produce-visual[data-category="vegetables"] {
+  background: linear-gradient(145deg, #e9f7e8, #ccebd2);
+  border-color: #b5dcbc;
+  box-shadow: inset 0 -5px 0 rgba(22, 101, 52, 0.08);
+}
+.produce-visual[data-category="grains"] {
+  background: linear-gradient(145deg, #fefce8, #fef08a);
+  border-color: #fde047;
+  box-shadow: inset 0 -5px 0 rgba(161, 98, 7, 0.08);
+}
+.produce-visual[data-category="flowers"] {
+  background: linear-gradient(145deg, #fdf4ff, #f0abfc);
+  border-color: #e879f9;
+  box-shadow: inset 0 -5px 0 rgba(126, 34, 206, 0.08);
+}
+.produce-visual[data-category="other"] {
+  background: linear-gradient(145deg, #f0f9ff, #bae6fd);
+  border-color: #7dd3fc;
+  box-shadow: inset 0 -5px 0 rgba(3, 105, 161, 0.08);
+}
+
+.produce-visual span { font-size: 44px; line-height: 1; }
 
 .specialty-card-header {
   display: flex;
@@ -865,6 +895,14 @@
   font-size: 20px;
 }
 
+.produce-market-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--yz-text-muted, #6b7280);
+}
+
 .produce-status-row {
   display: flex;
   align-items: center;
@@ -884,6 +922,8 @@
 .status-pill--便宜 { background: #dcfce7; color: #15803d; }
 .status-pill--正常 { background: #fef3c7; color: #b45309; }
 .status-pill--偏貴 { background: #fee2e2; color: #b91c1c; }
+.status-pill--示範資料 { background: #f3e8ff; color: #6b21a8; }
+.status-pill--尚無行情 { background: #f1f5f9; color: #64748b; }
 
 .cooking-hint {
   display: flex;
@@ -916,9 +956,11 @@
 }
 
 .source-badge--official { background: #e0f2fe; color: #0369a1; }
+.source-badge--seasonal { background: #dcfce7; color: #15803d; }
 .source-badge--seed { background: #fef3c7; color: #92400e; }
 .source-badge--demo { background: #f3e8ff; color: #6b21a8; }
 .source-badge--unavailable { background: #f1f5f9; color: #475569; }
+.source-badge--default { background: #f1f5f9; color: #475569; }
 
 .produce-origin-panel {
   display: grid;

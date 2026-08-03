@@ -5,7 +5,6 @@ import CountySelector from './CountySelector';
 import HomeSectionHeader from './HomeSectionHeader';
 import LocalSpecialtyCard from './LocalSpecialtyCard';
 import MonthlyProduceCard from './MonthlyProduceCard';
-import ProduceOriginPanel from './ProduceOriginPanel';
 import TaiwanCountyMap from './TaiwanCountyMap';
 import { loadHomeAgricultureExplorer, mapMarketsToCounties } from '../../lib/homeAgricultureExplorerAdapter';
 
@@ -170,31 +169,37 @@ export default function HomeAgricultureExplorer({ markets = [] }) {
             <div className="monthly-explorer-heading">
               <div className="flex items-center gap-2">
                 <Calendar className="text-emerald-700" size={22} />
-                <h3>{data?.selectedMonth || '本月'}尚青 · 當季推薦品項</h3>
+                <h3>
+                  {data?.solarTerm
+                    ? `${data.solarTerm} · 本月尚青`
+                    : `${data?.selectedMonth || '本月'}尚青`}
+                  {selectedCounty && selectedCounty !== '全部' && (
+                    <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#888', marginLeft: '8px' }}>
+                      {selectedCounty}
+                    </span>
+                  )}
+                </h3>
               </div>
             </div>
 
-            <div className="monthly-produce-grid">
-              {visibleProduce.map((produce) => {
-                return (
-                  <MonthlyProduceCard
-                    key={produce.name}
-                    produceItem={produce}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        )}
+            {!loading && visibleProduce.length === 0 && (
+              <div className="explorer-unavailable-card">
+                <Info size={22} aria-hidden="true" />
+                <div>
+                  <strong>今日暫無當季行情資料</strong>
+                  <p>市場休市或 API 暫時無資料，請稍後重新整理。</p>
+                </div>
+              </div>
+            )}
 
-        {activeTab === 'origin' && (
-          <div
-            id="agri-tabpanel-origin"
-            role="tabpanel"
-            aria-labelledby="agri-tab-origin"
-            className="agri-tabpanel"
-          >
-            <ProduceOriginPanel />
+            <div className="monthly-produce-grid">
+              {visibleProduce.map((produce) => (
+                <MonthlyProduceCard
+                  key={produce.name}
+                  produceItem={produce}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
