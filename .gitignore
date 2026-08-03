@@ -38,6 +38,8 @@ cookies.txt
 /setup-env.ps1
 /start-dev.ps1
 /documents/
+/recommendation_inputs/
+/recommendation_outputs/
 
 # Claude Code local permission settings (machine-specific, not shared)
 .claude/settings.local.json

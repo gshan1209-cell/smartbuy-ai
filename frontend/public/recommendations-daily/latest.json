@@ -1,0 +1,11 @@
+{
+  "schema_version": 2,
+  "recommendation_date": "2026-07-31",
+  "generated_at": "2026-08-03T10:50:00+08:00",
+  "markets": {
+    "taipei-1": "2026-07-31-chatgpt-2026-08-03-role-decision-v2/taipei-1.json",
+    "taichung-city": "2026-07-31-chatgpt-2026-08-03-role-decision-v2/taichung-city.json",
+    "kaohsiung-city": "2026-07-31-chatgpt-2026-08-03-role-decision-v2/kaohsiung-city.json"
+  },
+  "release_dir": "2026-07-31-chatgpt-2026-08-03-role-decision-v2"
+}
