@@ -78,7 +78,9 @@ export default function TaiwanCountyMap({ selectedCounty, onSelectCounty, availa
       >
         {geojson && (
           <GeoJSON
-            key={`${selectedCounty}-${availableCounties?.join(',') || 'all'}`}
+            // Changing the selected county only changes feature styles. Keep the
+            // layer mounted so mobile focus and scroll position are preserved.
+            key={availableCounties?.join(',') || 'all'}
             data={geojson}
             style={style}
             onEachFeature={onEachFeature}

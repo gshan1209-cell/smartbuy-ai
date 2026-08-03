@@ -1,11 +1,44 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { fetchFavorites, removeFavorite } from '../lib/favoritesService';
+import { Link, useNavigate } from 'react-router-dom';
+import { fetchFavoriteProducts, fetchFavorites, removeFavorite } from '../lib/favoritesService';
 import { get } from '../hooks/useApi';
 import { getConsumerAdvice, getPriceStatus } from '../lib/consumerAdvice';
 import LoadingState from '../components/shared/LoadingState';
 import EmptyState from '../components/shared/EmptyState';
 import './MyBasket.css';
+
+async function loadSavedProductDetail({ name, market }) {
+  let selectedMarket = market;
+  let summary = null;
+
+  // 舊收藏沒有保存市場，先從正式行情清單找回可用的展示市場。
+  if (!selectedMarket) {
+    try {
+      const matches = await get(`/api/products?q=${encodeURIComponent(name)}`);
+      summary = Array.isArray(matches)
+        ? matches.find((item) => item.product_name === name) || null
+        : null;
+      selectedMarket = summary?.market_name || '';
+    } catch {
+      // 詳情請求仍會依既有錯誤狀態呈現，不把整個菜籃頁打成失敗。
+    }
+  }
+
+  if (selectedMarket) {
+    try {
+      return await get(
+        `/api/products/${encodeURIComponent(name)}?market=${encodeURIComponent(selectedMarket)}`,
+      );
+    } catch {
+      // API 暫時沒有完整詳情時，保留已取得的行情摘要與市場連結。
+    }
+  }
+
+  if (summary) {
+    return { ...summary, price_detail: summary, error: true };
+  }
+  return { error: true, market_name: selectedMarket };
+}
 
 function SavedProductsList({ savedProducts, onRemove }) {
   const navigate = useNavigate();
@@ -15,9 +48,9 @@ function SavedProductsList({ savedProducts, onRemove }) {
     let cancelled = false;
     (async () => {
       const next = {};
-      for (const name of savedProducts) {
-        try { next[name] = await get(`/api/products/${encodeURIComponent(name)}`); }
-        catch { next[name] = { error: true }; }
+      for (const favorite of savedProducts) {
+        const name = favorite.name;
+        next[name] = await loadSavedProductDetail(favorite);
       }
       if (!cancelled) { setDetails(next); setLoading(false); }
     })();
@@ -27,10 +60,12 @@ function SavedProductsList({ savedProducts, onRemove }) {
   if (!savedProducts.length) return <EmptyState title="還沒有收藏的品項" description="前往查價頁收藏想追蹤的蔬果。" action={<button className="consumer-link" onClick={() => navigate('/search')}>前往查價</button>} />;
   return (
     <div className="mb-grid">
-      {savedProducts.map(name => {
+      {savedProducts.map(({ name, market }) => {
         const detail = details[name];
-        const status = detail?.error ? '資料不足' : getPriceStatus(detail);
+        const status = getPriceStatus(detail);
         const advice = getConsumerAdvice(status, detail?.prediction_direction);
+        const detailMarket = detail?.price_detail?.market_name || detail?.market_name || market;
+        const detailPath = `/product/${encodeURIComponent(name)}${detailMarket ? `?market=${encodeURIComponent(detailMarket)}` : ''}`;
         return (
           <div key={name} className="card basket-product-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -42,29 +77,31 @@ function SavedProductsList({ savedProducts, onRemove }) {
               >×</button>
             </div>
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{name}</h3>
-            <p className="basket-price">{detail?.today_price == null ? '資料不足' : `${detail.today_price} 元`} <small>{detail?.price_detail?.market_name || '市場資料未提供'}</small></p>
+            <p className="basket-price">{detail?.today_price == null ? '資料不足' : `${detail.today_price} 元`} <small>{detailMarket || '市場資料未提供'}</small></p>
             <p className="basket-advice"><strong>{advice.label}</strong>：{advice.text}</p>
             <small className="basket-updated">更新：{detail?.price_detail?.trans_date || '資料日期未提供'}</small>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10,
-            }}>
-              <button
-                onClick={e => { e.stopPropagation(); navigate(`/product/${encodeURIComponent(name)}`); }}
-                style={{
-                  fontSize: 12, color: 'var(--green-dark)', textDecoration: 'none',
-                  padding: '4px 10px', borderRadius: 6,
-                  border: '1px solid var(--border)',
-                  background: 'var(--cream-dark)',
-                  cursor: 'pointer',
-                }}
-              >
+            <Link
+              to={detailPath}
+              className="basket-product-detail-link"
+              aria-label={`查看 ${name} 品項詳情`}
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10,
+                color: 'inherit', textDecoration: 'none',
+              }}
+            >
+              <span style={{
+                fontSize: 12, color: 'var(--green-dark)', textDecoration: 'none',
+                padding: '4px 10px', borderRadius: 6,
+                border: '1px solid var(--border)',
+                background: 'var(--cream-dark)',
+              }}>
                 查看品項詳情 ↗
-              </button>
+              </span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
                 查看詳情 →
               </span>
-            </div>
+            </Link>
           </div>
         );
       })}
@@ -141,7 +178,7 @@ export default function MyBasket() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchFavorites('news'), fetchFavorites('product')])
+    Promise.all([fetchFavorites('news'), fetchFavoriteProducts()])
       .then(([news, products]) => {
         if (cancelled) return;
         setSavedNews(news);
@@ -159,8 +196,8 @@ export default function MyBasket() {
 
   function handleRemoveSavedProduct(name) {
     if (!window.confirm(`確定要移除 ${name} 的收藏嗎？`)) return;
-    setSavedProducts(prev => prev.filter(n => n !== name));
-    removeFavorite('product', name).catch(() => setSavedProducts(prev => [...prev, name]));
+    setSavedProducts(prev => prev.filter(favorite => favorite.name !== name));
+    removeFavorite('product', name).catch(() => setSavedProducts(prev => [...prev, { name, market: '' }]));
   }
 
   return (

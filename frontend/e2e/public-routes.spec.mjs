@@ -266,3 +266,49 @@ test('匿名使用者進入後台會導向登入頁', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: '登入' })).toBeVisible();
   await expect(page.getByLabel('Email')).toBeFocused();
 });
+
+test('@responsive 菜籃收藏品項會帶入市場並可開啟商品詳情', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('smartbuy_saved_products', JSON.stringify(['西瓜-大西瓜']));
+  });
+  await page.route('**/api/products*', (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.has('q')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{
+          product_name: '西瓜-大西瓜',
+          market_name: '台中市',
+          today_price: 49.9,
+          status: '正常',
+          trans_date: '2026-08-02',
+        }]),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        product_name: '西瓜-大西瓜',
+        today_price: 49.9,
+        price_status: '正常',
+        price_detail: {
+          market_name: '台中市',
+          trans_date: '2026-08-02',
+          status: '正常',
+        },
+      }),
+    });
+  });
+
+  await page.goto('/basket');
+  await expect(page.getByRole('heading', { level: 3, name: '西瓜-大西瓜' })).toBeVisible();
+  await expect(page.getByText('49.9 元')).toBeVisible();
+  await expect(page.getByText('台中市', { exact: true })).toBeVisible();
+
+  const detailLink = page.getByRole('link', { name: '查看 西瓜-大西瓜 品項詳情' });
+  await expect(detailLink).toBeVisible();
+  await detailLink.click();
+  await expect(page).toHaveURL(/\/product\/.*market=%E5%8F%B0%E4%B8%AD%E5%B8%82/);
+});

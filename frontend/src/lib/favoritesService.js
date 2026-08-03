@@ -31,6 +31,22 @@ export async function fetchFavorites(type) {
   return loadSavedNews().map((article) => ({ ...article, id: String(article.id) }));
 }
 
+// 菜籃需要用收藏時的市場重新取得商品詳情；保留 fetchFavorites('product')
+// 的字串回傳格式，避免影響查價頁與商品詳情頁既有狀態。
+export async function fetchFavoriteProducts() {
+  if (await isLoggedIn()) {
+    const params = new URLSearchParams({ type: 'product' });
+    const rows = await apiRequest(`/api/favorites?${params.toString()}`);
+    return rows.map((row) => ({
+      name: row.ref_id,
+      market: String(row.meta?.market_name || row.meta?.market || '').trim(),
+    }));
+  }
+
+  // 舊版 localStorage 只保存品名；菜籃頁會再從行情清單推回市場。
+  return loadSavedProducts().map((name) => ({ name, market: '' }));
+}
+
 export async function addFavorite(type, refId, meta = {}) {
   if (await isLoggedIn()) {
     await apiRequest('/api/favorites', {

@@ -406,7 +406,7 @@ export default function PriceSearch() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  async function toggleSavedProduct(name) {
+  async function toggleSavedProduct(name, marketName = '') {
     const wasSaved = savedProducts.includes(name);
 
     if (wasSaved) {
@@ -423,7 +423,7 @@ export default function PriceSearch() {
 
     setSavedProducts((current) => [...current, name]);
     try {
-      await addFavorite('product', name);
+      await addFavorite('product', name, { market_name: marketName });
       showToast('已加入我的菜籃');
     } catch {
       setSavedProducts((current) => current.filter((item) => item !== name));
@@ -513,7 +513,7 @@ export default function PriceSearch() {
                     key={`${item.market_name || ''}:${item.product_name}`}
                     item={item}
                     saved={savedProducts.includes(item.product_name)}
-                    onToggleSaved={() => toggleSavedProduct(item.product_name)}
+                    onToggleSaved={() => toggleSavedProduct(item.product_name, item.market_name)}
                     onOpen={() => navigate(detailUrl)}
                   />
                 );

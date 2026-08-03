@@ -424,7 +424,7 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
     setIsSaved(!previous);
     try {
       if (previous) await removeFavorite('product', productName);
-      else await addFavorite('product', productName);
+      else await addFavorite('product', productName, { market_name: market });
       showToast(previous ? '已從我的菜籃移除' : '已加入我的菜籃');
     } catch {
       setIsSaved(previous);
