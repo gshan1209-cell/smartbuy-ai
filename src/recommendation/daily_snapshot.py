@@ -411,11 +411,30 @@ def prepare_market_input(market_key: str, recommendation_date: date) -> dict[str
 
 def build_chatgpt_prompt(inputs: dict[str, dict[str, Any]]) -> str:
     combined_inputs = json.dumps(inputs, ensure_ascii=False, indent=2)
+    recommendation_dates = sorted({
+        str(payload.get("recommendation_date"))
+        for payload in inputs.values()
+        if payload.get("recommendation_date")
+    })
+    if len(recommendation_dates) == 1:
+        prompt_recommendation_date = recommendation_dates[0]
+    elif recommendation_dates:
+        prompt_recommendation_date = "各市場輸入中的 recommendation_date（必須逐市場核對）"
+    else:
+        prompt_recommendation_date = "未提供；必須以每日整理輸入中的 recommendation_date 為準"
     return f"""# SmartBuy 每日 AI 推薦快照
 
 請只根據下方輸入資料，回傳一個可解析的 JSON 物件，不要加 Markdown 或解說。
 不得捏造不存在的價格、交易量、預測、新知或日期；來源沒有資料時，必須在文字中明確說明限制。
 下方「每日整理輸入」包含完整的價格、交易量、日期、價格方向預測、農業新知與資料來源比較；請先使用完整資料判讀，再輸出精簡的決策型 JSON。不要把所有原始資料逐項重複到決策內容。
+
+## 日期與資料新鮮度（必讀）
+
+- 本次推薦適用日期（由程式依執行日期動態產生）：{prompt_recommendation_date}
+- `recommendation_date` 是本次要產出的推薦日期；`latest_trade_date` 是資料實際最新交易日，兩者不同是正常情況。
+- `latest_trade_date`、每個品項的 `latest_trade_date` 與 `prices.date_range.end` 必須逐字沿用輸入，絕對不可自行改成系統日期、今天日期或推測日期。
+- 如果最新交易日早於推薦適用日期，必須保留實際日期，並依 `trade_data_age_days` 與 `source_warnings` 說明資料限制；不得為了讓日期看起來較新而填入不存在的行情。
+- 輸出前逐一核對：頂層與三市場的 `recommendation_date` 必須等於輸入日期；各市場的 `source_summary` 日期與警告必須等於輸入資料。
 
 ## 固定規則
 

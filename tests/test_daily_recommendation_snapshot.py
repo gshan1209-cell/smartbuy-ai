@@ -104,8 +104,12 @@ def test_validate_daily_payload_accepts_complete_three_market_contract():
 
 
 def test_prompt_passes_detailed_inputs_and_requires_role_specific_decisions():
-    prompt = build_chatgpt_prompt({"taipei-1": {"prices": {"products": [{"crop_name": "高麗菜", "avg_price": 20}]}, "price_predictions": {}, "agriculture_news": {}}})
+    prompt = build_chatgpt_prompt({"taipei-1": {"recommendation_date": "2026-08-03", "prices": {"date_range": {"end": "2026-08-02"}, "products": [{"crop_name": "高麗菜", "avg_price": 20}]}, "price_predictions": {}, "agriculture_news": {}}})
     assert '完整的價格、交易量、日期、價格方向預測、農業新知' in prompt
+    assert '本次推薦適用日期（由程式依執行日期動態產生）：2026-08-03' in prompt
+    assert '`recommendation_date` 是本次要產出的推薦日期；`latest_trade_date` 是資料實際最新交易日' in prompt
+    assert '絕對不可自行改成系統日期、今天日期或推測日期' in prompt
+    assert 'prices.date_range.end' in prompt
     assert 'consumer（消費者）' in prompt
     assert 'farmer（農民）' in prompt
     assert 'merchant（商家）' in prompt
