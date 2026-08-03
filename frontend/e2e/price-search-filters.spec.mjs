@@ -8,6 +8,14 @@ const products = [
   { product_name: '小白菜', market_name: '台中市', today_price: 35, volume: 30, status: '便宜' },
 ];
 
+const history = Array.from({ length: 30 }, (_, index) => ({
+  date: `2026-07-${String(index + 1).padStart(2, '0')}`,
+  price: 20 + (index % 5),
+  upper_price: 24 + (index % 3),
+  lower_price: 16 + (index % 2),
+  volume: 80 + index,
+}));
+
 async function mockPriceSearch(page) {
   await installDeterministicNetwork(page);
   await page.route('**/api/markets', (route) => route.fulfill({
@@ -26,15 +34,16 @@ async function mockPriceSearch(page) {
       body: JSON.stringify(payload),
     });
   });
+  await page.route('**/api/products/*/history*', (route) => {
+    const url = new URL(route.request().url());
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ history }),
+    });
+  });
   await page.route('**/api/products/*', (route) => {
     const url = new URL(route.request().url());
-    if (url.pathname.endsWith('/history')) {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ history: [] }),
-      });
-    }
     const market = url.searchParams.get('market');
     return route.fulfill({
       status: 200,
@@ -157,6 +166,18 @@ test('@responsive 商品詳情在手機版堆疊摘要，圖表控制項不溢�
   await expect(page.getByRole('heading', { name: '甘藍 · 折線圖' })).toBeVisible();
   await expect(page.getByRole('button', { name: /平板/ })).toHaveCount(0);
   await expect(page.locator('.product-detail-chart-actions')).toBeVisible();
+  expect(await page.locator('.product-detail-query-tools').evaluate(
+    (element) => element.nextElementSibling?.classList.contains('product-detail-chart-card'),
+  )).toBe(true);
+  await expect(page.locator('.product-detail-chart-card canvas')).toBeVisible();
+
+  await page.getByRole('button', { name: '14 天', exact: true }).click();
+  await expect(page.getByText('近 14 交易日', { exact: true })).toBeVisible();
+  await expect(page.locator('.product-detail-chart-card canvas')).toBeVisible();
+
+  await page.getByRole('button', { name: '30 天', exact: true }).click();
+  await expect(page.getByText('近 30 交易日', { exact: true })).toBeVisible();
+  await expect(page.locator('.product-detail-chart-card canvas')).toBeVisible();
 
   const metrics = await readViewportMetrics(page);
   expect(Math.max(metrics.bodyScrollWidth, metrics.documentScrollWidth)).toBeLessThanOrEqual(

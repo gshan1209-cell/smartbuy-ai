@@ -8,6 +8,7 @@ import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 import { getConsumerAdvice } from '../lib/consumerAdvice';
 import { loadProductHistory } from '../lib/productHistory';
+import { selectXAxisLabelIndexes } from '../lib/chartTicks';
 import './ProductDetail.css';
 import './ProductDetailResponsive.css';
 
@@ -475,13 +476,15 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
     if (priceChartInst.current) { priceChartInst.current.destroy(); priceChartInst.current = null; }
 
     const hasVolume = volumes.some(v => v != null);
-    const step = Math.max(1, Math.floor(labels.length / 8));
+    const visibleXAxisLabelIndexes = selectXAxisLabelIndexes(labels.length);
     const xAxisTicksConfig = {
       autoSkip: false,
       maxRotation: 0,
+      minRotation: 0,
+      padding: 4,
       font: { size: 12 },
       callback: function(val, index) {
-        return index % step === 0 ? this.getLabelForValue(val) : '';
+        return visibleXAxisLabelIndexes.has(index) ? this.getLabelForValue(val) : '';
       },
     };
     const xAxisGridConfig = { display: false };
@@ -780,42 +783,6 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
 
   return (
     <>
-      {/* 查詢條件置頂：先選擇要查看的價格期間 */}
-      <div className="product-detail-query-tools" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-        {[['7', '7 天'], ['14', '14 天'], ['30', '30 天']].map(([val, label]) => (
-          <button key={val} onClick={() => setPeriod(val)} style={{
-            padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-            cursor: 'pointer', border: '1.5px solid',
-            background: period === val ? 'var(--yz-g)' : 'transparent',
-            color: period === val ? '#fff' : 'var(--yz-mut)',
-            borderColor: period === val ? 'var(--yz-g)' : 'var(--yz-bdr)',
-          }}>{label}</button>
-        ))}
-        <button onClick={() => setPeriod('custom')} style={{
-          padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-          cursor: 'pointer', border: '1.5px solid',
-          background: period === 'custom' ? 'var(--yz-g)' : 'transparent',
-          color: period === 'custom' ? '#fff' : 'var(--yz-mut)',
-          borderColor: period === 'custom' ? 'var(--yz-g)' : 'var(--yz-bdr)',
-        }}>自訂</button>
-        {period === 'custom' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-            <input type="date" value={customFrom}
-              max={customTo || new Date().toISOString().slice(0, 10)}
-              onChange={e => setCustomFrom(e.target.value)}
-              style={{ border: '1px solid var(--yz-bdr)', borderRadius: 6, padding: '4px 8px', fontSize: 12, fontFamily: 'inherit' }}
-            />
-            <span style={{ color: 'var(--yz-mut)' }}>—</span>
-            <input type="date" value={customTo}
-              min={customFrom}
-              max={new Date().toISOString().slice(0, 10)}
-              onChange={e => setCustomTo(e.target.value)}
-              style={{ border: '1px solid var(--yz-bdr)', borderRadius: 6, padding: '4px 8px', fontSize: 12, fontFamily: 'inherit' }}
-            />
-          </div>
-        )}
-      </div>
-
       {/* 1. 品名 + 狀態 badge + 今日漲跌 */}
       <div className="product-detail-summary" style={{ marginBottom: 16 }}>
         <div className="product-detail-title-row" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -1018,6 +985,42 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
           </div>
         );
       })()}
+
+      {/* 圖表查詢期間：放在圖表卡片正上方，先選擇要查看的價格期間 */}
+      <div className="product-detail-query-tools" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+        {[['7', '7 天'], ['14', '14 天'], ['30', '30 天']].map(([val, label]) => (
+          <button key={val} onClick={() => setPeriod(val)} style={{
+            padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', border: '1.5px solid',
+            background: period === val ? 'var(--yz-g)' : 'transparent',
+            color: period === val ? '#fff' : 'var(--yz-mut)',
+            borderColor: period === val ? 'var(--yz-g)' : 'var(--yz-bdr)',
+          }}>{label}</button>
+        ))}
+        <button onClick={() => setPeriod('custom')} style={{
+          padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+          cursor: 'pointer', border: '1.5px solid',
+          background: period === 'custom' ? 'var(--yz-g)' : 'transparent',
+          color: period === 'custom' ? '#fff' : 'var(--yz-mut)',
+          borderColor: period === 'custom' ? 'var(--yz-g)' : 'var(--yz-bdr)',
+        }}>自訂</button>
+        {period === 'custom' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <input type="date" value={customFrom}
+              max={customTo || new Date().toISOString().slice(0, 10)}
+              onChange={e => setCustomFrom(e.target.value)}
+              style={{ border: '1px solid var(--yz-bdr)', borderRadius: 6, padding: '4px 8px', fontSize: 12, fontFamily: 'inherit' }}
+            />
+            <span style={{ color: 'var(--yz-mut)' }}>—</span>
+            <input type="date" value={customTo}
+              min={customFrom}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={e => setCustomTo(e.target.value)}
+              style={{ border: '1px solid var(--yz-bdr)', borderRadius: 6, padding: '4px 8px', fontSize: 12, fontFamily: 'inherit' }}
+            />
+          </div>
+        )}
+      </div>
 
       {/* 3. 走勢圖卡 */}
       <div className="yz-card product-detail-chart-card" style={{ padding: '22px 22px', marginBottom: 12 }}>
