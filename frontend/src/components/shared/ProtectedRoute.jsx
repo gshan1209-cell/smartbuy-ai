@@ -18,7 +18,6 @@ export default function ProtectedRoute() {
   } = useAuth();
   const location = useLocation();
 
-  if (IS_TEST_MODE) return <Outlet />;
 
   const decision = getProtectedRouteDecision({
     isAuthenticated,

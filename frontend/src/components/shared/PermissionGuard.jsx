@@ -8,7 +8,6 @@ export default function PermissionGuard({ permission, children }) {
   const { permissions = [] } = useAuth();
   const location = useLocation();
 
-  if (IS_TEST_MODE) return children;
 
   if (!hasPermission(permissions, permission)) {
     return (

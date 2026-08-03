@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => (IS_TEST_MODE ? TEST_USER : loadUser()));
   const [authLoading, setAuthLoading] = useState(() => (IS_TEST_MODE ? false : Boolean(loadUser())));
   const [dashboardAccess, setDashboardAccess] = useState(() => (IS_TEST_MODE ? {
-    dashboardAccess: true,
+    dashboardAccess: false,
     role: TEST_USER.role,
     permissions: TEST_PERMISSIONS,
   } : null));
@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
     if (IS_TEST_MODE) {
       setUser(TEST_USER);
       setDashboardAccess({
-        dashboardAccess: true,
+        dashboardAccess: false,
         role: TEST_USER.role,
         permissions: TEST_PERMISSIONS,
       });
