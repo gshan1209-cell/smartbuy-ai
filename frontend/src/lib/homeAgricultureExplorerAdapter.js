@@ -137,12 +137,10 @@ export async function loadHomeAgricultureExplorer(
     ? `/api/products?market=${encodeURIComponent(market)}`
     : '/api/products';
 
-  // Fetch local (county-filtered) and all-market products in parallel.
-  // Monthly produce is seasonal — not tied to any county — so always uses all markets.
-  const [solarTermResult, productsResult, allProductsResult] = await Promise.allSettled([
+  // Both local specialties and monthly produce use the same county-filtered request.
+  const [solarTermResult, productsResult] = await Promise.allSettled([
     getCached('/api/solar-term', { ttlMs: SOLAR_TERM_CACHE_TTL_MS, forceRefresh }),
     getCached(productsPath, { ttlMs: SHARED_CACHE_TTL_MS, forceRefresh }),
-    getCached('/api/products', { ttlMs: SHARED_CACHE_TTL_MS, forceRefresh }),
   ]);
 
   const solarTermData = solarTermResult.status === 'fulfilled' ? solarTermResult.value : null;
@@ -153,16 +151,11 @@ export async function loadHomeAgricultureExplorer(
     ? productsResult.value.map(normalizeRawItem)
     : [];
 
-  const allItems = allProductsResult.status === 'fulfilled' && Array.isArray(allProductsResult.value)
-    ? allProductsResult.value.map(normalizeRawItem)
-    : [];
-
   const localSpecialties = buildLocalSpecialties(selectedCounty, rawItems);
 
-  // Pick 2–3 items with today's prices from all markets, sorted by volume.
-  // No seasonal list matching — just the most actively traded items available today.
+  // Pick up to 3 items with today's prices from the selected county, sorted by volume.
   const monthlyProduce = (() => {
-    const withPrice = allItems.filter((item) => item.today_price != null);
+    const withPrice = rawItems.filter((item) => item.today_price != null);
     if (!withPrice.length) return [];
     return withPrice
       .sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0))

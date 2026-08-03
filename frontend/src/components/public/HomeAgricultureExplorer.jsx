@@ -173,6 +173,11 @@ export default function HomeAgricultureExplorer({ markets = [] }) {
                   {data?.solarTerm
                     ? `${data.solarTerm} · 本月尚青`
                     : `${data?.selectedMonth || '本月'}尚青`}
+                  {selectedCounty && selectedCounty !== '全部' && (
+                    <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#888', marginLeft: '8px' }}>
+                      {selectedCounty}
+                    </span>
+                  )}
                 </h3>
               </div>
             </div>
