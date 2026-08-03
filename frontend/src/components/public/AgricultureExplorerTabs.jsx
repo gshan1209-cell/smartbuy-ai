@@ -3,7 +3,6 @@ import { useRef } from 'react';
 const TABS = [
   { id: 'local', label: '在地特色', description: '探索臺灣各縣市代表農特產品' },
   { id: 'monthly', label: '本月尚青', description: '當月盛產蔬果與即時行情' },
-  { id: 'origin', label: '農產在哪', description: '查詢蔬果主要產地與生長分佈' },
 ];
 
 export default function AgricultureExplorerTabs({ activeTab, onTabChange }) {

@@ -5,7 +5,6 @@ import CountySelector from './CountySelector';
 import HomeSectionHeader from './HomeSectionHeader';
 import LocalSpecialtyCard from './LocalSpecialtyCard';
 import MonthlyProduceCard from './MonthlyProduceCard';
-import ProduceOriginPanel from './ProduceOriginPanel';
 import TaiwanCountyMap from './TaiwanCountyMap';
 import { loadHomeAgricultureExplorer, mapMarketsToCounties } from '../../lib/homeAgricultureExplorerAdapter';
 
@@ -196,17 +195,6 @@ export default function HomeAgricultureExplorer({ markets = [] }) {
                 />
               ))}
             </div>
-          </div>
-        )}
-
-        {activeTab === 'origin' && (
-          <div
-            id="agri-tabpanel-origin"
-            role="tabpanel"
-            aria-labelledby="agri-tab-origin"
-            className="agri-tabpanel"
-          >
-            <ProduceOriginPanel />
           </div>
         )}
       </div>
