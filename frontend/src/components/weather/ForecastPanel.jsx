@@ -10,7 +10,7 @@ const CITIES = [
 
 function formatTime(isoString) {
   const d = new Date(isoString);
-  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:00`;
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 export default function ForecastPanel() {
@@ -54,7 +54,7 @@ export default function ForecastPanel() {
         <table className="weather-forecast-panel__table">
           <thead>
             <tr>
-              <th>時間</th>
+              <th>日期</th>
               <th>天氣</th>
               <th>高溫</th>
               <th>低溫</th>

@@ -8,6 +8,7 @@
 .windy-map {
   width: 100%;
   height: 100%;
+  border: none;
 }
 
 /* ── 預報面板 ─────────────────────────────────────── */
@@ -91,63 +92,6 @@
   border-bottom: 0;
 }
 
-/* ── 城市氣泡卡 (Leaflet popup 內容) ─────────────── */
-.weather-city-popup-container .leaflet-popup-content-wrapper {
-  background: var(--yz-card-bg, #fff);
-  border: 1px solid var(--yz-bdr, #e2ddd2);
-  border-radius: 10px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
-  padding: 0;
-}
-
-.weather-city-popup-container .leaflet-popup-content {
-  margin: 0;
-}
-
-.weather-city-popup-container .leaflet-popup-tip-container {
-  display: none;
-}
-
-.weather-city-popup {
-  padding: 10px 14px;
-  min-width: 160px;
-}
-
-.weather-city-popup__name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--yz-txt, #1a1a18);
-  margin-bottom: 4px;
-}
-
-.weather-city-popup__time {
-  font-size: 11px;
-  color: var(--yz-mut, #6c6b60);
-  margin-bottom: 6px;
-}
-
-.weather-city-popup__wx {
-  font-size: 12px;
-  color: var(--yz-txt, #1a1a18);
-  margin-bottom: 4px;
-}
-
-.weather-city-popup__temp,
-.weather-city-popup__pop {
-  font-size: 12px;
-  color: var(--yz-mut, #6c6b60);
-  margin-top: 2px;
-}
-
-.weather-city-popup__loading {
-  font-size: 12px;
-  color: var(--yz-mut, #6c6b60);
-}
-
-.weather-city-popup__error {
-  font-size: 12px;
-  color: #a32d2d;
-}
 
 @media (max-width: 767px) {
   .weather-page {
