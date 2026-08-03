@@ -304,5 +304,3 @@ html[data-layout-mode="mobile"] .special-offers-heading h1 { font-size: 30px; }
 html[data-layout-mode="mobile"] .special-offers-refresh { width: 100%; margin-top: 16px; }
 html[data-layout-mode="mobile"] .special-offers-toolbar { align-items: stretch; flex-direction: column; }
 html[data-layout-mode="mobile"] .special-offers-sort select { width: 100%; }
-html[data-layout-mode="tablet"] .special-offers-inner { padding: 30px 24px 84px; }
-html[data-layout-mode="tablet"] .special-offers-toolbar { gap: 12px; }

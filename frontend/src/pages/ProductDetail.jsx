@@ -9,6 +9,7 @@ import Toast from '../components/Toast';
 import { getConsumerAdvice } from '../lib/consumerAdvice';
 import { loadProductHistory } from '../lib/productHistory';
 import './ProductDetail.css';
+import './ProductDetailResponsive.css';
 
 // ── 常數 ───────────────────────────────────────────────────────────────────────
 
@@ -265,7 +266,7 @@ export default function ProductDetail() {
         </button>
       </div>
 
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '20px 32px 0' }}>
+      <div className="product-detail-page-content" style={{ maxWidth: 960, margin: '0 auto', padding: '20px 32px 0' }}>
         {detailLoading && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>載入中…</p>}
         {!detailLoading && !detail && <p style={{ color: 'var(--yz-dim)', fontSize: 14 }}>無法取得詳細資料</p>}
         {!detailLoading && detail && (
@@ -816,13 +817,13 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
       </div>
 
       {/* 1. 品名 + 狀態 badge + 今日漲跌 */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 900 }}>{productName}</h2>
+      <div className="product-detail-summary" style={{ marginBottom: 16 }}>
+        <div className="product-detail-title-row" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <h2 className="product-detail-title" style={{ fontSize: 26, fontWeight: 900 }}>{productName}</h2>
           <span className={`yz-bdg ${STATUS_BADGE[priceStatus] || 'yz-bdg-gr'}`}>{priceStatus}</span>
         </div>
         {/* 股票風格：大數字 + 漲跌幅 */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+        <div className="product-detail-price-row" style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 36, fontWeight: 900, color: todayPriceColor, lineHeight: 1.1 }}>
             {todayPrice ?? '—'}
           </span>
@@ -836,7 +837,7 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
             <span style={{ fontSize: 12, color: 'var(--yz-mut)' }}>（昨日資料載入中）</span>
           )}
         </div>
-        <p style={{ fontSize: 12, color: 'var(--yz-mut)', marginTop: 4 }}>
+        <p className="product-detail-meta" style={{ fontSize: 12, color: 'var(--yz-mut)', marginTop: 4 }}>
           {pd.market_name ? `${pd.market_name} · ` : ''}
           {pd.trans_date ? `${pd.trans_date} ` : ''}
           資料範圍依下方切換器決定
@@ -870,9 +871,9 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
           : null;
 
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: 12, marginBottom: 22 }}>
+          <div className="product-detail-metrics" style={{ marginBottom: 22 }}>
             {/* 今日均價卡 */}
-            <div className="yz-card" style={{ padding: '16px 18px' }}>
+            <div className="yz-card product-detail-today-card" style={{ padding: '16px 18px' }}>
               <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--yz-mut)', marginBottom: 7 }}>今日均價</p>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
                 <span style={{ fontSize: 26, fontWeight: 900, color: todayPriceColor }}>{todayPrice ?? '—'}</span>
@@ -910,11 +911,11 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
             </div>
 
             {/* 均線 + 行情位置 合併卡 */}
-            <div className="yz-card" style={{ padding: '16px 20px' }}>
+            <div className="yz-card product-detail-market-card" style={{ padding: '16px 20px' }}>
               {/* MA 三格 */}
-              <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+              <div className="product-detail-ma-grid" style={{ marginBottom: 16 }}>
                 {[['7 日均線', ma7Val, 7], ['14 日均線', ma14Val, 14], ['30 日均線', ma30Val, 30]].map(([lbl, val, days]) => (
-                  <div key={lbl} style={{ flex: 1 }}>
+                  <div className="product-detail-ma-item" key={lbl}>
                     <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--yz-mut)', marginBottom: 7 }}>{lbl}</p>
                     {val != null ? (
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
@@ -935,7 +936,7 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
 
               {/* 行情位置色帶 */}
               <div style={{ borderTop: '1px solid var(--yz-bdr)', paddingTop: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+                <div className="product-detail-market-position-heading" style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
                   <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--yz-dim)', letterSpacing: '.08em', textTransform: 'uppercase', margin: 0 }}>
                     行情位置
                   </p>
@@ -975,7 +976,7 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
                 </div>
 
                 {/* 區間說明標籤列 */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', fontSize: 9, marginBottom: 10 }}>
+                <div className="product-detail-market-band-labels" style={{ fontSize: 9, marginBottom: 10 }}>
                   <div style={{ color: '#16A34A' }}>
                     <div style={{ fontWeight: 700 }}>便宜</div>
                     <div style={{ color: 'var(--yz-mut)', marginTop: 1 }}>低於近期均價</div>
@@ -991,7 +992,7 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
                 </div>
 
                 {/* 結論文字框 */}
-                <div style={{
+                <div className="product-detail-zscore-summary" style={{
                   background: zColor === '#16A34A' ? 'rgba(22,163,74,0.08)' : zColor === '#DC2626' ? 'rgba(220,38,38,0.08)' : 'rgba(156,163,175,0.10)',
                   border: `1px solid ${zColor}33`,
                   borderRadius: 8, padding: '8px 12px',
@@ -1007,7 +1008,7 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
                       </p>
                     )}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--yz-mut)', flexShrink: 0, textAlign: 'right', lineHeight: 1.6 }}>
+                  <div className="product-detail-zscore-meta" style={{ fontSize: 10, color: 'var(--yz-mut)', flexShrink: 0, textAlign: 'right', lineHeight: 1.6 }}>
                     <div>以近 30 日</div>
                     <div>Z-Score 計算</div>
                   </div>
@@ -1019,13 +1020,13 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
       })()}
 
       {/* 3. 走勢圖卡 */}
-      <div className="yz-card" style={{ padding: '22px 22px', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <h4 style={{ fontSize: 18, fontWeight: 700 }}>
+      <div className="yz-card product-detail-chart-card" style={{ padding: '22px 22px', marginBottom: 12 }}>
+        <div className="product-detail-chart-header" style={{ marginBottom: 10 }}>
+          <h4 className="product-detail-chart-title" style={{ fontSize: 18, fontWeight: 700 }}>
             {productName} · {chartMode === 'line' ? '折線圖' : '技術圖'}
           </h4>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 11, color: 'var(--yz-mut)', marginRight: 8 }}>
+          <div className="product-detail-chart-actions">
+            <span className="product-detail-chart-period" style={{ fontSize: 11, color: 'var(--yz-mut)', marginRight: 8 }}>
               {period === 'custom' && customFrom && customTo ? `${customFrom} ~ ${customTo}` : `近 ${period} 交易日`}
             </span>
             {/* 折線圖 / 技術圖 切換 */}
@@ -1081,12 +1082,12 @@ function DetailContent({ productName, market, detail, initialPeriod }) {
           );
 
           const sep = (
-            <span style={{ width: 1, height: 16, background: 'var(--yz-bdr)',
+            <span className="product-detail-chart-separator" style={{ width: 1, height: 16, background: 'var(--yz-bdr)',
               alignSelf: 'center', flexShrink: 0 }} />
           );
 
           return (
-            <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="product-detail-chart-toggles" style={{ marginBottom: 10 }}>
               {/* 群組一：價格帶 */}
               <button onClick={() => toggleLayer('upper', '上價')} style={btnStyle(maVisible.upper, '#1D9E75')}>
                 {lineIcon(maVisible.upper, '#1D9E75')} 上/下價

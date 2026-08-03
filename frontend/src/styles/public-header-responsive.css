@@ -16,19 +16,3 @@
     gap: 4px;
   }
 }
-
-/* 手動切換平板預覽時套用相同規則，不依賴實際瀏覽器寬度。 */
-html[data-layout-mode="tablet"] .public-header {
-  gap: 8px;
-  padding-inline: 12px;
-}
-
-html[data-layout-mode="tablet"] .public-nav {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-html[data-layout-mode="tablet"] .header-actions {
-  flex-shrink: 0;
-  gap: 4px;
-}

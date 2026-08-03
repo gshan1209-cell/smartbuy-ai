@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
-import { applyLayoutMode, DEFAULT_LAYOUT_MODE, LAYOUT_MODE_OPTIONS } from '../hooks/useLayoutMode';
+import { applyLayoutMode, DEFAULT_LAYOUT_MODE, LAYOUT_MODE_OPTIONS, normalizeLayoutMode } from '../hooks/useLayoutMode';
 import { API_BASE_URL } from '../lib/apiClient';
 
 const BASE = API_BASE_URL;
@@ -18,7 +18,10 @@ function loadPrefs() {
 }
 
 function loadDisplayPrefs() {
-  try { return { ...DEFAULT_DISPLAY, ...JSON.parse(localStorage.getItem(LS_DISPLAY_KEY)) }; }
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_DISPLAY_KEY) || '{}');
+    return { ...DEFAULT_DISPLAY, ...saved, layoutMode: normalizeLayoutMode(saved.layoutMode) };
+  }
   catch { return DEFAULT_DISPLAY; }
 }
 
@@ -407,7 +410,7 @@ export default function Settings() {
           <div style={{ ...rowStyle, marginTop: 20, marginBottom: 0 }}>
             <div>
               <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>版面模式</p>
-              <p style={{ fontSize: 12, color: 'var(--yz-mut)' }}>切換電腦、平板或手機整體版型</p>
+              <p style={{ fontSize: 12, color: 'var(--yz-mut)' }}>切換電腦或手機整體版型</p>
             </div>
             <OptionGroup
               options={LAYOUT_MODE_OPTIONS.map(option => ({ val: option.value, label: option.label }))}

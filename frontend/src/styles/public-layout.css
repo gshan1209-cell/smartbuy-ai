@@ -146,25 +146,12 @@
   }
 }
 
-/* 手動版型切換：不依賴瀏覽器視窗寬度，方便在同一裝置預覽三種畫面。 */
+/* 手動版型切換：不依賴瀏覽器視窗寬度，方便在同一裝置預覽電腦或手機畫面。 */
 html[data-layout-mode="desktop"] .public-nav { display: flex; }
 html[data-layout-mode="desktop"] .settings-link { display: block; }
 html[data-layout-mode="desktop"] .mobile-icon,
 html[data-layout-mode="desktop"] .menu-button,
 html[data-layout-mode="desktop"] .mobile-bottom-nav { display: none; }
-
-html[data-layout-mode="tablet"] .public-header {
-  gap: 16px;
-  padding-inline: 20px;
-}
-html[data-layout-mode="tablet"] .public-nav { display: flex; overflow-x: auto; }
-html[data-layout-mode="tablet"] .public-nav a,
-html[data-layout-mode="tablet"] .settings-link { padding-inline: 8px; }
-html[data-layout-mode="tablet"] .mobile-icon,
-html[data-layout-mode="tablet"] .menu-button,
-html[data-layout-mode="tablet"] .mobile-bottom-nav { display: none; }
-html[data-layout-mode="tablet"] .container { max-width: 860px; padding-inline: 20px; }
-html[data-layout-mode="tablet"] .special-offers-inner { padding: 30px 24px 84px; }
 
 html[data-layout-mode="mobile"] .public-header {
   gap: 8px;
@@ -440,14 +427,6 @@ html[data-layout-mode="mobile"] .special-offers-inner { padding: 28px 16px 96px;
   .public-sidebar {
     display: none;
   }
-}
-
-html[data-layout-mode="tablet"] .public-layout {
-  --public-sidebar-width: 76px;
-}
-
-html[data-layout-mode="tablet"] .public-layout:not(.sidebar-collapsed) {
-  --public-sidebar-width: 248px;
 }
 
 html[data-layout-mode="mobile"] .public-layout {

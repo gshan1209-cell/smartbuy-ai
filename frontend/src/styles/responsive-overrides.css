@@ -31,20 +31,8 @@ html[data-layout-mode="desktop"] .public-layout {
   --public-sidebar-width: 0px;
 }
 
-html[data-layout-mode="tablet"] .public-layout {
-  --public-sidebar-width: 248px;
-}
-
-html[data-layout-mode="tablet"] .public-layout.sidebar-collapsed {
-  --public-sidebar-width: 76px;
-}
-
 html[data-layout-mode="desktop"] .public-sidebar {
   display: none;
-}
-
-html[data-layout-mode="tablet"] .public-sidebar {
-  display: flex;
 }
 
 html[data-layout-mode="desktop"] .public-header,
@@ -52,14 +40,6 @@ html[data-layout-mode="desktop"] .app-main {
   margin-left: 0;
   width: 100%;
   max-width: 100%;
-  padding-bottom: 0;
-}
-
-html[data-layout-mode="tablet"] .public-header,
-html[data-layout-mode="tablet"] .app-main {
-  margin-left: var(--public-sidebar-width);
-  width: calc(100% - var(--public-sidebar-width));
-  max-width: calc(100% - var(--public-sidebar-width));
   padding-bottom: 0;
 }
 
@@ -73,40 +53,24 @@ html[data-layout-mode="desktop"] .container {
   padding-inline: 24px;
 }
 
-html[data-layout-mode="tablet"] .public-header {
-  gap: 16px;
-  padding-inline: 20px;
-}
-
-html[data-layout-mode="tablet"] .container {
-  max-width: 860px;
-  padding-inline: 20px;
-}
-
-html[data-layout-mode="desktop"] .public-nav,
-html[data-layout-mode="tablet"] .public-nav {
+html[data-layout-mode="desktop"] .public-nav {
   display: flex;
   min-width: 0;
   flex: 1 1 auto;
   overflow-x: auto;
 }
 
-html[data-layout-mode="desktop"] .settings-link,
-html[data-layout-mode="tablet"] .settings-link {
+html[data-layout-mode="desktop"] .settings-link {
   display: block;
 }
 
 html[data-layout-mode="desktop"] .mobile-icon,
 html[data-layout-mode="desktop"] .menu-button,
-html[data-layout-mode="desktop"] .mobile-bottom-nav,
-html[data-layout-mode="tablet"] .mobile-icon,
-html[data-layout-mode="tablet"] .menu-button,
-html[data-layout-mode="tablet"] .mobile-bottom-nav {
+html[data-layout-mode="desktop"] .mobile-bottom-nav {
   display: none;
 }
 
-html[data-layout-mode="desktop"] .header-identity-role,
-html[data-layout-mode="tablet"] .header-identity-role {
+html[data-layout-mode="desktop"] .header-identity-role {
   display: inline-flex;
 }
 

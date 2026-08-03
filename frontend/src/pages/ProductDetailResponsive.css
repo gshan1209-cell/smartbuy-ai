@@ -1,0 +1,179 @@
+.product-detail-page-content,
+.product-detail-summary,
+.product-detail-metrics,
+.product-detail-chart-card {
+  min-width: 0;
+}
+
+.product-detail-title-row {
+  flex-wrap: wrap;
+}
+
+.product-detail-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.product-detail-metrics {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 3fr);
+  gap: 12px;
+}
+
+.product-detail-today-card,
+.product-detail-market-card,
+.product-detail-ma-item {
+  min-width: 0;
+}
+
+.product-detail-ma-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.product-detail-ma-item > div {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.product-detail-market-position-heading {
+  flex-wrap: wrap;
+}
+
+.product-detail-market-band-labels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.product-detail-zscore-summary {
+  min-width: 0;
+}
+
+.product-detail-zscore-summary > div:first-child {
+  min-width: 0;
+}
+
+.product-detail-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.product-detail-chart-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.product-detail-chart-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.product-detail-chart-period {
+  white-space: nowrap;
+}
+
+.product-detail-chart-toggles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.product-detail-chart-toggles button {
+  min-height: 34px;
+}
+
+@media (max-width: 767px) {
+  .product-detail-page-content {
+    max-width: 100% !important;
+    padding: 16px 16px 0 !important;
+  }
+
+  .product-detail-title-row {
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .product-detail-title {
+    flex: 1 1 auto;
+    font-size: 24px !important;
+    line-height: 1.25;
+  }
+
+  .product-detail-meta {
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .product-detail-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .product-detail-ma-grid {
+    gap: 8px;
+  }
+
+  .product-detail-ma-item > div {
+    gap: 2px !important;
+  }
+
+  .product-detail-market-position-heading {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 3px !important;
+  }
+
+  .product-detail-zscore-summary {
+    flex-direction: column;
+    gap: 6px !important;
+  }
+
+  .product-detail-zscore-meta {
+    text-align: left !important;
+  }
+
+  .product-detail-chart-card {
+    padding: 16px !important;
+  }
+
+  .product-detail-chart-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .product-detail-chart-actions {
+    width: 100%;
+    justify-content: stretch;
+    gap: 8px;
+  }
+
+  .product-detail-chart-period {
+    flex: 1 1 100%;
+    margin-right: 0 !important;
+  }
+
+  .product-detail-chart-actions button {
+    flex: 1 1 0;
+    min-height: 36px;
+  }
+
+  .product-detail-chart-toggles {
+    gap: 8px;
+  }
+
+  .product-detail-chart-toggles button {
+    padding-inline: 9px !important;
+  }
+
+  .product-detail-chart-separator {
+    display: none;
+  }
+}

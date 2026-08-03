@@ -149,3 +149,24 @@ test('個別市場卡片維持帶入原市場', async ({ page }) => {
   await expect(page).toHaveURL(/\/product\/%E7%95%AA%E8%8C%84\?market=%E5%8F%B0%E5%8C%97%E4%B8%80$/);
   await expect(page.getByText('台北一 ·', { exact: false })).toBeVisible();
 });
+
+test('@responsive 商品詳情在手機版堆疊摘要，圖表控制項不溢位', async ({ page }) => {
+  await mockPriceSearch(page);
+  await page.goto('/product/甘藍?market=台中市');
+
+  await expect(page.getByRole('heading', { name: '甘藍 · 折線圖' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /平板/ })).toHaveCount(0);
+  await expect(page.locator('.product-detail-chart-actions')).toBeVisible();
+
+  const metrics = await readViewportMetrics(page);
+  expect(Math.max(metrics.bodyScrollWidth, metrics.documentScrollWidth)).toBeLessThanOrEqual(
+    metrics.viewportWidth + 1,
+  );
+
+  if (page.viewportSize().width <= 767) {
+    const metricColumns = await page.locator('.product-detail-metrics').evaluate(
+      (element) => getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/),
+    );
+    expect(metricColumns).toHaveLength(1);
+  }
+});
