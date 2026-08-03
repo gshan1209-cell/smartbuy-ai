@@ -283,10 +283,10 @@ export default function Home() {
         <section className="home-quick-links" aria-label="其他服務">
           <QuickLinkCard
             icon={Bell}
-            title="收藏與天氣提醒"
-            description="登入後可收到收藏品項的價格變化與天氣風險提醒。"
+            title="一週天氣預報"
+            description="到天氣頁面確認當週天氣溫度與雨量狀況。"
             actionLabel="查看設定"
-            onClick={() => navigate('/settings')}
+            onClick={() => navigate('/weather')}
           />
           <QuickLinkCard
             icon={CloudSun}
