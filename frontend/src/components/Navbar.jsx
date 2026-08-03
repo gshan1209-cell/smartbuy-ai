@@ -109,7 +109,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 340, maxHeight: 420, overflowY: 'auto', background: '#fff', border: '1px solid var(--yz-bdr)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,.12)', zIndex: 200 }}>
+        <div className="notif-panel" style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 340, maxHeight: 420, overflowY: 'auto', background: '#fff', border: '1px solid var(--yz-bdr)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,.12)', zIndex: 200 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--yz-bdr)' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--yz-txt)' }}>通知</span>
             {unreadCount > 0 && (

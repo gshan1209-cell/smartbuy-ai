@@ -157,6 +157,12 @@ html[data-layout-mode="mobile"] .public-header {
   gap: 8px;
   padding-inline: 12px;
 }
+html[data-layout-mode="mobile"] .notif-panel {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(340px, calc(100vw - 16px));
+}
 html[data-layout-mode="mobile"] .public-nav,
 html[data-layout-mode="mobile"] .settings-link { display: none; }
 html[data-layout-mode="mobile"] .mobile-icon { display: grid; }
