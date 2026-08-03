@@ -1,4 +1,10 @@
 .dashboard-recommendations-page { display: grid; gap: 20px; }
+.public-recommendations-page {
+  width: min(100%, 1100px);
+  margin-inline: auto;
+  padding: 32px 24px 64px;
+  box-sizing: border-box;
+}
 .recommendation-page-heading { align-items: flex-start; }
 .recommendation-page-heading > div > p:last-child { max-width: 720px; }
 .recommendation-manual-badge { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--yz-bdr); border-radius: 999px; padding: 8px 12px; background: var(--yz-card-bg); color: var(--yz-g); font-size: 13px; font-weight: 800; }
@@ -95,7 +101,19 @@
   .daily-source-card dl div:nth-child(odd) { border-right: 0; }
 }
 
+@media (max-width: 1199px) {
+  .public-recommendations-page {
+    width: min(100%, 860px);
+    padding-inline: 20px;
+  }
+}
+
 @media (max-width: 600px) {
+  .public-recommendations-page {
+    width: 100%;
+    padding: 24px 16px 96px;
+  }
+
   .recommendation-page-heading { gap: 12px; }
   .recommendation-manual-badge, .recommendation-generate-button { width: 100%; }
   .daily-choice-grid button { min-height: 0; }
