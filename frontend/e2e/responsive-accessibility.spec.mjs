@@ -36,6 +36,35 @@ test('@responsive 首頁在三種尺寸皆無水平溢出且控制項有名稱',
   expect(Boolean(focused.text || focused.ariaLabel)).toBe(true);
 });
 
+test('@responsive 首頁在地特色標題在手機版改為單欄排列', async ({ page }) => {
+  await page.goto('/');
+
+  const heading = page.locator('.local-explorer-heading');
+  await expect(heading).toBeVisible();
+  await expect(heading.locator('h3')).toContainText('在地特色農產');
+
+  const layout = await heading.evaluate((element) => {
+    const titleBlock = element.firstElementChild;
+    const titleRect = titleBlock.getBoundingClientRect();
+    const containerRect = element.getBoundingClientRect();
+
+    return {
+      flexDirection: window.getComputedStyle(element).flexDirection,
+      titleWidth: titleRect.width,
+      containerWidth: containerRect.width,
+    };
+  });
+
+  expectNoHorizontalOverflow(await readViewportMetrics(page));
+
+  if (page.viewportSize().width <= 767) {
+    expect(layout.flexDirection).toBe('column');
+    expect(layout.titleWidth).toBeGreaterThan(layout.containerWidth * 0.8);
+  } else {
+    expect(layout.flexDirection).toBe('row');
+  }
+});
+
 test('@responsive 404 在三種尺寸皆可閱讀與返回', async ({ page }) => {
   await page.goto('/missing-responsive-route');
 

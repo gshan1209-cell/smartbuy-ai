@@ -82,6 +82,15 @@
     align-items: stretch;
   }
 
+  .local-explorer-heading {
+    flex-direction: column;
+  }
+
+  .local-explorer-heading > .flex,
+  .local-explorer-heading-note {
+    width: 100%;
+  }
+
   .explorer-source-group,
   .specialty-source-badges {
     justify-content: flex-start;
