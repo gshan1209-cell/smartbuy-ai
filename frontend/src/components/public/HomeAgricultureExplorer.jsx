@@ -170,19 +170,31 @@ export default function HomeAgricultureExplorer({ markets = [] }) {
             <div className="monthly-explorer-heading">
               <div className="flex items-center gap-2">
                 <Calendar className="text-emerald-700" size={22} />
-                <h3>{data?.selectedMonth || '本月'}尚青 · 當季推薦品項</h3>
+                <h3>
+                  {data?.solarTerm
+                    ? `${data.solarTerm} · 本月尚青`
+                    : `${data?.selectedMonth || '本月'}尚青`}
+                </h3>
               </div>
             </div>
 
+            {!loading && visibleProduce.length === 0 && (
+              <div className="explorer-unavailable-card">
+                <Info size={22} aria-hidden="true" />
+                <div>
+                  <strong>今日暫無當季行情資料</strong>
+                  <p>市場休市或 API 暫時無資料，請稍後重新整理。</p>
+                </div>
+              </div>
+            )}
+
             <div className="monthly-produce-grid">
-              {visibleProduce.map((produce) => {
-                return (
-                  <MonthlyProduceCard
-                    key={produce.name}
-                    produceItem={produce}
-                  />
-                );
-              })}
+              {visibleProduce.map((produce) => (
+                <MonthlyProduceCard
+                  key={produce.name}
+                  produceItem={produce}
+                />
+              ))}
             </div>
           </div>
         )}
