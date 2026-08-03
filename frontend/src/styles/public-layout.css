@@ -114,11 +114,11 @@
 
   .header-actions {
     flex: 1;
+    justify-content: flex-end;
   }
 
   .layout-mode-switch {
     order: 10;
-    margin-left: auto;
   }
 
   .mobile-icon {
@@ -174,8 +174,8 @@ html[data-layout-mode="mobile"] .notif-panel {
 }
 html[data-layout-mode="mobile"] .public-nav,
 html[data-layout-mode="mobile"] .settings-link { display: none; }
-html[data-layout-mode="mobile"] .header-actions { flex: 1; }
-html[data-layout-mode="mobile"] .layout-mode-switch { order: 10; margin-left: auto; }
+html[data-layout-mode="mobile"] .header-actions { flex: 1; justify-content: flex-end; }
+html[data-layout-mode="mobile"] .layout-mode-switch { order: 10; }
 html[data-layout-mode="mobile"] .mobile-icon { display: grid; }
 html[data-layout-mode="mobile"] .menu-button { display: grid; }
 html[data-layout-mode="mobile"] .mobile-bottom-nav {
