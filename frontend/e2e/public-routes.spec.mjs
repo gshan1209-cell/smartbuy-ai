@@ -64,17 +64,15 @@ test('訪客可由首頁直接開啟 AI 推薦，不會被導向登入', async (
   await expect(page).toHaveURL(/\/recommendations$/);
   await expect(page.locator('.public-sidebar-context-title')).toHaveText('AI 採買推薦');
   await expect(page.locator('.public-sidebar-context-description')).toContainText('選擇行情分類與使用身分');
-  await expect(page.getByRole('heading', { level: 1, name: '推薦控制台' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: '每日 AI 推薦快照' })).toBeVisible();
   await expect(page.locator('.recommendation-dashboard-shell')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '消費者' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '農民' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '商家' })).toBeVisible();
-  await page.getByRole('button', { name: '農民' }).click();
-  await page.getByLabel('推薦市場').selectOption('台北市場');
-  await page.getByLabel('推薦分類').selectOption('leafy-vegetables');
-  await page.getByRole('button', { name: 'AI推薦' }).click();
+  await expect(page.getByRole('radio', { name: /^消費者/ })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /^農民/ })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /^商家/ })).toBeVisible();
+  await page.getByRole('radio', { name: /^農民/ }).click();
+  await page.getByRole('button', { name: 'AI 推薦' }).click();
   await expect(page.getByRole('heading', { level: 1, name: '登入' })).toHaveCount(0);
-  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.locator('.daily-details-card')).toBeVisible();
 });
 
 test('推薦結果呈現淺色儀表板與資料狀態 @responsive', async ({ page }) => {
@@ -147,17 +145,78 @@ test('推薦結果呈現淺色儀表板與資料狀態 @responsive', async ({ pa
   }));
 
   await page.goto('/recommendations');
-  await page.getByLabel('推薦市場').selectOption('台北市場');
-  await page.getByLabel('推薦分類').selectOption('leafy-vegetables');
-  await page.getByRole('button', { name: 'AI推薦' }).click();
-
-  await expect(page.getByRole('heading', { name: '葉菜類採買與行動總覽' })).toBeVisible();
-  await expect(page.locator('.recommendation-dashboard-kpi')).toHaveCount(4);
-  await expect(page.getByRole('heading', { name: '價格狀態分布' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '市場趨勢' })).toBeVisible();
-  await expect(page.locator('.recommendation-dashboard-insight')).toHaveCount(4);
+  await expect(page.getByRole('heading', { level: 1, name: '每日 AI 推薦快照' })).toBeVisible();
+  await page.getByRole('button', { name: 'AI 推薦' }).click();
+  await expect(page.locator('.daily-recommendation-result')).toBeVisible();
+  await expect(page.locator('.daily-decision-grid')).toBeVisible();
+  await page.locator('.daily-details-card > summary').click();
+  await expect(page.locator('.daily-source-card')).toContainText('價格方向預測：有納入');
+  await expect(page.locator('.daily-source-card')).toContainText('最近農業新知：有納入');
+  await expect(page.locator('.daily-source-warnings')).toContainText('下一個交易日');
+  await expect(page.locator('.daily-highlight-grid')).toContainText('優先採買');
   const viewport = await readViewportMetrics(page);
   expect(viewport.bodyScrollWidth).toBeLessThanOrEqual(viewport.viewportWidth);
+});
+
+test('新版角色化決策 JSON 只呈現四個決策重點 @responsive', async ({ page }) => {
+  const document = {
+    schema_version: 2,
+    recommendation_date: '2026-07-31',
+    generated_at: '2026-08-01T09:00:00+08:00',
+    generator: { type: 'manual-chatgpt', api_called: false },
+    market: { key: 'taipei-1', name: '台北一', region: '北部' },
+    source_summary: {
+      latest_trade_date: '2026-07-31',
+      trade_data_age_days: 0,
+      prediction_target_date: null,
+      news_start_date: '2026-07-25',
+      news_end_date: '2026-07-31',
+      product_count: 22,
+      includes_price_prediction: true,
+      includes_recent_news: true,
+      missing_sources: [],
+      source_warnings: [],
+    },
+    market_summary: {
+      headline: '供應量高的根菜與瓜果可優先比較。',
+      overview: '完整市場分析放在詳細依據。',
+      key_signals: ['蘿蔔平均價格較低且交易量高。'],
+    },
+    recommendations: {
+      consumer: {
+        role: 'consumer',
+        role_label: '消費者',
+        headline: '先買低價高量品項，高價品分批買。',
+        decision: {
+          primary: { label: '優先採買', items: ['蘿蔔-進口', '西瓜-大西瓜'], reason: '價格較低且交易量高。' },
+          watch: ['零售價可能高於批發平均價。'],
+          know: ['行情資料是批發市場平均價。'],
+          do: ['先比較實際零售價。', '高價品項少量分批購買。'],
+          evidence: ['蘿蔔-進口平均價格 12.8、交易量 31,840。'],
+        },
+      },
+    },
+  };
+  await page.route('**/recommendations-daily/latest.json', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ schema_version: 2, markets: { 'taipei-1': 'v2/taipei-1.json' } }),
+  }));
+  await page.route('**/recommendations-daily/v2/taipei-1.json', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(document),
+  }));
+
+  await page.goto('/recommendations');
+  await page.getByRole('button', { name: 'AI 推薦' }).click();
+  await expect(page.locator('.daily-decision-grid')).toBeVisible();
+  await expect(page.locator('.daily-decision-grid')).toContainText('優先採買');
+  await expect(page.locator('.daily-decision-grid')).toContainText('要注意什麼');
+  await expect(page.locator('.daily-decision-grid')).toContainText('必須知道什麼');
+  await expect(page.locator('.daily-decision-grid')).toContainText('現在怎麼做');
+  await expect(page.locator('.daily-details-card')).toContainText('查看完整判斷依據與資料來源');
+  await expect(page.locator('.daily-recommendation-columns')).toHaveCount(0);
 });
 
 test('新知頁只保留農產新知內容 @responsive', async ({ page }) => {
