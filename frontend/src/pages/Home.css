@@ -652,6 +652,8 @@
   border-radius: 12px;
   padding: 16px;
   background: #fdfbf7;
+  position: relative;
+  z-index: 0;
 }
 
 .map-caption {
