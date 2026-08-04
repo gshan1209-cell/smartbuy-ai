@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
-  "recommendation_date": "2026-08-03",
-  "generated_at": "2026-08-03T14:03:00+08:00",
+  "recommendation_date": "2026-08-04",
+  "generated_at": "2026-08-04T09:29:00+08:00",
   "markets": {
-    "taipei-1": "2026-08-03-github-upload-30789244221/taipei-1.json",
-    "taichung-city": "2026-08-03-github-upload-30789244221/taichung-city.json",
-    "kaohsiung-city": "2026-08-03-github-upload-30789244221/kaohsiung-city.json"
+    "taipei-1": "2026-08-04-github-upload-30869105791/taipei-1.json",
+    "taichung-city": "2026-08-04-github-upload-30869105791/taichung-city.json",
+    "kaohsiung-city": "2026-08-04-github-upload-30869105791/kaohsiung-city.json"
   },
-  "release_dir": "2026-08-03-github-upload-30789244221"
+  "release_dir": "2026-08-04-github-upload-30869105791"
 }
