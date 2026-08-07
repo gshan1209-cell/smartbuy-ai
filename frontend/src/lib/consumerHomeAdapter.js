@@ -7,12 +7,16 @@ const statusPriority = {
   資料不足: 3,
 };
 
+// Render 冷啟動偶爾會超過一般 8 秒讀取上限。首頁行情是首屏核心資料，
+// 沿用菜籃的延長等待時間，避免冷啟動期間誤顯示「暫時無法取得菜價」。
+export const HOME_PRODUCTS_TIMEOUT_MS = 20_000;
+
 export async function loadConsumerHome(getApi, market = '') {
   const path = market
     ? `/api/products?market=${encodeURIComponent(market)}`
     : '/api/products';
   try {
-    const response = await getApi(path);
+    const response = await getApi(path, { timeoutMs: HOME_PRODUCTS_TIMEOUT_MS });
     const items = Array.isArray(response) ? response : [];
 
     return { items, isDemo: false };
